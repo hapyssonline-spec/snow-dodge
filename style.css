@@ -1,88 +1,98 @@
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+/* Минималистичный UI под iPhone + safe-area */
+:root{
+  --bg:#0b1621;
+  --panel:#101f30;
+  --panel2:#0f1a24;
+  --text:#e9f2ff;
+  --muted:#a6b9da;
+  --accent:#7bd3ff;
+  --good:#66e6a0;
+  --warn:#ffd166;
+  --bad:#ff6b6b;
+  --stroke: rgba(166,185,218,.18);
 }
 
-html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* Чтобы не было прокрутки */
-    background: #000;
-    touch-action: none; /* Отключаем свайпы/зум браузера по умолчанию */
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+*{box-sizing:border-box}
+html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,Arial,sans-serif;}
+#app{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-#game-container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    background: #000;
+#topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 12px;
+  background: linear-gradient(180deg, rgba(16,31,48,.96), rgba(16,31,48,.72));
+  border-bottom: 1px solid var(--stroke);
+  gap:10px;
+}
+.stat{min-width:84px}
+.stat.right{text-align:right}
+.label{font-size:10px; letter-spacing:.16em; color:var(--muted)}
+.value{font-size:20px; font-weight:800; margin-top:2px}
+.center{flex:1; text-align:center}
+.title{font-weight:900; letter-spacing:.10em}
+.subtitle{font-size:12px; color:var(--muted); margin-top:4px; line-height:1.2}
+
+#stage{position:relative; flex:1; display:flex; background: radial-gradient(1200px 700px at 50% 20%, rgba(123,211,255,.10), transparent 60%);}
+#game{width:100%; height:100%; display:block; touch-action:none; background: transparent;}
+
+#bottombar{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 12px;
+  border-top: 1px solid var(--stroke);
+  background: linear-gradient(0deg, rgba(16,31,48,.95), rgba(16,31,48,.70));
+}
+.chip{
+  flex:1;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.65);
+  color: var(--muted);
+  font-size:12px;
+  line-height:1.25;
+}
+.chipBtn{
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.65);
+  color: var(--text);
+  font-weight:800;
 }
 
-#game {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-    touch-action: none; /* жесты обрабатываем сами */
+#overlay{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:18px;
+  backdrop-filter: blur(10px);
+  background: rgba(11,22,33,.55);
 }
+.hidden{display:none !important;}
 
-/* UI поверх игры */
-#ui-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none; /* События по умолчанию проходят сквозь UI */
+.card{
+  width:min(420px, 100%);
+  border-radius:18px;
+  border:1px solid var(--stroke);
+  background: rgba(16,31,48,.92);
+  padding:16px;
+  box-shadow: 0 14px 50px rgba(0,0,0,.30);
 }
-
-#top-bar {
-    position: absolute;
-    top: env(safe-area-inset-top, 8px);
-    left: env(safe-area-inset-left, 8px);
-    right: env(safe-area-inset-right, 8px);
-    height: 32px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 8px;
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    font-size: 14px;
-    border-radius: 8px;
-    pointer-events: auto; /* Если захочешь кликать по UI */
+.h1{font-size:22px; font-weight:900; margin-bottom:6px}
+.p{color:var(--muted); margin-bottom:14px; line-height:1.35}
+.row{display:flex; gap:10px}
+button{
+  flex:1;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.80);
+  color: var(--text);
+  font-weight:900;
 }
-
-#bottom-bar {
-    position: absolute;
-    bottom: env(safe-area-inset-bottom, 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    height: 64px;
-    min-width: 60%;
-    max-width: 95%;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-}
-
-/* Пример стиля для будущих кнопок */
-.button {
-    min-width: 44px;
-    min-height: 44px;
-    margin: 0 4px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(255,255,255,0.1);
-    color: #fff;
-    text-align: center;
-    font-size: 14px;
-}
+button.secondary{background: rgba(15,26,36,.55)}
+button:active{transform:translateY(1px)}
+.small{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.35}

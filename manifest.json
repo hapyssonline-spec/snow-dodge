@@ -1,10 +1,11 @@
 {
-  "name": "Моя стратегия",
-  "short_name": "Стратегия",
-  "start_url": "index.html",
-  "display": "fullscreen",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "name": "Рыбалка — мини-игра",
+  "short_name": "Рыбалка",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1621",
+  "theme_color": "#0b1621",
   "icons": [
     {
       "src": "icon-192.png",

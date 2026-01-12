@@ -1,41 +1,58 @@
-// sw.js — простой Service Worker для кэша игры
+// sw.js — простой кеш для оффлайн-режима
+// ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
+const CACHE_VERSION = "icefish-v2";
+const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
-const CACHE_NAME = 'ios-strategy-cache-v1';
 const ASSETS = [
-  'index.html',
-  'style.css',
-  'main.js',
-  'manifest.json',
-  // Добавь сюда свои ассеты: картинки, звуки, шрифты и т.д.
-  // 'assets/tiles.png',
-  // 'assets/hero.png',
+  "./",
+  "./index.html",
+  "./style.css",
+  "./main.js",
+  "./manifest.json",
+  "./icon-180.png",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
-  );
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(ASSETS);
+    self.skipWaiting();
+  })());
 });
 
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      )
-    )
-  );
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))));
+    self.clients.claim();
+  })());
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      // Если нашли в кэше — отдаём, иначе идём в сеть
-      return response || fetch(event.request);
-    })
-  );
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(req, { ignoreSearch: true });
+    if (cached) return cached;
+
+    try {
+      const fresh = await fetch(req);
+      // cache successful same-origin responses
+      if (fresh && fresh.ok && new URL(req.url).origin === location.origin) {
+        cache.put(req, fresh.clone());
+      }
+      return fresh;
+    } catch (e) {
+      // fallback to index for navigation
+      if (req.mode === "navigate") {
+        const fallback = await cache.match("./index.html");
+        if (fallback) return fallback;
+      }
+      throw e;
+    }
+  })());
 });

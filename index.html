@@ -1,38 +1,68 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <title>Моя стратегия</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1621" />
 
-    <!-- iOS: полноэкранный режим как у приложения -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Стратегия" />
+  <!-- iOS: режим "как приложение" при добавлении на экран Домой -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Рыбалка" />
 
-    <!-- Иконка для экрана «Домой» -->
-    <link rel="apple-touch-icon" href="icon-180.png" />
+  <title>Рыбалка — мини-игра</title>
 
-    <!-- PWA манифест -->
-    <link rel="manifest" href="manifest.json" />
+  <!-- Иконки (можешь оставить свои текущие icon-*.png в репозитории) -->
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="manifest" href="manifest.json" />
 
-    <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div id="game-container">
-        <canvas id="game"></canvas>
-        <div id="ui-overlay">
-            <div id="top-bar">
-                <span id="resource-gold">Монеты: 0</span>
-                <span id="resource-wood">Рыба: 0</span>
-            </div>
-            <!-- Пример блока под виртуальные кнопки, если захочешь -->
-            <div id="bottom-bar">
-                <!-- Здесь можно разместить кнопки построек/юнитов под палец -->
-            </div>
-        </div>
-    </div>
+  <div id="app">
+    <header id="topbar">
+      <div class="stat">
+        <div class="label">МОНЕТЫ</div>
+        <div id="coins" class="value">0</div>
+      </div>
 
-    <script src="main.js"></script>
+      <div class="center">
+        <div class="title">ICE FISH</div>
+        <div id="subtitle" class="subtitle">Тап — заброс. Поклёвка → свайп вверх. Тапы — выматывать.</div>
+      </div>
+
+      <div class="stat right">
+        <div class="label">РЫБА</div>
+        <div id="fish" class="value">0</div>
+      </div>
+    </header>
+
+    <main id="stage">
+      <canvas id="game"></canvas>
+
+      <div id="overlay" class="hidden">
+        <div class="card">
+          <div class="h1">Рыбалка</div>
+          <div class="p" id="ovText">Тапни, чтобы начать.</div>
+
+          <div class="row">
+            <button id="btnPlay">Играть</button>
+            <button id="btnReset" class="secondary">Сброс</button>
+          </div>
+
+          <div class="small">
+            Совет: открой в Safari и добавь на экран «Домой» — будет как приложение.
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer id="bottombar">
+      <div class="chip" id="chipHint">Готово: тапни по воде, чтобы забросить.</div>
+      <button id="btnMute" class="chipBtn" aria-label="Звук">Звук: Вкл</button>
+    </footer>
+  </div>
+
+  <script src="main.js"></script>
 </body>
 </html>

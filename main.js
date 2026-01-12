@@ -1,5 +1,3 @@
-// main.js — мини-игра "Рыбалка" (iPhone/Safari friendly)
-
 (() => {
   "use strict";
 
@@ -7,14 +5,51 @@
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: false });
 
-  const goldEl = document.getElementById("resource-gold"); // слева
-  const woodEl = document.getElementById("resource-wood"); // справа (переиспользуем под "Рыба")
+  const coinsEl = document.getElementById("coins");
+  const fishEl = document.getElementById("fish");
+  const subtitleEl = document.getElementById("subtitle");
+  const chipHint = document.getElementById("chipHint");
 
-  // ===== Utils =====
+  const overlay = document.getElementById("overlay");
+  const ovText = document.getElementById("ovText");
+  const btnPlay = document.getElementById("btnPlay");
+  const btnReset = document.getElementById("btnReset");
+  const btnMute = document.getElementById("btnMute");
+
+  // ===== Helpers =====
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + Math.random() * (b - a);
 
-  // ===== Viewport / DPI =====
+  // ===== Audio (optional, simple beeps via WebAudio) =====
+  let audioCtx = null;
+  let muted = false;
+
+  function beep(freq = 440, dur = 0.06, vol = 0.06) {
+    if (muted) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      o.start(t0);
+      o.stop(t0 + dur);
+    } catch {}
+  }
+
+  btnMute?.addEventListener("click", () => {
+    muted = !muted;
+    btnMute.textContent = `Звук: ${muted ? "Выкл" : "Вкл"}`;
+    if (!muted) beep(660, 0.06, 0.05);
+  });
+
+  // ===== DPI / Resize =====
   let W = 0, H = 0, DPR = 1;
 
   function resize() {
@@ -27,398 +62,475 @@
     canvas.height = Math.floor(H * DPR);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-    // при ресайзе держим ключевые элементы в адекватных местах
-    lake.y = Math.floor(H * 0.58);
-    dock.y = lake.y - 10;
-    rod.baseX = Math.floor(W * 0.25);
-    rod.baseY = dock.y - 20;
-  }
+    scene.horizonY = Math.floor(H * 0.44);
+    scene.lakeY = Math.floor(H * 0.58);
+    scene.dockY = scene.lakeY - 12;
 
+    rod.baseX = Math.floor(W * 0.22);
+    rod.baseY = scene.dockY - 14;
+    rod.tipX = rod.baseX + Math.floor(W * 0.18);
+    rod.tipY = rod.baseY - Math.floor(H * 0.16);
+
+    // keep bobber stable if visible
+    if (bobber.visible) {
+      bobber.x = clamp(bobber.x, W * 0.34, W * 0.92);
+      bobber.y = clamp(bobber.y, scene.lakeY + 16, H - 30);
+    }
+  }
   window.addEventListener("resize", resize);
 
-  // ===== Game Data =====
-  const ui = {
+  // ===== Persistent state =====
+  const STORAGE_KEY = "icefish_v1";
+
+  const stats = {
     coins: 0,
     fish: 0,
-    best: 0,
+    bestCoin: 0,
   };
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      stats.coins = Number(obj.coins || 0);
+      stats.fish = Number(obj.fish || 0);
+      stats.bestCoin = Number(obj.bestCoin || 0);
+      muted = !!obj.muted;
+      if (btnMute) btnMute.textContent = `Звук: ${muted ? "Выкл" : "Вкл"}`;
+    } catch {}
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        coins: stats.coins,
+        fish: stats.fish,
+        bestCoin: stats.bestCoin,
+        muted
+      }));
+    } catch {}
+  }
+
+  function resetProgress() {
+    stats.coins = 0;
+    stats.fish = 0;
+    stats.bestCoin = 0;
+    save();
+    updateHUD();
+  }
+
+  btnReset?.addEventListener("click", () => {
+    resetProgress();
+    setOverlayText("Прогресс сброшен. Нажми «Играть».");
+  });
 
   function updateHUD() {
-    // Переиспользуем твои спаны: "Золото" -> "Монеты", "Дерево" -> "Рыба"
-    if (goldEl) goldEl.textContent = `Монеты: ${ui.coins}`;
-    if (woodEl) woodEl.textContent = `Рыба: ${ui.fish}`;
+    if (coinsEl) coinsEl.textContent = String(stats.coins);
+    if (fishEl) fishEl.textContent = String(stats.fish);
   }
 
-  const lake = { y: 0 };
-  const dock = { y: 0 };
+  // ===== Scene objects =====
+  const scene = {
+    t: 0,
+    horizonY: 0,
+    lakeY: 0,
+    dockY: 0,
+  };
 
   const rod = {
-    baseX: 0,
-    baseY: 0,
-    tipX: 0,
-    tipY: 0,
+    baseX: 0, baseY: 0,
+    tipX: 0, tipY: 0,
   };
 
-  // Bobber / line
   const bobber = {
-    x: 0,
-    y: 0,
-    vx: 0,
-    vy: 0,
+    x: 0, y: 0,
+    vx: 0, vy: 0,
     r: 10,
-    inWater: false,
     visible: false,
-    waveT: 0,
+    inWater: false,
+    wave: 0,
   };
 
-  // Fishing states
-  // IDLE -> CASTING -> WAITING -> BITE -> HOOKED -> REELING -> LANDED (then back to IDLE)
-  const state = {
-    mode: "IDLE",
+  // ===== Gameplay state machine =====
+  // IDLE -> CASTING -> WAITING -> BITE -> HOOKED -> REELING -> LANDED/ESCAPED
+  const game = {
+    mode: "INTRO",
     t: 0,
     biteAt: 0,
-    biteWindow: 0.85,     // сек на подсечку
-    hooked: false,
-    fishPower: 0,         // "сила" рыбы
-    reel: 0,              // прогресс выматывания 0..1
-    reelNeed: 0.0,        // сколько нужно "накрутить"
-    reelDecay: 0.0,       // сопротивление (сбрасывает прогресс)
-    reward: 0,            // монеты за рыбу
+    biteWindow: 0.95,
+    fishPower: 0.0,
     rarity: "обычная",
-    message: "Тапни, чтобы забросить.",
-    messageT: 0,
-    lastTapT: 0,
+    reward: 0,
+    // reel mechanics
+    progress: 0,
+    need: 1.0,
+    tension: 0.35,    // 0..1
+    tensionVel: 0.0,
+    // input
+    lastTap: 999,
+    // messages
+    msg: "",
+    msgT: 0,
   };
 
-  function setMessage(text, seconds = 1.4) {
-    state.message = text;
-    state.messageT = seconds;
+  function setHint(text) {
+    if (chipHint) chipHint.textContent = text;
   }
 
-  // ===== Input =====
+  function setSubtitle(text) {
+    if (subtitleEl) subtitleEl.textContent = text;
+  }
+
+  function setMsg(text, seconds = 1.2) {
+    game.msg = text;
+    game.msgT = seconds;
+    setHint(text);
+  }
+
+  function showOverlay() {
+    overlay?.classList.remove("hidden");
+  }
+  function hideOverlay() {
+    overlay?.classList.add("hidden");
+  }
+  function setOverlayText(text) {
+    if (ovText) ovText.textContent = text;
+  }
+
+  function startGame() {
+    hideOverlay();
+    game.mode = "IDLE";
+    game.t = 0;
+    bobber.visible = false;
+    bobber.inWater = false;
+    setSubtitle("Тап — заброс. Поклёвка → свайп вверх. Тапы — выматывать.");
+    setHint("Тапни по воде, чтобы забросить.");
+    updateHUD();
+    save();
+  }
+
+  btnPlay?.addEventListener("click", () => {
+    // iOS: аудио можно стартовать только после жеста
+    beep(520, 0.05, 0.04);
+    startGame();
+  });
+
+  // ===== Fishing logic =====
+  function scheduleBite() {
+    game.biteAt = rand(1.2, 4.2);
+  }
+
+  function rollFish() {
+    const r = Math.random();
+    if (r < 0.08) return { rarity: "редкая", power: rand(0.72, 1.0), reward: Math.floor(rand(18, 30)) };
+    if (r < 0.28) return { rarity: "необычная", power: rand(0.46, 0.78), reward: Math.floor(rand(10, 17)) };
+    return { rarity: "обычная", power: rand(0.25, 0.55), reward: Math.floor(rand(5, 9)) };
+  }
+
+  function castTo(x, y) {
+    game.mode = "CASTING";
+    game.t = 0;
+
+    bobber.visible = true;
+    bobber.inWater = false;
+    bobber.wave = 0;
+
+    bobber.x = rod.baseX + 18;
+    bobber.y = rod.baseY - 6;
+
+    const tx = clamp(x, W * 0.40, W * 0.92);
+    const ty = scene.lakeY + 18;
+
+    const flight = 0.55;
+    bobber.vx = (tx - bobber.x) / flight;
+    bobber.vy = (ty - bobber.y) / flight - 230;
+
+    beep(440, 0.06, 0.04);
+    setMsg("Заброс.", 0.7);
+  }
+
+  function enterWaiting() {
+    game.mode = "WAITING";
+    game.t = 0;
+    scheduleBite();
+    setMsg("Ждём поклёвку…", 1.1);
+  }
+
+  function enterBite() {
+    game.mode = "BITE";
+    game.t = 0;
+    beep(820, 0.08, 0.05);
+    setMsg("ПОКЛЁВКА! Свайп вверх (подсечка)!", 1.0);
+  }
+
+  function escape(reason = "Сорвалась…") {
+    game.mode = "IDLE";
+    game.t = 0;
+    bobber.visible = false;
+    bobber.inWater = false;
+    beep(220, 0.10, 0.05);
+    setMsg(`${reason} Тап — забросить снова.`, 1.6);
+  }
+
+  function hook() {
+    if (game.mode !== "BITE") return;
+
+    const f = rollFish();
+    game.rarity = f.rarity;
+    game.fishPower = f.power;
+    game.reward = f.reward;
+
+    // reel mechanics
+    game.progress = 0;
+    game.need = clamp(1.0 + game.fishPower * 0.65, 1.05, 1.65);
+    game.tension = 0.35 + game.fishPower * 0.10;
+    game.tensionVel = 0;
+
+    game.mode = "HOOKED";
+    game.t = 0;
+    beep(960, 0.06, 0.06);
+    setMsg(`Подсечка! Рыба: ${game.rarity}.`, 1.0);
+  }
+
+  function startReel() {
+    game.mode = "REELING";
+    game.t = 0;
+    game.lastTap = 999;
+    setMsg("Тапай, чтобы выматывать. Следи за натяжением!", 1.2);
+  }
+
+  function land() {
+    stats.fish += 1;
+    stats.coins += game.reward;
+    stats.bestCoin = Math.max(stats.bestCoin, game.reward);
+    updateHUD();
+    save();
+
+    game.mode = "LANDED";
+    game.t = 0;
+    beep(660, 0.08, 0.06);
+    setMsg(`Поймал! +${game.reward} монет (${game.rarity}).`, 1.6);
+  }
+
+  // ===== Input (tap + swipe) =====
   let pointerDown = false;
-  let pointerId = null;
   let startX = 0, startY = 0;
   let lastX = 0, lastY = 0;
-  let swipeConsumed = false;
+  let swipeDone = false;
 
   function getXY(e) {
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left),
-      y: (e.clientY - rect.top),
-    };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
 
-  function onPointerDown(e) {
-    // iOS needs preventDefault to avoid scroll
+  function onDown(e) {
     e.preventDefault();
-
     pointerDown = true;
-    pointerId = e.pointerId ?? null;
+    swipeDone = false;
     const p = getXY(e);
     startX = lastX = p.x;
     startY = lastY = p.y;
-    swipeConsumed = false;
 
-    // Tap behavior depends on mode
-    if (state.mode === "IDLE") {
-      startCast(p.x, p.y);
+    // tap actions
+    if (game.mode === "IDLE") {
+      // cast to tap point (or mid-lake if tap outside)
+      const y = clamp(p.y, scene.lakeY - 10, H - 20);
+      castTo(p.x, y);
       return;
     }
 
-    if (state.mode === "REELING") {
-      // Тапы увеличивают прогресс — основной "геймплей"
-      tapReel();
+    if (game.mode === "REELING") {
+      // reel tap: increases progress but may also increase tension slightly
+      game.lastTap = 0;
+      const baseGain = 0.070 - game.fishPower * 0.020;
+      const gain = Math.max(0.030, baseGain);
+      game.progress += gain;
+
+      // tapping adds a small tension bump; good if tension low, risky if high
+      game.tension += 0.020 + game.fishPower * 0.010;
+
+      beep(520, 0.03, 0.03);
       return;
     }
-
-    // В остальных режимах тап — просто игнор/подсказка
   }
 
-  function onPointerMove(e) {
+  function onMove(e) {
     if (!pointerDown) return;
     e.preventDefault();
-
     const p = getXY(e);
     lastX = p.x;
     lastY = p.y;
 
-    // Swipes only matter during BITE
-    if (state.mode === "BITE" && !swipeConsumed) {
+    // swipe up during bite
+    if (game.mode === "BITE" && !swipeDone) {
       const dy = p.y - startY;
       const dx = p.x - startX;
 
-      // Свайп вверх: dy < -40, и по оси Y доминирует
       if (dy < -42 && Math.abs(dy) > Math.abs(dx) * 1.2) {
-        swipeConsumed = true;
-        tryHook();
+        swipeDone = true;
+        hook();
       }
     }
   }
 
-  function onPointerUp(e) {
+  function onUp(e) {
     e.preventDefault();
     pointerDown = false;
-    pointerId = null;
   }
 
   canvas.style.touchAction = "none";
-  canvas.addEventListener("pointerdown", onPointerDown, { passive: false });
-  canvas.addEventListener("pointermove", onPointerMove, { passive: false });
-  canvas.addEventListener("pointerup", onPointerUp, { passive: false });
-  canvas.addEventListener("pointercancel", onPointerUp, { passive: false });
+  canvas.addEventListener("pointerdown", onDown, { passive: false });
+  canvas.addEventListener("pointermove", onMove, { passive: false });
+  canvas.addEventListener("pointerup", onUp, { passive: false });
+  canvas.addEventListener("pointercancel", onUp, { passive: false });
 
-  // ===== Gameplay =====
-  function startCast(px, py) {
-    // Заброс: всегда "в озеро" (правее центра)
-    state.mode = "CASTING";
-    state.t = 0;
-    state.hooked = false;
-    state.reel = 0;
-    state.reelNeed = 0;
-    state.reward = 0;
-
-    bobber.visible = true;
-    bobber.inWater = false;
-    bobber.waveT = 0;
-
-    // старт у удочки
-    bobber.x = rod.baseX + 20;
-    bobber.y = rod.baseY - 6;
-
-    // цель — точка на воде
-    const tx = clamp(px, W * 0.40, W * 0.92);
-    const ty = lake.y + 18;
-
-    // "парабола" простая: задаём скорость так, чтобы долетело
-    const flight = 0.55;
-    bobber.vx = (tx - bobber.x) / flight;
-    bobber.vy = (ty - bobber.y) / flight - 220; // вверх
-
-    setMessage("Заброс!", 0.8);
-  }
-
-  function scheduleBite() {
-    // поклёвка через 1.2..3.8 сек
-    state.biteAt = rand(1.2, 3.8);
-  }
-
-  function rollFish() {
-    // простая "редкость"
-    const r = Math.random();
-    if (r < 0.08) return { rarity: "редкая", power: rand(0.70, 1.0), reward: Math.floor(rand(18, 30)) };
-    if (r < 0.28) return { rarity: "необычная", power: rand(0.45, 0.75), reward: Math.floor(rand(10, 17)) };
-    return { rarity: "обычная", power: rand(0.25, 0.50), reward: Math.floor(rand(5, 9)) };
-  }
-
-  function startWaiting() {
-    state.mode = "WAITING";
-    state.t = 0;
-    scheduleBite();
-    setMessage("Ждём поклёвку...", 1.2);
-  }
-
-  function startBite() {
-    state.mode = "BITE";
-    state.t = 0;
-    setMessage("ПОКЛЁВКА! Свайп вверх для подсечки!", 1.0);
-  }
-
-  function tryHook() {
-    if (state.mode !== "BITE") return;
-    // шанс успешной подсечки: если успел в окно — 100%, иначе уже истёк
-    const fish = rollFish();
-    state.rarity = fish.rarity;
-    state.fishPower = fish.power;
-    state.reward = fish.reward;
-
-    state.mode = "HOOKED";
-    state.t = 0;
-
-    // параметры выматывания
-    state.reel = 0;
-    state.reelNeed = clamp(0.95 + state.fishPower * 0.65, 1.0, 1.55); // нужно "намотать" больше для сильной
-    state.reelDecay = 0.10 + state.fishPower * 0.22;
-
-    setMessage(`Подсечка! Рыба: ${state.rarity}. Тапай быстро, чтобы вытащить!`, 1.4);
-  }
-
-  function escape() {
-    // срыв
-    state.mode = "IDLE";
-    state.t = 0;
-    bobber.visible = false;
-    bobber.inWater = false;
-    setMessage("Сорвалась… Тапни, чтобы забросить снова.", 1.6);
-  }
-
-  function landFish() {
-    ui.fish += 1;
-    ui.coins += state.reward;
-    ui.best = Math.max(ui.best, state.reward);
-
-    updateHUD();
-
-    state.mode = "LANDED";
-    state.t = 0;
-
-    setMessage(`Поймал! +${state.reward} монет (${state.rarity}).`, 1.6);
-  }
-
-  function tapReel() {
-    if (state.mode !== "REELING") return;
-    // тап прибавляет прогресс, но сильная рыба требует больше тапов
-    const gain = 0.065 - state.fishPower * 0.020; // сильнее — меньше прирост
-    state.reel += Math.max(0.028, gain);
-    state.lastTapT = 0;
-  }
-
-  // ===== Update / Physics =====
+  // ===== Update loop =====
   let lastTime = 0;
 
   function update(dt) {
-    state.t += dt;
-    if (state.messageT > 0) state.messageT -= dt;
+    scene.t += dt;
+    game.t += dt;
+    game.lastTap += dt;
+    if (game.msgT > 0) game.msgT -= dt;
 
-    // линия и кончик удочки к поплавку
-    rod.tipX = rod.baseX + 70;
-    rod.tipY = rod.baseY - 60;
-
-    // обновление поплавка
+    // bobber physics
     if (bobber.visible) {
-      if (state.mode === "CASTING") {
-        // простая баллистика
+      if (game.mode === "CASTING") {
         bobber.x += bobber.vx * dt;
         bobber.y += bobber.vy * dt;
-        bobber.vy += 620 * dt; // гравитация
+        bobber.vy += 620 * dt;
 
-        // вход в воду
-        if (bobber.y >= lake.y + 18) {
-          bobber.y = lake.y + 18;
+        if (bobber.y >= scene.lakeY + 18) {
+          bobber.y = scene.lakeY + 18;
           bobber.vx *= 0.12;
           bobber.vy = 0;
           bobber.inWater = true;
-
-          // переключаемся в ожидание
-          startWaiting();
+          enterWaiting();
         }
       } else if (bobber.inWater) {
-        // плавает
-        bobber.waveT += dt * (1.4 + state.fishPower * 0.6);
-        const amp = (state.mode === "BITE") ? 4.0 : 1.4;
-        bobber.y = lake.y + 18 + Math.sin(bobber.waveT * 6.0) * amp;
-        // легкий дрейф
-        bobber.x += Math.sin(bobber.waveT * 1.2) * 0.25;
+        bobber.wave += dt * (1.4 + game.fishPower * 0.7);
+        const amp = (game.mode === "BITE") ? 4.6 : (game.mode === "REELING" ? 2.2 : 1.4);
+        bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * amp;
+        bobber.x += Math.sin(bobber.wave * 1.2) * 0.25;
       }
     }
 
-    // логика состояний
-    if (state.mode === "WAITING") {
-      if (state.t >= state.biteAt) startBite();
+    // state transitions
+    if (game.mode === "WAITING") {
+      if (game.t >= game.biteAt) enterBite();
     }
 
-    if (state.mode === "BITE") {
-      // окно подсечки
-      if (state.t > state.biteWindow) {
-        escape();
-      } else {
-        // визуальная тряска поплавка
-        bobber.waveT += dt * 2.5;
+    if (game.mode === "BITE") {
+      if (game.t > game.biteWindow) escape("Не успел подсечь");
+    }
+
+    if (game.mode === "HOOKED") {
+      if (game.t > 0.25) startReel();
+    }
+
+    if (game.mode === "REELING") {
+      // fish resistance: tension tends to increase; if you spam taps, tension spikes
+      const pull = (0.18 + game.fishPower * 0.22) * dt;
+      game.tension += pull;
+
+      // decay tension when you stop tapping (line relaxes a bit)
+      if (game.lastTap > 0.18) {
+        game.tension -= (0.22 - game.fishPower * 0.06) * dt;
       }
-    }
 
-    if (state.mode === "HOOKED") {
-      // короткая пауза, затем выматывание
-      if (state.t > 0.25) {
-        state.mode = "REELING";
-        state.t = 0;
+      // clamp
+      game.tension = clamp(game.tension, 0, 1.2);
+
+      // progress decay (fish pulls line out)
+      const progDecay = (0.040 + game.fishPower * 0.055) * dt;
+      game.progress = Math.max(0, game.progress - progDecay);
+
+      // moving bobber toward shore with progress
+      const p = clamp(game.progress / game.need, 0, 1);
+      bobber.x = lerp(W * 0.78, W * 0.42, p);
+      bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * 1.6;
+
+      // lose conditions
+      if (game.tension >= 1.0) {
+        escape("Леска лопнула");
+        return;
       }
-    }
-
-    if (state.mode === "REELING") {
-      // сопротивление: если не тапать — прогресс уменьшается
-      state.lastTapT += dt;
-
-      const decay = state.reelDecay * dt * (1.0 + Math.min(1.5, state.lastTapT * 1.2));
-      state.reel = Math.max(0, state.reel - decay);
-
-      // чтобы не было “вечной” рыбы: общий таймер
-      const timeLimit = 6.5 - state.fishPower * 2.2; // сильная — меньше времени
-      if (state.t > timeLimit) {
-        escape();
+      if (game.t > (7.2 - game.fishPower * 2.2)) {
+        escape("Ушла в глубину");
         return;
       }
 
-      // победа
-      if (state.reel >= state.reelNeed) {
-        landFish();
+      // win condition
+      if (game.progress >= game.need) {
+        land();
         return;
       }
 
-      // при выматывании поплавок слегка смещается к берегу
-      const pull = (state.reel / state.reelNeed);
-      bobber.x = clamp(W * 0.70 - pull * (W * 0.40), W * 0.33, W * 0.90);
-      bobber.y = lake.y + 18 + Math.sin(bobber.waveT * 6.0) * 1.2;
-      bobber.waveT += dt;
+      // guidance hint based on tension
+      if (game.t % 0.5 < dt) {
+        if (game.tension > 0.82) setHint("Натяжение высокое — пауза, не тапай!");
+        else if (game.tension < 0.25) setHint("Натяжение низкое — можно тапать чаще.");
+        else setHint("Держи натяжение в зелёной зоне.");
+      }
     }
 
-    if (state.mode === "LANDED") {
-      if (state.t > 1.0) {
-        // назад в idle
-        state.mode = "IDLE";
-        state.t = 0;
+    if (game.mode === "LANDED") {
+      if (game.t > 1.0) {
+        game.mode = "IDLE";
+        game.t = 0;
         bobber.visible = false;
         bobber.inWater = false;
-        setMessage("Тапни, чтобы забросить.", 2.0);
+        setHint("Тапни по воде, чтобы забросить.");
       }
-    }
-
-    if (state.mode === "IDLE") {
-      // ничего
     }
   }
 
   // ===== Drawing =====
   function draw() {
-    // фон
-    ctx.fillStyle = "#0f1a24";
+    // background
+    ctx.fillStyle = "#0b1621";
     ctx.fillRect(0, 0, W, H);
 
-    // небо
-    const skyH = lake.y;
-    const grad = ctx.createLinearGradient(0, 0, 0, skyH);
-    grad.addColorStop(0, "#0b1621");
-    grad.addColorStop(1, "#13283a");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, skyH);
+    // sky gradient
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, scene.horizonY);
+    skyGrad.addColorStop(0, "#07121b");
+    skyGrad.addColorStop(1, "#132b3f");
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, W, scene.horizonY + 2);
 
-    // дальний лес (силуэты)
+    // horizon fog
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#cfe7ff";
+    ctx.fillRect(0, scene.horizonY - 10, W, 24);
+    ctx.globalAlpha = 1;
+
+    // distant treeline
     ctx.globalAlpha = 0.22;
-    ctx.fillStyle = "#081018";
-    const horizonY = lake.y - 18;
+    ctx.fillStyle = "#061018";
+    const hy = scene.horizonY + 10;
     ctx.beginPath();
-    ctx.moveTo(0, horizonY);
-    for (let x = 0; x <= W; x += 22) {
-      const h = 10 + Math.sin(x * 0.06) * 8 + rand(-2, 2);
-      ctx.lineTo(x, horizonY - h);
+    ctx.moveTo(0, hy);
+    for (let x = 0; x <= W; x += 24) {
+      const h = 10 + Math.sin(x * 0.07 + scene.t * 0.4) * 7 + rand(-1, 1);
+      ctx.lineTo(x, hy - h);
     }
-    ctx.lineTo(W, horizonY + 80);
-    ctx.lineTo(0, horizonY + 80);
+    ctx.lineTo(W, hy + 80);
+    ctx.lineTo(0, hy + 80);
     ctx.closePath();
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // вода
-    ctx.fillStyle = "#0b2233";
-    ctx.fillRect(0, lake.y, W, H - lake.y);
+    // lake
+    ctx.fillStyle = "#071f2e";
+    ctx.fillRect(0, scene.lakeY, W, H - scene.lakeY);
 
-    // рябь
-    ctx.globalAlpha = 0.12;
+    // ripples
+    ctx.globalAlpha = 0.14;
     ctx.strokeStyle = "#9ad1ff";
     ctx.lineWidth = 1;
-    for (let i = 0; i < 9; i++) {
-      const y = lake.y + 22 + i * 26 + Math.sin((performance.now() / 900) + i) * 4;
+    for (let i = 0; i < 10; i++) {
+      const y = scene.lakeY + 24 + i * 24 + Math.sin(scene.t * 1.1 + i) * 4;
       ctx.beginPath();
       ctx.moveTo(W * 0.08, y);
       ctx.quadraticCurveTo(W * 0.52, y + Math.sin(i) * 6, W * 0.92, y);
@@ -426,124 +538,173 @@
     }
     ctx.globalAlpha = 1;
 
-    // пирс/берег
-    ctx.fillStyle = "#1a2b3b";
-    ctx.fillRect(0, dock.y, W, 14);
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, dock.y + 12, W, 3);
+    // dock
+    ctx.fillStyle = "#162433";
+    ctx.fillRect(0, scene.dockY, W, 14);
+    ctx.globalAlpha = 0.30;
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, scene.dockY + 12, W, 3);
     ctx.globalAlpha = 1;
 
-    // персонаж (очень просто)
+    // fisherman
     const manX = rod.baseX - 12;
-    const manY = rod.baseY - 12;
-    ctx.fillStyle = "#dfe9f7";
+    const manY = rod.baseY - 10;
+
+    // body
+    ctx.fillStyle = "#eaf2ff";
+    roundRect(manX - 10, manY + 6, 24, 26, 8);
+    ctx.fill();
+
+    // head
     ctx.beginPath();
     ctx.arc(manX, manY, 10, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#dfe9f7";
-    ctx.fillRect(manX - 10, manY + 8, 22, 22);
 
-    // удочка
-    ctx.strokeStyle = "#cfa972";
+    // scarf
+    ctx.strokeStyle = "#7bd3ff";
     ctx.lineWidth = 4;
     ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(manX - 8, manY + 18);
+    ctx.lineTo(manX + 10, manY + 18);
+    ctx.stroke();
+
+    // rod
+    ctx.strokeStyle = "#cda873";
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(rod.baseX, rod.baseY);
     ctx.lineTo(rod.tipX, rod.tipY);
     ctx.stroke();
 
-    // леска + поплавок
+    // line + bobber
     if (bobber.visible) {
       ctx.strokeStyle = "rgba(230,240,255,0.55)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(rod.tipX, rod.tipY);
-      // небольшая дуга
+
       const midX = (rod.tipX + bobber.x) * 0.5;
       const midY = (rod.tipY + bobber.y) * 0.5 + 30;
       ctx.quadraticCurveTo(midX, midY, bobber.x, bobber.y);
       ctx.stroke();
 
-      // поплавок
+      // bobber shadow
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      ctx.beginPath();
+      ctx.arc(bobber.x + 3, bobber.y + 3, bobber.r * 0.92, 0, Math.PI * 2);
+      ctx.fill();
+
+      // bobber
       ctx.fillStyle = "#ffcc33";
       ctx.beginPath();
       ctx.arc(bobber.x, bobber.y, bobber.r, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      // highlight
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.arc(bobber.x + 3, bobber.y + 3, bobber.r * 0.85, 0, Math.PI * 2);
+      ctx.arc(bobber.x - 3, bobber.y - 3, bobber.r * 0.35, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 1;
     }
 
-    // UI подсказки поверх канваса
-    drawCenterUI();
+    // UI meters on canvas
+    if (game.mode === "REELING") {
+      drawMeters();
+    }
+
+    // short center prompt
+    drawPrompt();
   }
 
-  function drawCenterUI() {
-    // центральные подсказки
-    const text = state.messageT > 0 ? state.message : (
-      state.mode === "IDLE" ? "Тапни, чтобы забросить." :
-      state.mode === "WAITING" ? "Ждём поклёвку..." :
-      state.mode === "BITE" ? "ПОКЛЁВКА! Свайп вверх!" :
-      state.mode === "REELING" ? "Тапай, чтобы вытащить!" :
-      ""
-    );
+  function drawPrompt() {
+    const show =
+      (game.mode === "IDLE") ? "Тап: заброс" :
+      (game.mode === "WAITING") ? "Ждём…" :
+      (game.mode === "BITE") ? "Свайп вверх!" :
+      (game.mode === "REELING") ? "" :
+      "";
 
-    if (text) {
-      ctx.save();
-      ctx.font = "600 16px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+    if (!show) return;
 
-      const padX = 14;
-      const padY = 10;
-      const x = W * 0.5;
-      const y = lake.y - 70;
+    const x = W * 0.5;
+    const y = scene.lakeY - 72;
 
-      const m = ctx.measureText(text);
-      const w = Math.min(W - 24, m.width + padX * 2);
-      const h = 36;
+    ctx.save();
+    ctx.font = "700 16px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const m = ctx.measureText(show);
+    const w = Math.min(W - 24, m.width + 28);
+    const h = 36;
 
-      ctx.globalAlpha = 0.75;
-      ctx.fillStyle = "#0b0f14";
-      roundRect(x - w / 2, y - h / 2, w, h, 12);
-      ctx.fill();
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = "#0b0f14";
+    roundRect(x - w/2, y - h/2, w, h, 12);
+    ctx.fill();
 
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "#eaf2ff";
-      ctx.fillText(text, x, y);
-      ctx.restore();
-    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#eaf2ff";
+    ctx.fillText(show, x, y);
+    ctx.restore();
+  }
 
-    // прогресс выматывания
-    if (state.mode === "REELING") {
-      const x = W * 0.5;
-      const y = lake.y - 28;
-      const barW = Math.min(340, W * 0.78);
-      const barH = 14;
-      const p = clamp(state.reel / state.reelNeed, 0, 1);
+  function drawMeters() {
+    const x = W * 0.5;
+    const y = scene.lakeY - 24;
+    const barW = Math.min(360, W * 0.82);
+    const barH = 14;
 
-      ctx.save();
-      ctx.globalAlpha = 0.85;
-      ctx.fillStyle = "#0b0f14";
-      roundRect(x - barW / 2, y - barH / 2, barW, barH, 10);
-      ctx.fill();
+    // Progress (pulling fish)
+    const p = clamp(game.progress / game.need, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "#0b0f14";
+    roundRect(x - barW/2, y - barH/2, barW, barH, 10);
+    ctx.fill();
 
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = "#7bd3ff";
-      roundRect(x - barW / 2 + 2, y - barH / 2 + 2, (barW - 4) * p, barH - 4, 8);
-      ctx.fill();
+    ctx.globalAlpha = 0.90;
+    ctx.fillStyle = "#7bd3ff";
+    roundRect(x - barW/2 + 2, y - barH/2 + 2, (barW - 4) * p, barH - 4, 8);
+    ctx.fill();
 
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "#dfe9f7";
-      ctx.font = "600 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(`Рыба: ${state.rarity} • Награда: ${state.reward}`, x, y - 12);
-      ctx.restore();
-    }
+    // Tension bar below
+    const ty = y + 24;
+    const t = clamp(game.tension, 0, 1);
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "#0b0f14";
+    roundRect(x - barW/2, ty - barH/2, barW, barH, 10);
+    ctx.fill();
+
+    // green zone
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = "#66e6a0";
+    const gz0 = 0.28, gz1 = 0.72;
+    roundRect(x - barW/2 + 2 + (barW - 4) * gz0, ty - barH/2 + 2, (barW - 4) * (gz1 - gz0), barH - 4, 8);
+    ctx.fill();
+
+    // tension fill with color
+    ctx.globalAlpha = 0.92;
+    const color =
+      (t < 0.25) ? "#ffd166" :
+      (t > 0.82) ? "#ff6b6b" :
+      "#66e6a0";
+    ctx.fillStyle = color;
+    roundRect(x - barW/2 + 2, ty - barH/2 + 2, (barW - 4) * t, barH - 4, 8);
+    ctx.fill();
+
+    // labels
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#eaf2ff";
+    ctx.font = "700 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(`Выматывание: ${(p*100|0)}% • Рыба: ${game.rarity} • +${game.reward}`, x, y - 12);
+    ctx.fillText(`Натяжение лески`, x, ty - 12);
+
+    ctx.restore();
   }
 
   function roundRect(x, y, w, h, r) {
@@ -557,7 +718,6 @@
     ctx.closePath();
   }
 
-  // ===== Loop =====
   function loop(t) {
     if (!lastTime) lastTime = t;
     const dt = Math.min(0.033, (t - lastTime) / 1000);
@@ -569,18 +729,25 @@
     requestAnimationFrame(loop);
   }
 
-  // ===== Boot =====
-  // начальные позиции
-  lake.y = 0;
-  dock.y = 0;
-  rod.baseX = 0;
-  rod.baseY = 0;
+  // ===== Service Worker (optional) =====
+  // Если не хочешь кеширования — можешь удалить sw.js и блок ниже.
+  async function registerSW() {
+    try {
+      if (!("serviceWorker" in navigator)) return;
+      await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+    } catch {}
+  }
 
+  // ===== Boot =====
+  load();
+  updateHUD();
   resize();
 
-  // стартовые значения
-  updateHUD();
-  setMessage("Тапни, чтобы забросить.", 2.0);
+  // intro overlay
+  showOverlay();
+  setOverlayText("Тапни «Играть». Управление: тап — заброс, поклёвка → свайп вверх, затем тапами выматывай.");
+  setHint("Нажми «Играть».");
+  registerSW();
 
   requestAnimationFrame(loop);
 })();
