@@ -15,11 +15,218 @@
   const btnPlay = document.getElementById("btnPlay");
   const btnReset = document.getElementById("btnReset");
   const btnMute = document.getElementById("btnMute");
+  const btnInventory = document.getElementById("btnInventory");
+
+  const invOverlay = document.getElementById("invOverlay");
+  const btnInvClose = document.getElementById("btnInvClose");
+  const invSort = document.getElementById("invSort");
+  const invList = document.getElementById("invList");
+  const invEmpty = document.getElementById("invEmpty");
 
   // ===== Helpers =====
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + Math.random() * (b - a);
+
+  const formatKg = (value) => `${value.toFixed(2)} кг`;
+  const formatCoins = (value) => `${value} монет`;
+
+  function triangular(min, mode, max) {
+    const u = Math.random();
+    const c = (mode - min) / (max - min);
+    if (u <= c) {
+      return min + Math.sqrt(u * (max - min) * (mode - min));
+    }
+    return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+  }
+
+  function formatDate(value) {
+    try {
+      return new Date(value).toLocaleString("ru-RU", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      });
+    } catch {
+      return value;
+    }
+  }
+
+  function makeId() {
+    return `fish-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  // ===== Tension balance (REELING) =====
+  const TENSION_PULL_BASE = 0.10;
+  const TENSION_PULL_POWER = 0.16;
+  const TENSION_RELAX_BASE = 0.20;
+  const TENSION_RELAX_POWER = 0.05;
+  const RELAX_MULT_EARLY = 1.7;
+  const RELAX_MULT_LATE = 2.4;
+  const TAP_TENSION_BUMP_BASE = 0.009;
+  const TAP_TENSION_BUMP_POWER = 0.006;
+  const TAP_TENSION_BUMP_HIGH_BASE = 0.015;
+  const TAP_TENSION_BUMP_HIGH_POWER = 0.010;
+
+  // ===== Fish table =====
+  const fishSpeciesTable = [
+    {
+      id: "roach",
+      name: "Плотва",
+      rarity: "common",
+      chance: 0.3,
+      minKg: 0.1,
+      maxKg: 1.2,
+      modeKg: 0.35,
+      pricePerKg: 45,
+      story: "Серебристая тень у кромки льда. Говорят, плотва первая проверяет приманку и первая же выдаёт рыбака."
+    },
+    {
+      id: "perch",
+      name: "Окунь",
+      rarity: "common",
+      chance: 0.22,
+      minKg: 0.15,
+      maxKg: 2.0,
+      modeKg: 0.6,
+      pricePerKg: 55,
+      story: "Полосатый разбойник. Часто идёт стаей и любит короткие резкие рывки."
+    },
+    {
+      id: "crucian",
+      name: "Карась",
+      rarity: "common",
+      chance: 0.16,
+      minKg: 0.2,
+      maxKg: 3.5,
+      modeKg: 1.0,
+      pricePerKg: 50,
+      story: "Упрямый и терпеливый. Старики говорят: карась клюёт тогда, когда ты уже почти ушёл."
+    },
+    {
+      id: "bream",
+      name: "Лещ",
+      rarity: "uncommon",
+      chance: 0.09,
+      minKg: 0.5,
+      maxKg: 6.0,
+      modeKg: 1.8,
+      pricePerKg: 70,
+      story: "Тяжёлый, ‘плоский’ и молчаливый. Вытаскивать его — как поднимать мокрую доску."
+    },
+    {
+      id: "pike",
+      name: "Щука",
+      rarity: "uncommon",
+      chance: 0.12,
+      minKg: 0.7,
+      maxKg: 12.0,
+      modeKg: 3.0,
+      pricePerKg: 85,
+      story: "Северная торпеда. Может стоять неподвижно минутами, а потом ударить как молния."
+    },
+    {
+      id: "zander",
+      name: "Судак",
+      rarity: "rare",
+      chance: 0.06,
+      minKg: 0.8,
+      maxKg: 8.0,
+      modeKg: 2.5,
+      pricePerKg: 95,
+      story: "Ночной охотник. У него холодный взгляд и характер — будто лёд под сапогом."
+    },
+    {
+      id: "trout",
+      name: "Форель",
+      rarity: "rare",
+      chance: 0.03,
+      minKg: 0.4,
+      maxKg: 5.0,
+      modeKg: 1.5,
+      pricePerKg: 120,
+      story: "Чистая вода, быстрые струи. Форель будто создана для побега — её надо ‘переиграть’."
+    },
+    {
+      id: "catfish",
+      name: "Сом",
+      rarity: "epic",
+      chance: 0.015,
+      minKg: 1.0,
+      maxKg: 30.0,
+      modeKg: 6.0,
+      pricePerKg: 140,
+      story: "Дно его дом. Если сом клюнул — ты почувствуешь, как будто за леску держится сама глубина."
+    },
+    {
+      id: "sturgeon",
+      name: "Осётр",
+      rarity: "epic",
+      chance: 0.0045,
+      minKg: 2.0,
+      maxKg: 60.0,
+      modeKg: 10.0,
+      pricePerKg: 220,
+      story: "Реликт прошлого. Осётр — рыба, которая помнит ‘до льда’, и не любит торопливых."
+    },
+    {
+      id: "moon-legend",
+      name: "Белорыбица ‘Легенда Лунки’",
+      rarity: "legendary",
+      chance: 0.0005,
+      minKg: 5.0,
+      maxKg: 25.0,
+      modeKg: 12.0,
+      pricePerKg: 600,
+      story: "Её видели единицы. Говорят, она выходит на свет луны и берёт приманку только у тех, кто умеет ждать."
+    }
+  ];
+
+  const rarityLabels = {
+    common: "обычная",
+    uncommon: "необычная",
+    rare: "редкая",
+    epic: "эпическая",
+    legendary: "легендарная"
+  };
+
+  const rarityPower = {
+    common: 0.0,
+    uncommon: 0.05,
+    rare: 0.1,
+    epic: 0.16,
+    legendary: 0.22
+  };
+
+  function rollFish() {
+    const r = Math.random();
+    let acc = 0;
+    for (const fish of fishSpeciesTable) {
+      acc += fish.chance;
+      if (r <= acc) return fish;
+    }
+    return fishSpeciesTable[fishSpeciesTable.length - 1];
+  }
+
+  function buildCatch() {
+    const species = rollFish();
+    const rawWeight = triangular(species.minKg, species.modeKg, species.maxKg);
+    const weightKg = Math.round(clamp(rawWeight, species.minKg, species.maxKg) * 100) / 100;
+    const sellValue = Math.round(weightKg * species.pricePerKg);
+    const weightRatio = (weightKg - species.minKg) / (species.maxKg - species.minKg);
+    const power = clamp(0.35 + weightRatio * 0.5 + (rarityPower[species.rarity] || 0), 0.25, 1.05);
+
+    return {
+      speciesId: species.id,
+      name: species.name,
+      rarity: species.rarity,
+      rarityLabel: rarityLabels[species.rarity] || species.rarity,
+      weightKg,
+      pricePerKg: species.pricePerKg,
+      sellValue,
+      story: species.story,
+      power
+    };
+  }
 
   // ===== Audio (optional, simple beeps via WebAudio) =====
   let audioCtx = null;
@@ -81,12 +288,16 @@
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
+  const STORAGE_VERSION = 2;
 
   const stats = {
     coins: 0,
     fish: 0,
     bestCoin: 0,
   };
+
+  let inventory = [];
+  let inventorySort = "WEIGHT_DESC";
 
   function load() {
     try {
@@ -97,6 +308,9 @@
       stats.fish = Number(obj.fish || 0);
       stats.bestCoin = Number(obj.bestCoin || 0);
       muted = !!obj.muted;
+      if (obj.storageVersion >= 2 && Array.isArray(obj.inventory)) {
+        inventory = obj.inventory;
+      }
       if (btnMute) btnMute.textContent = `Звук: ${muted ? "Выкл" : "Вкл"}`;
     } catch {}
   }
@@ -104,10 +318,12 @@
   function save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        storageVersion: STORAGE_VERSION,
         coins: stats.coins,
         fish: stats.fish,
         bestCoin: stats.bestCoin,
-        muted
+        muted,
+        inventory
       }));
     } catch {}
   }
@@ -116,8 +332,10 @@
     stats.coins = 0;
     stats.fish = 0;
     stats.bestCoin = 0;
+    inventory = [];
     save();
     updateHUD();
+    renderInventory();
   }
 
   btnReset?.addEventListener("click", () => {
@@ -128,6 +346,227 @@
   function updateHUD() {
     if (coinsEl) coinsEl.textContent = String(stats.coins);
     if (fishEl) fishEl.textContent = String(stats.fish);
+  }
+
+  function openInventory() {
+    invOverlay?.classList.remove("hidden");
+    if (invSort) invSort.value = inventorySort;
+    renderInventory();
+  }
+
+  function closeInventory() {
+    invOverlay?.classList.add("hidden");
+  }
+
+  btnInventory?.addEventListener("click", () => {
+    openInventory();
+  });
+
+  btnInvClose?.addEventListener("click", () => {
+    closeInventory();
+  });
+
+  invSort?.addEventListener("change", () => {
+    inventorySort = invSort.value;
+    renderInventory();
+  });
+
+  function sortInventory(items) {
+    const sorted = [...items];
+    switch (inventorySort) {
+      case "WEIGHT_ASC":
+        sorted.sort((a, b) => a.weightKg - b.weightKg);
+        break;
+      case "WEIGHT_DESC":
+        sorted.sort((a, b) => b.weightKg - a.weightKg);
+        break;
+      case "NAME_ASC":
+        sorted.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+        break;
+      case "NAME_DESC":
+        sorted.sort((a, b) => b.name.localeCompare(a.name, "ru"));
+        break;
+      default:
+        break;
+    }
+    return sorted;
+  }
+
+  function sellItem(itemId) {
+    const index = inventory.findIndex((item) => item.id === itemId);
+    if (index === -1) return;
+    const item = inventory[index];
+    if (item.isTrophy) return;
+    inventory.splice(index, 1);
+    stats.coins += item.sellValue;
+    stats.bestCoin = Math.max(stats.bestCoin, item.sellValue);
+    updateHUD();
+    save();
+    renderInventory();
+    setMsg(`Продано: ${item.name} за ${item.sellValue} монет.`, 1.4);
+  }
+
+  function makeTrophy(itemId) {
+    const item = inventory.find((entry) => entry.id === itemId);
+    if (!item || item.isTrophy || !item.canBeTrophy) return;
+    item.isTrophy = true;
+    save();
+    renderInventory();
+    setMsg(`Трофей оформлен: ${item.name} (${formatKg(item.weightKg)}).`, 1.5);
+  }
+
+  function renderInventory() {
+    if (!invList || !invEmpty) return;
+    invList.innerHTML = "";
+
+    const items = sortInventory(inventory);
+    if (items.length === 0) {
+      invEmpty.classList.remove("hidden");
+      return;
+    }
+
+    invEmpty.classList.add("hidden");
+
+    for (const item of items) {
+      const card = document.createElement("div");
+      card.className = "invItem";
+
+      const header = document.createElement("div");
+      header.className = "invItemHeader";
+
+      const title = document.createElement("div");
+      title.className = "invItemTitle";
+      title.textContent = item.name;
+
+      const meta = document.createElement("div");
+      meta.className = "invItemMeta";
+
+      const rarityBadge = document.createElement("span");
+      rarityBadge.className = `badge badge-${item.rarity}`;
+      rarityBadge.textContent = rarityLabels[item.rarity] || item.rarity;
+
+      const weight = document.createElement("span");
+      weight.className = "invItemWeight";
+      weight.textContent = formatKg(item.weightKg);
+
+      meta.append(rarityBadge, weight);
+
+      if (item.isTrophy) {
+        const trophy = document.createElement("span");
+        trophy.className = "badge badge-trophy";
+        trophy.textContent = "Трофей";
+        meta.appendChild(trophy);
+      }
+
+      const price = document.createElement("div");
+      price.className = "invItemPrice";
+      price.textContent = `Цена: ${formatCoins(item.sellValue)}`;
+
+      header.append(title, meta);
+
+      const actions = document.createElement("div");
+      actions.className = "invActions";
+
+      const detail = document.createElement("div");
+      detail.className = "invDetails hidden";
+      detail.innerHTML = `
+        <div class="invDetailRow"><strong>История:</strong> ${item.story}</div>
+        <div class="invDetailRow"><strong>Дата:</strong> ${formatDate(item.caughtAt)}</div>
+        <div class="invDetailRow"><strong>Цена за кг:</strong> ${formatCoins(item.pricePerKg)}</div>
+        <div class="invDetailRow"><strong>Вес:</strong> ${formatKg(item.weightKg)}</div>
+        <div class="invDetailRow"><strong>Итог продажи:</strong> ${formatCoins(item.sellValue)}</div>
+      `;
+
+      const btnDetails = document.createElement("button");
+      btnDetails.className = "invBtn secondary";
+      btnDetails.textContent = "Подробнее";
+      btnDetails.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const isHidden = detail.classList.toggle("hidden");
+        btnDetails.textContent = isHidden ? "Подробнее" : "Скрыть";
+      });
+
+      if (!item.isTrophy) {
+        const btnSell = document.createElement("button");
+        btnSell.className = "invBtn";
+        btnSell.textContent = "Продать";
+        btnSell.addEventListener("click", (event) => {
+          event.stopPropagation();
+          sellItem(item.id);
+        });
+        actions.appendChild(btnSell);
+      }
+
+      if (item.canBeTrophy && !item.isTrophy) {
+        const btnTrophy = document.createElement("button");
+        btnTrophy.className = "invBtn";
+        btnTrophy.textContent = "Сделать трофеем";
+        btnTrophy.addEventListener("click", (event) => {
+          event.stopPropagation();
+          makeTrophy(item.id);
+        });
+        actions.appendChild(btnTrophy);
+      }
+
+      actions.appendChild(btnDetails);
+
+      const detailActions = document.createElement("div");
+      detailActions.className = "invActions";
+
+      if (!item.isTrophy) {
+        const btnSellDetail = document.createElement("button");
+        btnSellDetail.className = "invBtn";
+        btnSellDetail.textContent = "Продать";
+        btnSellDetail.addEventListener("click", (event) => {
+          event.stopPropagation();
+          sellItem(item.id);
+        });
+        detailActions.appendChild(btnSellDetail);
+      }
+
+      if (item.canBeTrophy && !item.isTrophy) {
+        const btnTrophyDetail = document.createElement("button");
+        btnTrophyDetail.className = "invBtn";
+        btnTrophyDetail.textContent = "Сделать трофеем";
+        btnTrophyDetail.addEventListener("click", (event) => {
+          event.stopPropagation();
+          makeTrophy(item.id);
+        });
+        detailActions.appendChild(btnTrophyDetail);
+      }
+
+      detail.appendChild(detailActions);
+
+      card.append(header, price, actions, detail);
+
+      card.addEventListener("click", () => {
+        const isHidden = detail.classList.toggle("hidden");
+        btnDetails.textContent = isHidden ? "Подробнее" : "Скрыть";
+      });
+
+      invList.appendChild(card);
+    }
+  }
+
+  function addCatch(catchData) {
+    const item = {
+      id: makeId(),
+      speciesId: catchData.speciesId,
+      name: catchData.name,
+      rarity: catchData.rarity,
+      weightKg: catchData.weightKg,
+      pricePerKg: catchData.pricePerKg,
+      sellValue: catchData.sellValue,
+      story: catchData.story,
+      caughtAt: new Date().toISOString(),
+      isTrophy: false,
+      canBeTrophy: catchData.weightKg >= 5.0
+    };
+    inventory.push(item);
+    save();
+    if (!invOverlay?.classList.contains("hidden")) {
+      renderInventory();
+    }
   }
 
   // ===== Scene objects =====
@@ -162,6 +601,7 @@
     fishPower: 0.0,
     rarity: "обычная",
     reward: 0,
+    catch: null,
     // reel mechanics
     progress: 0,
     need: 1.0,
@@ -221,13 +661,6 @@
     game.biteAt = rand(1.2, 4.2);
   }
 
-  function rollFish() {
-    const r = Math.random();
-    if (r < 0.08) return { rarity: "редкая", power: rand(0.72, 1.0), reward: Math.floor(rand(18, 30)) };
-    if (r < 0.28) return { rarity: "необычная", power: rand(0.46, 0.78), reward: Math.floor(rand(10, 17)) };
-    return { rarity: "обычная", power: rand(0.25, 0.55), reward: Math.floor(rand(5, 9)) };
-  }
-
   function castTo(x, y) {
     game.mode = "CASTING";
     game.t = 0;
@@ -269,6 +702,7 @@
     game.t = 0;
     bobber.visible = false;
     bobber.inWater = false;
+    game.catch = null;
     beep(220, 0.10, 0.05);
     setMsg(`${reason} Тап — забросить снова.`, 1.6);
   }
@@ -276,10 +710,11 @@
   function hook() {
     if (game.mode !== "BITE") return;
 
-    const f = rollFish();
-    game.rarity = f.rarity;
-    game.fishPower = f.power;
-    game.reward = f.reward;
+    const catchData = buildCatch();
+    game.catch = catchData;
+    game.rarity = catchData.rarityLabel;
+    game.fishPower = catchData.power;
+    game.reward = catchData.sellValue;
 
     // reel mechanics
     game.progress = 0;
@@ -290,7 +725,7 @@
     game.mode = "HOOKED";
     game.t = 0;
     beep(960, 0.06, 0.06);
-    setMsg(`Подсечка! Рыба: ${game.rarity}.`, 1.0);
+    setMsg(`Подсечка! Рыба: ${catchData.name} (${catchData.rarityLabel}).`, 1.1);
   }
 
   function startReel() {
@@ -301,16 +736,23 @@
   }
 
   function land() {
+    if (!game.catch) return;
+
     stats.fish += 1;
-    stats.coins += game.reward;
-    stats.bestCoin = Math.max(stats.bestCoin, game.reward);
     updateHUD();
+
+    addCatch(game.catch);
     save();
 
     game.mode = "LANDED";
     game.t = 0;
     beep(660, 0.08, 0.06);
-    setMsg(`Поймал! +${game.reward} монет (${game.rarity}).`, 1.6);
+    setMsg(
+      `Поймал: ${game.catch.name} ${formatKg(game.catch.weightKg)}. Открой инвентарь — продай или сделай трофей.`,
+      1.8
+    );
+
+    game.catch = null;
   }
 
   // ===== Input (tap + swipe) =====
@@ -347,8 +789,11 @@
       const gain = Math.max(0.030, baseGain);
       game.progress += gain;
 
-      // tapping adds a small tension bump; good if tension low, risky if high
-      game.tension += 0.020 + game.fishPower * 0.010;
+      // tapping adds a smaller tension bump; higher if tension already high
+      const bump = (game.tension > 0.72)
+        ? (TAP_TENSION_BUMP_HIGH_BASE + game.fishPower * TAP_TENSION_BUMP_HIGH_POWER)
+        : (TAP_TENSION_BUMP_BASE + game.fishPower * TAP_TENSION_BUMP_POWER);
+      game.tension += bump;
 
       beep(520, 0.03, 0.03);
       return;
@@ -430,17 +875,18 @@
     }
 
     if (game.mode === "REELING") {
-      // fish resistance: tension tends to increase; if you spam taps, tension spikes
-      const pull = (0.18 + game.fishPower * 0.22) * dt;
-      game.tension += pull;
+      const pull = (TENSION_PULL_BASE + game.fishPower * TENSION_PULL_POWER) * dt;
+      let relax = (TENSION_RELAX_BASE - game.fishPower * TENSION_RELAX_POWER) * dt;
 
-      // decay tension when you stop tapping (line relaxes a bit)
-      if (game.lastTap > 0.18) {
-        game.tension -= (0.22 - game.fishPower * 0.06) * dt;
+      if (game.lastTap > 0.45) {
+        relax *= RELAX_MULT_LATE;
+      } else if (game.lastTap > 0.20) {
+        relax *= RELAX_MULT_EARLY;
+      } else {
+        relax *= 0.6;
       }
 
-      // clamp
-      game.tension = clamp(game.tension, 0, 1.2);
+      game.tension = clamp(game.tension + pull - relax, 0, 1.2);
 
       // progress decay (fish pulls line out)
       const progDecay = (0.040 + game.fishPower * 0.055) * dt;
@@ -469,8 +915,8 @@
 
       // guidance hint based on tension
       if (game.t % 0.5 < dt) {
-        if (game.tension > 0.82) setHint("Натяжение высокое — пауза, не тапай!");
-        else if (game.tension < 0.25) setHint("Натяжение низкое — можно тапать чаще.");
+        if (game.tension > 0.82) setHint("Красная зона — пауза, не тапай!");
+        else if (game.tension < 0.25) setHint("Натяжение низкое — можно тапать.");
         else setHint("Держи натяжение в зелёной зоне.");
       }
     }
@@ -642,7 +1088,7 @@
 
     ctx.globalAlpha = 0.75;
     ctx.fillStyle = "#0b0f14";
-    roundRect(x - w/2, y - h/2, w, h, 12);
+    roundRect(x - w / 2, y - h / 2, w, h, 12);
     ctx.fill();
 
     ctx.globalAlpha = 1;
@@ -657,17 +1103,20 @@
     const barW = Math.min(360, W * 0.82);
     const barH = 14;
 
+    const catchData = game.catch;
+    const catchName = catchData ? `${catchData.name} • ${formatKg(catchData.weightKg)}` : "Рыба";
+
     // Progress (pulling fish)
     const p = clamp(game.progress / game.need, 0, 1);
     ctx.save();
     ctx.globalAlpha = 0.85;
     ctx.fillStyle = "#0b0f14";
-    roundRect(x - barW/2, y - barH/2, barW, barH, 10);
+    roundRect(x - barW / 2, y - barH / 2, barW, barH, 10);
     ctx.fill();
 
     ctx.globalAlpha = 0.90;
     ctx.fillStyle = "#7bd3ff";
-    roundRect(x - barW/2 + 2, y - barH/2 + 2, (barW - 4) * p, barH - 4, 8);
+    roundRect(x - barW / 2 + 2, y - barH / 2 + 2, (barW - 4) * p, barH - 4, 8);
     ctx.fill();
 
     // Tension bar below
@@ -675,14 +1124,14 @@
     const t = clamp(game.tension, 0, 1);
     ctx.globalAlpha = 0.85;
     ctx.fillStyle = "#0b0f14";
-    roundRect(x - barW/2, ty - barH/2, barW, barH, 10);
+    roundRect(x - barW / 2, ty - barH / 2, barW, barH, 10);
     ctx.fill();
 
     // green zone
     ctx.globalAlpha = 0.22;
     ctx.fillStyle = "#66e6a0";
     const gz0 = 0.28, gz1 = 0.72;
-    roundRect(x - barW/2 + 2 + (barW - 4) * gz0, ty - barH/2 + 2, (barW - 4) * (gz1 - gz0), barH - 4, 8);
+    roundRect(x - barW / 2 + 2 + (barW - 4) * gz0, ty - barH / 2 + 2, (barW - 4) * (gz1 - gz0), barH - 4, 8);
     ctx.fill();
 
     // tension fill with color
@@ -692,7 +1141,7 @@
       (t > 0.82) ? "#ff6b6b" :
       "#66e6a0";
     ctx.fillStyle = color;
-    roundRect(x - barW/2 + 2, ty - barH/2 + 2, (barW - 4) * t, barH - 4, 8);
+    roundRect(x - barW / 2 + 2, ty - barH / 2 + 2, (barW - 4) * t, barH - 4, 8);
     ctx.fill();
 
     // labels
@@ -701,8 +1150,8 @@
     ctx.font = "700 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
-    ctx.fillText(`Выматывание: ${(p*100|0)}% • Рыба: ${game.rarity} • +${game.reward}`, x, y - 12);
-    ctx.fillText(`Натяжение лески`, x, ty - 12);
+    ctx.fillText(`Выматывание: ${(p * 100 | 0)}% • ${catchName}`, x, y - 12);
+    ctx.fillText("Натяжение лески", x, ty - 12);
 
     ctx.restore();
   }
@@ -742,6 +1191,7 @@
   load();
   updateHUD();
   resize();
+  renderInventory();
 
   // intro overlay
   showOverlay();

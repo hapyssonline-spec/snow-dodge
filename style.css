@@ -73,6 +73,168 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 }
 .hidden{display:none !important;}
 
+#invOverlay{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:18px;
+  backdrop-filter: blur(10px);
+  background: rgba(6,12,20,.68);
+}
+
+.invCard{
+  width:min(520px, 100%);
+  max-height: calc(100% - 32px);
+  border-radius:18px;
+  border:1px solid var(--stroke);
+  background: rgba(16,31,48,.96);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-shadow: 0 16px 50px rgba(0,0,0,.35);
+}
+
+.invHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.invTitle{
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+
+.invControls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.invControls select{
+  flex:1;
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.8);
+  color:var(--text);
+  font-weight:700;
+}
+
+.invList{
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding-right:4px;
+}
+
+.invEmpty{
+  padding:12px;
+  text-align:center;
+  color:var(--muted);
+  border:1px dashed var(--stroke);
+  border-radius:12px;
+}
+
+.invItem{
+  border:1px solid var(--stroke);
+  border-radius:14px;
+  padding:12px;
+  background: rgba(11,18,28,.75);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.invItemHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.invItemTitle{
+  font-weight:900;
+}
+
+.invItemMeta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  align-items:center;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.invItemWeight{
+  font-weight:800;
+  color:var(--text);
+}
+
+.invItemPrice{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.invActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.invBtn{
+  flex:none;
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.8);
+  color:var(--text);
+  font-weight:800;
+  font-size:12px;
+}
+
+.invBtn.secondary{
+  background: rgba(15,26,36,.55);
+}
+
+.invDetails{
+  border-top:1px solid var(--stroke);
+  padding-top:8px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.invDetailRow strong{
+  color:var(--text);
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.badge-common{background: rgba(123,211,255,.18); color:#7bd3ff;}
+.badge-uncommon{background: rgba(102,230,160,.18); color:#66e6a0;}
+.badge-rare{background: rgba(255,209,102,.18); color:#ffd166;}
+.badge-epic{background: rgba(153,102,255,.18); color:#c2a6ff;}
+.badge-legendary{background: rgba(255,107,107,.18); color:#ff6b6b;}
+.badge-trophy{background: rgba(255,204,51,.2); color:#ffcc33;}
+
 .card{
   width:min(420px, 100%);
   border-radius:18px;
