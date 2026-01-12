@@ -55,10 +55,33 @@
           </div>
         </div>
       </div>
+
+      <div id="invOverlay" class="hidden">
+        <div class="invCard">
+          <div class="invHeader">
+            <div class="invTitle">Инвентарь</div>
+            <button id="btnInvClose" class="chipBtn">Закрыть</button>
+          </div>
+
+          <div class="invControls">
+            <label for="invSort">Сортировка</label>
+            <select id="invSort">
+              <option value="WEIGHT_DESC">По весу (убыв.)</option>
+              <option value="WEIGHT_ASC">По весу (возр.)</option>
+              <option value="NAME_ASC">По названию (А-Я)</option>
+              <option value="NAME_DESC">По названию (Я-А)</option>
+            </select>
+          </div>
+
+          <div id="invEmpty" class="invEmpty hidden">Инвентарь пуст. Поймай рыбу!</div>
+          <div id="invList" class="invList"></div>
+        </div>
+      </div>
     </main>
 
     <footer id="bottombar">
       <div class="chip" id="chipHint">Готово: тапни по воде, чтобы забросить.</div>
+      <button id="btnInventory" class="chipBtn" aria-label="Инвентарь">Инвентарь</button>
       <button id="btnMute" class="chipBtn" aria-label="Звук">Звук: Вкл</button>
     </footer>
   </div>
