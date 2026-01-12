@@ -15,7 +15,7 @@
 *{box-sizing:border-box}
 html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,Arial,sans-serif;}
 #app{
-  height:100%;
+  height:calc(var(--vh, 1vh) * 100);
   display:flex;
   flex-direction:column;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -62,6 +62,11 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   background: rgba(15,26,36,.65);
   color: var(--text);
   font-weight:800;
+  white-space:nowrap;
+}
+
+.muted{
+  color:var(--muted);
 }
 
 #overlay{
@@ -81,6 +86,34 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   background: rgba(6,12,20,.68);
 }
 
+#catchOverlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background: rgba(6,12,20,.68);
+  backdrop-filter: blur(10px);
+}
+
+#shopOverlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background: rgba(6,12,20,.68);
+  backdrop-filter: blur(10px);
+}
+
+#travelHud{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
 .invCard{
   width:min(520px, 100%);
   max-height: calc(100% - 32px);
@@ -92,6 +125,291 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   flex-direction:column;
   gap:12px;
   box-shadow: 0 16px 50px rgba(0,0,0,.35);
+}
+
+.catchCard{
+  width:min(520px, 100%);
+  max-height: calc(100% - 32px);
+  border-radius:20px;
+  border:1px solid var(--stroke);
+  background: rgba(16,31,48,.96);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  animation: catchIn .28s ease-out;
+}
+
+@keyframes catchIn{
+  from{opacity:0; transform:scale(.92)}
+  to{opacity:1; transform:scale(1)}
+}
+
+.catchHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.catchTitle{
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+
+.catchName{
+  font-size:20px;
+  font-weight:900;
+}
+
+.catchMeta{
+  font-size:13px;
+  color:var(--muted);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.catchStory{
+  font-style:italic;
+}
+
+.catchPrices{
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  padding:10px 12px;
+  background: rgba(11,18,28,.6);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.catchPriceRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:13px;
+}
+
+.catchPriceRow.highlight{
+  font-size:16px;
+  font-weight:900;
+  color:#ffcc66;
+}
+
+.catchDiscount{
+  font-size:11px;
+  color:#ffb4b4;
+}
+
+.strike{
+  text-decoration:line-through;
+  color:var(--muted);
+}
+
+.catchTrophy{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.danger{
+  background: rgba(255,107,107,.2);
+  border-color: rgba(255,107,107,.4);
+  color:#ffdada;
+}
+
+.hudCard{
+  position:absolute;
+  top:16px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background: rgba(16,31,48,.9);
+  text-align:center;
+  min-width:220px;
+}
+
+.hudTitle{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.hudTimer{
+  font-size:16px;
+  font-weight:900;
+}
+
+#cityHud{
+  position:absolute;
+  bottom:16px;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+.shopCard{
+  width:min(900px, 100%);
+  max-height: calc(100% - 32px);
+  border-radius:18px;
+  border:1px solid var(--stroke);
+  background: rgba(16,31,48,.97);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+
+.shopHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.shopTitle{
+  font-size:20px;
+  font-weight:900;
+}
+
+.shopStats{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.shopContent{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  overflow:hidden;
+}
+
+.shopSection{
+  border:1px solid var(--stroke);
+  border-radius:14px;
+  padding:12px;
+  background: rgba(11,18,28,.65);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  overflow:hidden;
+}
+
+.shopSectionTitle{
+  font-size:14px;
+  font-weight:800;
+}
+
+.shopSubTitle{
+  font-size:12px;
+  font-weight:800;
+  color:var(--muted);
+}
+
+.shopControls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+
+.shopControls select{
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.8);
+  color:var(--text);
+  font-weight:700;
+}
+
+.shopOfferInfo{
+  font-size:13px;
+  color:var(--muted);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.shopGrid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap:12px;
+}
+
+.shopList{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-height:260px;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.shopItem{
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  padding:10px;
+  background: rgba(15,26,36,.8);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-size:12px;
+}
+
+.shopItemHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.shopItemTitle{
+  font-weight:800;
+}
+
+.shopItemMeta{
+  color:var(--muted);
+}
+
+.toast{
+  position:absolute;
+  bottom:24px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background: rgba(16,31,48,.92);
+  font-weight:800;
+  font-size:12px;
+  opacity:0;
+  transition: opacity .2s ease;
+}
+
+.toast.show{
+  opacity:1;
+}
+
+.sceneFade{
+  position:absolute;
+  inset:0;
+  background: rgba(6,12,20,.85);
+  opacity:0;
+  transition: opacity .3s ease;
+  pointer-events:none;
+}
+
+.sceneFade.active{
+  opacity:1;
 }
 
 .invHeader{
