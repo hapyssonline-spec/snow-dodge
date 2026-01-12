@@ -1,0 +1,88 @@
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Чтобы не было прокрутки */
+    background: #000;
+    touch-action: none; /* Отключаем свайпы/зум браузера по умолчанию */
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #000;
+}
+
+#game {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none; /* жесты обрабатываем сами */
+}
+
+/* UI поверх игры */
+#ui-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none; /* События по умолчанию проходят сквозь UI */
+}
+
+#top-bar {
+    position: absolute;
+    top: env(safe-area-inset-top, 8px);
+    left: env(safe-area-inset-left, 8px);
+    right: env(safe-area-inset-right, 8px);
+    height: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-size: 14px;
+    border-radius: 8px;
+    pointer-events: auto; /* Если захочешь кликать по UI */
+}
+
+#bottom-bar {
+    position: absolute;
+    bottom: env(safe-area-inset-bottom, 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    height: 64px;
+    min-width: 60%;
+    max-width: 95%;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+}
+
+/* Пример стиля для будущих кнопок */
+.button {
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0 4px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    text-align: center;
+    font-size: 14px;
+}

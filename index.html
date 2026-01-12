@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Моя стратегия</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- iOS: полноэкранный режим как у приложения -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Стратегия" />
+
+    <!-- Иконка для экрана «Домой» -->
+    <link rel="apple-touch-icon" href="icon-180.png" />
+
+    <!-- PWA манифест -->
+    <link rel="manifest" href="manifest.json" />
+
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game"></canvas>
+        <div id="ui-overlay">
+            <div id="top-bar">
+                <span id="resource-gold">Золото: 0</span>
+                <span id="resource-wood">Дерево: 0</span>
+            </div>
+            <!-- Пример блока под виртуальные кнопки, если захочешь -->
+            <div id="bottom-bar">
+                <!-- Здесь можно разместить кнопки построек/юнитов под палец -->
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
