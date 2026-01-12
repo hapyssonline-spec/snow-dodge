@@ -77,10 +77,127 @@
           <div id="invList" class="invList"></div>
         </div>
       </div>
+
+      <div id="catchOverlay" class="hidden">
+        <div class="catchCard">
+          <div class="catchHeader">
+            <div class="catchTitle">Поймал рыбу!</div>
+            <span id="catchRarity" class="badge badge-common">обычная</span>
+          </div>
+          <div id="catchName" class="catchName">Рыба</div>
+          <div class="catchMeta">
+            <div><strong>Вес:</strong> <span id="catchWeight">0.00 кг</span></div>
+            <div class="catchStory" id="catchStory"></div>
+          </div>
+          <div class="catchPrices">
+            <div class="catchPriceRow">
+              <span class="muted">Полная цена</span>
+              <span id="catchFullPrice" class="strike">0</span>
+            </div>
+            <div class="catchPriceRow highlight">
+              <span>Продать сразу</span>
+              <span id="catchDiscountPrice">0</span>
+            </div>
+            <div class="catchDiscount">-30% за срочную продажу</div>
+          </div>
+          <label id="catchTrophyWrap" class="catchTrophy hidden">
+            <input id="catchTrophyToggle" type="checkbox" />
+            Сделать трофеем
+          </label>
+          <div class="row">
+            <button id="btnCatchKeep">В инвентарь</button>
+            <button id="btnCatchSellNow" class="danger">Продать сразу</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="travelHud" class="hidden">
+        <div class="hudCard">
+          <div class="hudTitle">Поездка в город</div>
+          <div id="travelTimer" class="hudTimer">До города: 00:20</div>
+        </div>
+      </div>
+
+      <div id="cityHud" class="hidden">
+        <button id="btnBackToLake" class="chipBtn">На рыбалку</button>
+      </div>
+
+      <div id="shopOverlay" class="hidden">
+        <div class="shopCard">
+          <div class="shopHeader">
+            <div id="shopTitle" class="shopTitle">Магазин</div>
+            <button id="btnShopClose" class="chipBtn">Закрыть</button>
+          </div>
+
+          <div id="shopStats" class="shopStats"></div>
+
+          <div id="shopContent" class="shopContent">
+            <div id="shopInventory" class="shopSection">
+              <div class="shopSectionTitle">Рыба из инвентаря</div>
+              <div id="shopInvEmpty" class="invEmpty hidden">Нет рыбы для продажи.</div>
+              <div id="shopInvList" class="invList"></div>
+            </div>
+
+            <div id="shopOffer" class="shopSection hidden">
+              <div class="shopSectionTitle">Сделка</div>
+              <div id="shopOfferInfo" class="shopOfferInfo"></div>
+              <div class="shopControls">
+                <label for="haggleSelect">Торг</label>
+                <select id="haggleSelect">
+                  <option value="0">Без торга</option>
+                  <option value="5">+5%</option>
+                  <option value="10">+10%</option>
+                  <option value="15">+15%</option>
+                  <option value="20">+20%</option>
+                  <option value="25">+25%</option>
+                  <option value="30">+30%</option>
+                </select>
+                <button id="btnHaggle" class="secondary">Торговаться</button>
+              </div>
+              <div class="shopControls">
+                <label for="discountSelect">Сделать скидку</label>
+                <select id="discountSelect">
+                  <option value="0">0%</option>
+                  <option value="5">-5%</option>
+                  <option value="10">-10%</option>
+                  <option value="15">-15%</option>
+                </select>
+                <button id="btnSellOffer">Продать</button>
+              </div>
+              <div id="shopOfferNote" class="small"></div>
+            </div>
+
+            <div id="gearShopSection" class="shopSection hidden">
+              <div class="shopSectionTitle">Снасти</div>
+              <div class="shopGrid">
+                <div>
+                  <div class="shopSubTitle">Приманки</div>
+                  <div id="baitList" class="shopList"></div>
+                </div>
+                <div>
+                  <div class="shopSubTitle">Удочки</div>
+                  <div id="rodList" class="shopList"></div>
+                </div>
+                <div>
+                  <div class="shopSubTitle">Лески</div>
+                  <div id="lineList" class="shopList"></div>
+                </div>
+              </div>
+              <div class="shopSectionTitle">Задания</div>
+              <div id="questList" class="shopList"></div>
+              <button id="btnNewQuest" class="secondary">Взять задание</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sceneFade" class="sceneFade hidden"></div>
+      <div id="toast" class="toast hidden"></div>
     </main>
 
     <footer id="bottombar">
       <div class="chip" id="chipHint">Готово: тапни по воде, чтобы забросить.</div>
+      <button id="btnCity" class="chipBtn" aria-label="В город">В город</button>
       <button id="btnInventory" class="chipBtn" aria-label="Инвентарь">Инвентарь</button>
       <button id="btnMute" class="chipBtn" aria-label="Звук">Звук: Вкл</button>
     </footer>
