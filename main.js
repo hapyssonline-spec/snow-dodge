@@ -1,321 +1,586 @@
-// main.js
-// Обёртка под iPhone / мобилку: канвас на весь экран, адаптация под DPR, тач-управление и PWA
+// main.js — мини-игра "Рыбалка" (iPhone/Safari friendly)
 
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d', { alpha: false });
+(() => {
+  "use strict";
 
-const resourceGoldEl = document.getElementById('resource-gold');
-const resourceWoodEl = document.getElementById('resource-wood');
+  // ===== DOM =====
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d", { alpha: false });
 
-let lastTime = 0;
-let isPointerDown = false;
-let pointerId = null;
-let pointerStart = { x: 0, y: 0 };
-let pointerCurrent = { x: 0, y: 0 };
+  const goldEl = document.getElementById("resource-gold"); // слева
+  const woodEl = document.getElementById("resource-wood"); // справа (переиспользуем под "Рыба")
 
-// Игровое состояние — здесь ты подключаешь свою логику карты, героя, деревьев и т.д.
-const game = {
-    width: 0,
-    height: 0,
-    resources: {
-        gold: 0,
-        wood: 0
-    },
-    camera: {
-        x: 0,
-        y: 0,
-        zoom: 1
-    },
+  // ===== Utils =====
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rand = (a, b) => a + Math.random() * (b - a);
 
-    init() {
-        // TODO: сюда перенеси инициализацию своей прототипной игры:
-        // - генерация карты
-        // - создание героя
-        // - расстановка деревьев/камней
-    },
+  // ===== Viewport / DPI =====
+  let W = 0, H = 0, DPR = 1;
 
-    resize(w, h) {
-        this.width = w;
-        this.height = h;
-        // При желании можешь зафиксировать минимальный/максимальный зум или границы камеры
-    },
-
-    handleTap(worldX, worldY) {
-        // Одиночный тап — например, выделение клетки, перемещение героя, выбор объекта
-        // TODO: сюда перенеси обработку клика из своей игры
-        console.log('Tap at world:', worldX, worldY);
-    },
-
-    handleDragStart(worldX, worldY) {
-        // Начало свайпа — можно, например, запомнить старт для перетаскивания камеры
-        this._dragStartCamera = { x: this.camera.x, y: this.camera.y };
-        this._dragStartWorld = { x: worldX, y: worldY };
-    },
-
-    handleDragMove(worldX, worldY) {
-        // Перетаскиваем камеру по карте (пример реализации)
-        if (!this._dragStartCamera || !this._dragStartWorld) return;
-
-        const dx = worldX - this._dragStartWorld.x;
-        const dy = worldY - this._dragStartWorld.y;
-
-        // Камера двигается в противоположную сторону от свайпа
-        this.camera.x = this._dragStartCamera.x - dx;
-        this.camera.y = this._dragStartCamera.y - dy;
-    },
-
-    handleDragEnd() {
-        this._dragStartCamera = null;
-        this._dragStartWorld = null;
-    },
-
-    handlePinch(zoomDelta) {
-        // Прищипывание двумя пальцами — изменение зума
-        // Ограничиваем диапазон, чтобы не улетать в космос
-        const minZoom = 0.5;
-        const maxZoom = 3.0;
-        this.camera.zoom = Math.min(maxZoom, Math.max(minZoom, this.camera.zoom * zoomDelta));
-    },
-
-    update(dt) {
-        // Тут твоя игровая логика:
-        // - движение юнитов
-        // - атака/AI
-        // - добыча ресурсов
-        // - таймеры, эффекты и т.п.
-
-        // Для примера просто накапливаем золото
-        this.resources.gold += dt * 1; // 1 золото в секунду
-        resourceGoldEl.textContent = 'Золото: ' + this.resources.gold.toFixed(0);
-        resourceWoodEl.textContent = 'Дерево: ' + this.resources.wood.toFixed(0);
-    },
-
-    render(ctx) {
-        // Очищаем экран логически (фактически clearRect делаем в цикле)
-        // Задаём фон
-        ctx.fillStyle = '#1d2733';
-        ctx.fillRect(0, 0, this.width, this.height);
-
-        // Сохраняем состояние и применяем камеру
-        ctx.save();
-        ctx.translate(this.width / 2, this.height / 2);
-        ctx.scale(this.camera.zoom, this.camera.zoom);
-        ctx.translate(-this.camera.x, -this.camera.y);
-
-        // TODO: здесь твоя отрисовка:
-        // - земля/тайлы
-        // - деревья, камни
-        // - здания
-        // - юниты/герой
-
-        // ВРЕМЕННО: рисуем тестовую сетку и "героя"
-        const tileSize = 64;
-        const halfTiles = 5;
-
-        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-        ctx.lineWidth = 1;
-        for (let x = -halfTiles; x <= halfTiles; x++) {
-            for (let y = -halfTiles; y <= halfTiles; y++) {
-                const sx = x * tileSize;
-                const sy = y * tileSize;
-                ctx.strokeRect(sx, sy, tileSize, tileSize);
-            }
-        }
-
-        // "Герой" в центре
-        ctx.fillStyle = '#ffcc00';
-        ctx.beginPath();
-        ctx.arc(0, 0, 20, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-    }
-};
-
-// Масштабирование канваса под экран и DPR
-function resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
+  function resize() {
     const rect = canvas.getBoundingClientRect();
+    DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    W = Math.max(1, Math.floor(rect.width));
+    H = Math.max(1, Math.floor(rect.height));
 
-    // Физический размер канваса в пикселях
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-    // Логический размер — в CSS-пикселях
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // при ресайзе держим ключевые элементы в адекватных местах
+    lake.y = Math.floor(H * 0.58);
+    dock.y = lake.y - 10;
+    rod.baseX = Math.floor(W * 0.25);
+    rod.baseY = dock.y - 20;
+  }
 
-    game.resize(rect.width, rect.height);
-}
+  window.addEventListener("resize", resize);
 
-// Конвертация координат экрана в мировые (с учётом камеры и зума)
-function screenToWorld(x, y) {
-    const w = game.width;
-    const h = game.height;
+  // ===== Game Data =====
+  const ui = {
+    coins: 0,
+    fish: 0,
+    best: 0,
+  };
 
-    // Переводим в координаты относительно центра
-    const cx = x - w / 2;
-    const cy = y - h / 2;
+  function updateHUD() {
+    // Переиспользуем твои спаны: "Золото" -> "Монеты", "Дерево" -> "Рыба"
+    if (goldEl) goldEl.textContent = `Монеты: ${ui.coins}`;
+    if (woodEl) woodEl.textContent = `Рыба: ${ui.fish}`;
+  }
 
-    const worldX = cx / game.camera.zoom + game.camera.x;
-    const worldY = cy / game.camera.zoom + game.camera.y;
+  const lake = { y: 0 };
+  const dock = { y: 0 };
 
-    return { x: worldX, y: worldY };
-}
+  const rod = {
+    baseX: 0,
+    baseY: 0,
+    tipX: 0,
+    tipY: 0,
+  };
 
-// Обработка pointer-событий (тап/свайп/drag)
-function onPointerDown(e) {
-    // Только один активный указатель (игнорируем остальные)
-    if (isPointerDown && pointerId !== e.pointerId) return;
+  // Bobber / line
+  const bobber = {
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    r: 10,
+    inWater: false,
+    visible: false,
+    waveT: 0,
+  };
 
-    isPointerDown = true;
-    pointerId = e.pointerId;
+  // Fishing states
+  // IDLE -> CASTING -> WAITING -> BITE -> HOOKED -> REELING -> LANDED (then back to IDLE)
+  const state = {
+    mode: "IDLE",
+    t: 0,
+    biteAt: 0,
+    biteWindow: 0.85,     // сек на подсечку
+    hooked: false,
+    fishPower: 0,         // "сила" рыбы
+    reel: 0,              // прогресс выматывания 0..1
+    reelNeed: 0.0,        // сколько нужно "накрутить"
+    reelDecay: 0.0,       // сопротивление (сбрасывает прогресс)
+    reward: 0,            // монеты за рыбу
+    rarity: "обычная",
+    message: "Тапни, чтобы забросить.",
+    messageT: 0,
+    lastTapT: 0,
+  };
 
+  function setMessage(text, seconds = 1.4) {
+    state.message = text;
+    state.messageT = seconds;
+  }
+
+  // ===== Input =====
+  let pointerDown = false;
+  let pointerId = null;
+  let startX = 0, startY = 0;
+  let lastX = 0, lastY = 0;
+  let swipeConsumed = false;
+
+  function getXY(e) {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    return {
+      x: (e.clientX - rect.left),
+      y: (e.clientY - rect.top),
+    };
+  }
 
-    pointerStart.x = x;
-    pointerStart.y = y;
-    pointerCurrent.x = x;
-    pointerCurrent.y = y;
-
-    const world = screenToWorld(x, y);
-    game.handleDragStart(world.x, world.y);
-
-    // Запрещаем контекстное меню и зум по двойному тапу
+  function onPointerDown(e) {
+    // iOS needs preventDefault to avoid scroll
     e.preventDefault();
-}
 
-function onPointerMove(e) {
-    if (!isPointerDown || pointerId !== e.pointerId) return;
+    pointerDown = true;
+    pointerId = e.pointerId ?? null;
+    const p = getXY(e);
+    startX = lastX = p.x;
+    startY = lastY = p.y;
+    swipeConsumed = false;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    pointerCurrent.x = x;
-    pointerCurrent.y = y;
-
-    const world = screenToWorld(x, y);
-    game.handleDragMove(world.x, world.y);
-
-    e.preventDefault();
-}
-
-function onPointerUp(e) {
-    if (!isPointerDown || pointerId !== e.pointerId) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const dx = x - pointerStart.x;
-    const dy = y - pointerStart.y;
-    const distance = Math.hypot(dx, dy);
-
-    const world = screenToWorld(x, y);
-
-    // Если палец почти не двигался — считаем, что это тап
-    if (distance < 10) {
-        game.handleTap(world.x, world.y);
+    // Tap behavior depends on mode
+    if (state.mode === "IDLE") {
+      startCast(p.x, p.y);
+      return;
     }
 
-    game.handleDragEnd();
+    if (state.mode === "REELING") {
+      // Тапы увеличивают прогресс — основной "геймплей"
+      tapReel();
+      return;
+    }
 
-    isPointerDown = false;
+    // В остальных режимах тап — просто игнор/подсказка
+  }
+
+  function onPointerMove(e) {
+    if (!pointerDown) return;
+    e.preventDefault();
+
+    const p = getXY(e);
+    lastX = p.x;
+    lastY = p.y;
+
+    // Swipes only matter during BITE
+    if (state.mode === "BITE" && !swipeConsumed) {
+      const dy = p.y - startY;
+      const dx = p.x - startX;
+
+      // Свайп вверх: dy < -40, и по оси Y доминирует
+      if (dy < -42 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+        swipeConsumed = true;
+        tryHook();
+      }
+    }
+  }
+
+  function onPointerUp(e) {
+    e.preventDefault();
+    pointerDown = false;
     pointerId = null;
+  }
 
-    e.preventDefault();
-}
+  canvas.style.touchAction = "none";
+  canvas.addEventListener("pointerdown", onPointerDown, { passive: false });
+  canvas.addEventListener("pointermove", onPointerMove, { passive: false });
+  canvas.addEventListener("pointerup", onPointerUp, { passive: false });
+  canvas.addEventListener("pointercancel", onPointerUp, { passive: false });
 
-function preventContextMenu(e) {
-    e.preventDefault();
-}
+  // ===== Gameplay =====
+  function startCast(px, py) {
+    // Заброс: всегда "в озеро" (правее центра)
+    state.mode = "CASTING";
+    state.t = 0;
+    state.hooked = false;
+    state.reel = 0;
+    state.reelNeed = 0;
+    state.reward = 0;
 
-// Простейшая обработка жеста pinch (двумя пальцами)
-// Используем touch-события, т.к. pointer pinch сложнее отличить кроссбраузерно
-let lastPinchDistance = null;
+    bobber.visible = true;
+    bobber.inWater = false;
+    bobber.waveT = 0;
 
-function onTouchStart(e) {
-    if (e.touches.length === 2) {
-        const d = touchDistance(e.touches[0], e.touches[1]);
-        lastPinchDistance = d;
-    }
-}
+    // старт у удочки
+    bobber.x = rod.baseX + 20;
+    bobber.y = rod.baseY - 6;
 
-function onTouchMove(e) {
-    if (e.touches.length === 2 && lastPinchDistance !== null) {
-        const d = touchDistance(e.touches[0], e.touches[1]);
-        const delta = d / lastPinchDistance;
+    // цель — точка на воде
+    const tx = clamp(px, W * 0.40, W * 0.92);
+    const ty = lake.y + 18;
 
-        if (!isNaN(delta) && isFinite(delta) && delta !== 1) {
-            game.handlePinch(delta);
-            lastPinchDistance = d;
+    // "парабола" простая: задаём скорость так, чтобы долетело
+    const flight = 0.55;
+    bobber.vx = (tx - bobber.x) / flight;
+    bobber.vy = (ty - bobber.y) / flight - 220; // вверх
+
+    setMessage("Заброс!", 0.8);
+  }
+
+  function scheduleBite() {
+    // поклёвка через 1.2..3.8 сек
+    state.biteAt = rand(1.2, 3.8);
+  }
+
+  function rollFish() {
+    // простая "редкость"
+    const r = Math.random();
+    if (r < 0.08) return { rarity: "редкая", power: rand(0.70, 1.0), reward: Math.floor(rand(18, 30)) };
+    if (r < 0.28) return { rarity: "необычная", power: rand(0.45, 0.75), reward: Math.floor(rand(10, 17)) };
+    return { rarity: "обычная", power: rand(0.25, 0.50), reward: Math.floor(rand(5, 9)) };
+  }
+
+  function startWaiting() {
+    state.mode = "WAITING";
+    state.t = 0;
+    scheduleBite();
+    setMessage("Ждём поклёвку...", 1.2);
+  }
+
+  function startBite() {
+    state.mode = "BITE";
+    state.t = 0;
+    setMessage("ПОКЛЁВКА! Свайп вверх для подсечки!", 1.0);
+  }
+
+  function tryHook() {
+    if (state.mode !== "BITE") return;
+    // шанс успешной подсечки: если успел в окно — 100%, иначе уже истёк
+    const fish = rollFish();
+    state.rarity = fish.rarity;
+    state.fishPower = fish.power;
+    state.reward = fish.reward;
+
+    state.mode = "HOOKED";
+    state.t = 0;
+
+    // параметры выматывания
+    state.reel = 0;
+    state.reelNeed = clamp(0.95 + state.fishPower * 0.65, 1.0, 1.55); // нужно "намотать" больше для сильной
+    state.reelDecay = 0.10 + state.fishPower * 0.22;
+
+    setMessage(`Подсечка! Рыба: ${state.rarity}. Тапай быстро, чтобы вытащить!`, 1.4);
+  }
+
+  function escape() {
+    // срыв
+    state.mode = "IDLE";
+    state.t = 0;
+    bobber.visible = false;
+    bobber.inWater = false;
+    setMessage("Сорвалась… Тапни, чтобы забросить снова.", 1.6);
+  }
+
+  function landFish() {
+    ui.fish += 1;
+    ui.coins += state.reward;
+    ui.best = Math.max(ui.best, state.reward);
+
+    updateHUD();
+
+    state.mode = "LANDED";
+    state.t = 0;
+
+    setMessage(`Поймал! +${state.reward} монет (${state.rarity}).`, 1.6);
+  }
+
+  function tapReel() {
+    if (state.mode !== "REELING") return;
+    // тап прибавляет прогресс, но сильная рыба требует больше тапов
+    const gain = 0.065 - state.fishPower * 0.020; // сильнее — меньше прирост
+    state.reel += Math.max(0.028, gain);
+    state.lastTapT = 0;
+  }
+
+  // ===== Update / Physics =====
+  let lastTime = 0;
+
+  function update(dt) {
+    state.t += dt;
+    if (state.messageT > 0) state.messageT -= dt;
+
+    // линия и кончик удочки к поплавку
+    rod.tipX = rod.baseX + 70;
+    rod.tipY = rod.baseY - 60;
+
+    // обновление поплавка
+    if (bobber.visible) {
+      if (state.mode === "CASTING") {
+        // простая баллистика
+        bobber.x += bobber.vx * dt;
+        bobber.y += bobber.vy * dt;
+        bobber.vy += 620 * dt; // гравитация
+
+        // вход в воду
+        if (bobber.y >= lake.y + 18) {
+          bobber.y = lake.y + 18;
+          bobber.vx *= 0.12;
+          bobber.vy = 0;
+          bobber.inWater = true;
+
+          // переключаемся в ожидание
+          startWaiting();
         }
-
-        e.preventDefault();
+      } else if (bobber.inWater) {
+        // плавает
+        bobber.waveT += dt * (1.4 + state.fishPower * 0.6);
+        const amp = (state.mode === "BITE") ? 4.0 : 1.4;
+        bobber.y = lake.y + 18 + Math.sin(bobber.waveT * 6.0) * amp;
+        // легкий дрейф
+        bobber.x += Math.sin(bobber.waveT * 1.2) * 0.25;
+      }
     }
-}
 
-function onTouchEnd(e) {
-    if (e.touches.length < 2) {
-        lastPinchDistance = null;
+    // логика состояний
+    if (state.mode === "WAITING") {
+      if (state.t >= state.biteAt) startBite();
     }
-}
 
-function touchDistance(t1, t2) {
-    const dx = t2.clientX - t1.clientX;
-    const dy = t2.clientY - t1.clientY;
-    return Math.hypot(dx, dy);
-}
+    if (state.mode === "BITE") {
+      // окно подсечки
+      if (state.t > state.biteWindow) {
+        escape();
+      } else {
+        // визуальная тряска поплавка
+        bobber.waveT += dt * 2.5;
+      }
+    }
 
-// Игровой цикл
-function loop(timestamp) {
-    const dt = (timestamp - lastTime) / 1000 || 0;
-    lastTime = timestamp;
+    if (state.mode === "HOOKED") {
+      // короткая пауза, затем выматывание
+      if (state.t > 0.25) {
+        state.mode = "REELING";
+        state.t = 0;
+      }
+    }
 
-    game.update(dt);
+    if (state.mode === "REELING") {
+      // сопротивление: если не тапать — прогресс уменьшается
+      state.lastTapT += dt;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    game.render(ctx);
+      const decay = state.reelDecay * dt * (1.0 + Math.min(1.5, state.lastTapT * 1.2));
+      state.reel = Math.max(0, state.reel - decay);
+
+      // чтобы не было “вечной” рыбы: общий таймер
+      const timeLimit = 6.5 - state.fishPower * 2.2; // сильная — меньше времени
+      if (state.t > timeLimit) {
+        escape();
+        return;
+      }
+
+      // победа
+      if (state.reel >= state.reelNeed) {
+        landFish();
+        return;
+      }
+
+      // при выматывании поплавок слегка смещается к берегу
+      const pull = (state.reel / state.reelNeed);
+      bobber.x = clamp(W * 0.70 - pull * (W * 0.40), W * 0.33, W * 0.90);
+      bobber.y = lake.y + 18 + Math.sin(bobber.waveT * 6.0) * 1.2;
+      bobber.waveT += dt;
+    }
+
+    if (state.mode === "LANDED") {
+      if (state.t > 1.0) {
+        // назад в idle
+        state.mode = "IDLE";
+        state.t = 0;
+        bobber.visible = false;
+        bobber.inWater = false;
+        setMessage("Тапни, чтобы забросить.", 2.0);
+      }
+    }
+
+    if (state.mode === "IDLE") {
+      // ничего
+    }
+  }
+
+  // ===== Drawing =====
+  function draw() {
+    // фон
+    ctx.fillStyle = "#0f1a24";
+    ctx.fillRect(0, 0, W, H);
+
+    // небо
+    const skyH = lake.y;
+    const grad = ctx.createLinearGradient(0, 0, 0, skyH);
+    grad.addColorStop(0, "#0b1621");
+    grad.addColorStop(1, "#13283a");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, skyH);
+
+    // дальний лес (силуэты)
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = "#081018";
+    const horizonY = lake.y - 18;
+    ctx.beginPath();
+    ctx.moveTo(0, horizonY);
+    for (let x = 0; x <= W; x += 22) {
+      const h = 10 + Math.sin(x * 0.06) * 8 + rand(-2, 2);
+      ctx.lineTo(x, horizonY - h);
+    }
+    ctx.lineTo(W, horizonY + 80);
+    ctx.lineTo(0, horizonY + 80);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // вода
+    ctx.fillStyle = "#0b2233";
+    ctx.fillRect(0, lake.y, W, H - lake.y);
+
+    // рябь
+    ctx.globalAlpha = 0.12;
+    ctx.strokeStyle = "#9ad1ff";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 9; i++) {
+      const y = lake.y + 22 + i * 26 + Math.sin((performance.now() / 900) + i) * 4;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.08, y);
+      ctx.quadraticCurveTo(W * 0.52, y + Math.sin(i) * 6, W * 0.92, y);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // пирс/берег
+    ctx.fillStyle = "#1a2b3b";
+    ctx.fillRect(0, dock.y, W, 14);
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, dock.y + 12, W, 3);
+    ctx.globalAlpha = 1;
+
+    // персонаж (очень просто)
+    const manX = rod.baseX - 12;
+    const manY = rod.baseY - 12;
+    ctx.fillStyle = "#dfe9f7";
+    ctx.beginPath();
+    ctx.arc(manX, manY, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#dfe9f7";
+    ctx.fillRect(manX - 10, manY + 8, 22, 22);
+
+    // удочка
+    ctx.strokeStyle = "#cfa972";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(rod.baseX, rod.baseY);
+    ctx.lineTo(rod.tipX, rod.tipY);
+    ctx.stroke();
+
+    // леска + поплавок
+    if (bobber.visible) {
+      ctx.strokeStyle = "rgba(230,240,255,0.55)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(rod.tipX, rod.tipY);
+      // небольшая дуга
+      const midX = (rod.tipX + bobber.x) * 0.5;
+      const midY = (rod.tipY + bobber.y) * 0.5 + 30;
+      ctx.quadraticCurveTo(midX, midY, bobber.x, bobber.y);
+      ctx.stroke();
+
+      // поплавок
+      ctx.fillStyle = "#ffcc33";
+      ctx.beginPath();
+      ctx.arc(bobber.x, bobber.y, bobber.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      ctx.beginPath();
+      ctx.arc(bobber.x + 3, bobber.y + 3, bobber.r * 0.85, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // UI подсказки поверх канваса
+    drawCenterUI();
+  }
+
+  function drawCenterUI() {
+    // центральные подсказки
+    const text = state.messageT > 0 ? state.message : (
+      state.mode === "IDLE" ? "Тапни, чтобы забросить." :
+      state.mode === "WAITING" ? "Ждём поклёвку..." :
+      state.mode === "BITE" ? "ПОКЛЁВКА! Свайп вверх!" :
+      state.mode === "REELING" ? "Тапай, чтобы вытащить!" :
+      ""
+    );
+
+    if (text) {
+      ctx.save();
+      ctx.font = "600 16px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const padX = 14;
+      const padY = 10;
+      const x = W * 0.5;
+      const y = lake.y - 70;
+
+      const m = ctx.measureText(text);
+      const w = Math.min(W - 24, m.width + padX * 2);
+      const h = 36;
+
+      ctx.globalAlpha = 0.75;
+      ctx.fillStyle = "#0b0f14";
+      roundRect(x - w / 2, y - h / 2, w, h, 12);
+      ctx.fill();
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#eaf2ff";
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+
+    // прогресс выматывания
+    if (state.mode === "REELING") {
+      const x = W * 0.5;
+      const y = lake.y - 28;
+      const barW = Math.min(340, W * 0.78);
+      const barH = 14;
+      const p = clamp(state.reel / state.reelNeed, 0, 1);
+
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = "#0b0f14";
+      roundRect(x - barW / 2, y - barH / 2, barW, barH, 10);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "#7bd3ff";
+      roundRect(x - barW / 2 + 2, y - barH / 2 + 2, (barW - 4) * p, barH - 4, 8);
+      ctx.fill();
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#dfe9f7";
+      ctx.font = "600 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(`Рыба: ${state.rarity} • Награда: ${state.reward}`, x, y - 12);
+      ctx.restore();
+    }
+  }
+
+  function roundRect(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  // ===== Loop =====
+  function loop(t) {
+    if (!lastTime) lastTime = t;
+    const dt = Math.min(0.033, (t - lastTime) / 1000);
+    lastTime = t;
+
+    update(dt);
+    draw();
 
     requestAnimationFrame(loop);
-}
+  }
 
-// Регистрация service worker для PWA (если поддерживается)
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(err => {
-            console.warn('SW registration failed', err);
-        });
-    });
-}
+  // ===== Boot =====
+  // начальные позиции
+  lake.y = 0;
+  dock.y = 0;
+  rod.baseX = 0;
+  rod.baseY = 0;
 
-// Инициализация
-function init() {
-    game.init();
-    resizeCanvas();
-    requestAnimationFrame(loop);
-}
+  resize();
 
-// Слушатели событий
-window.addEventListener('resize', resizeCanvas);
-window.addEventListener('orientationchange', () => {
-    // Небольшая задержка, чтобы iOS успел пересчитать layout
-    setTimeout(resizeCanvas, 300);
-});
+  // стартовые значения
+  updateHUD();
+  setMessage("Тапни, чтобы забросить.", 2.0);
 
-canvas.addEventListener('pointerdown', onPointerDown);
-canvas.addEventListener('pointermove', onPointerMove);
-canvas.addEventListener('pointerup', onPointerUp);
-canvas.addEventListener('pointercancel', onPointerUp);
-canvas.addEventListener('contextmenu', preventContextMenu);
-
-// Touch-события для pinch-зума
-canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-canvas.addEventListener('touchend', onTouchEnd);
-canvas.addEventListener('touchcancel', onTouchEnd);
-
-// Старт
-window.addEventListener('load', init);
+  requestAnimationFrame(loop);
+})();
