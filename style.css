@@ -10,21 +10,6 @@
   --warn:#ffd166;
   --bad:#ff6b6b;
   --stroke: rgba(166,185,218,.18);
-  --hero-x: 48%;
-  --hero-y: 64%;
-  --hero-h: min(60vh, 520px);
-  --rod-x: 60%;
-  --rod-y: 40%;
-  --rod-h: 70%;
-  --rod-rot: -18deg;
-  --rod-scale: 0.92;
-  --hole-x: 63%;
-  --hole-y: 72%;
-  --hole-w: min(26vw, 260px);
-  --bobber-x: var(--hole-x);
-  --bobber-y: var(--hole-y);
-  --bobber-w: 22%;
-  --bobber-scale: 1.8;
 }
 
 *{box-sizing:border-box}
@@ -51,27 +36,30 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 .title{font-weight:900; letter-spacing:.10em}
 .subtitle{font-size:12px; color:var(--muted); margin-top:4px; line-height:1.2}
 
-#stage{position:relative; flex:1; display:flex; background: radial-gradient(1200px 700px at 50% 20%, rgba(123,211,255,.10), transparent 60%); overflow:hidden;}
+#stage{position:relative; flex:1; display:flex; overflow:hidden;}
 #sceneRoot{
   position:fixed;
   inset:0;
   width:100vw;
   height:100vh;
-  pointer-events:auto;
-}
-#bgLayer,
-#game,
-#lakeScene{
-  position:fixed;
-  inset:0;
-  width:100vw;
-  height:100vh;
+  overflow:hidden;
 }
 #bgLayer{
+  position:fixed;
+  inset:0;
   z-index:0;
   pointer-events:none;
 }
+#bgLayer img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
 #game{
+  position:fixed;
+  inset:0;
   z-index:1;
   width:100%;
   height:100%;
@@ -79,6 +67,15 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   pointer-events:auto;
   touch-action:none;
   background: transparent;
+}
+#lakeScene{
+  position:fixed;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+}
+#lakeScene .layer{
+  position:absolute;
 }
 
 #bottombar{
@@ -620,110 +617,46 @@ button:active{transform:translateY(1px)}
 .small{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.35}
 
 /* --- Lake scene (layered) --- */
-.scene{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-}
-
-#lakeScene{
-  z-index:2;
-  pointer-events:none;
-}
-
-#bgLayer img{
-  position:fixed;
-  inset:0;
-  width:100vw;
-  height:100vh;
-  object-fit:cover;
-}
-
-#bgLandscapeImg{display:none;}
-
-@media (min-aspect-ratio: 1/1){
-  #bgLandscapeImg{display:block;}
-  #bgPortraitImg{display:none;}
-}
-
-.anchor{
-  position:absolute;
-  transform: translate(-50%, -50%);
-}
-
-/* Базовые координаты — потом подгоним */
-#holeAnchor{
-  left: var(--hole-x);
-  top: var(--hole-y);
-  width: var(--hole-w);
-  z-index:4;
-}
-
-#heroAnchor{
-  left: var(--hero-x);
-  top: var(--hero-y);
-  width: var(--hero-h);
-  z-index:5;
-}
-
-#holeImg{
-  width:100%;
-  height:auto;
-  display:block;
-}
-
-#bobberLayer{
-  position:fixed;
-  left:0;
-  top:0;
-  z-index:6;
-  opacity:0;
-  transform: translate3d(var(--bobber-x), var(--bobber-y), 0) translate(-50%, -50%);
-  transition: opacity .18s ease;
-  pointer-events:none;
-}
-
-#bobberImg{
-  display:block;
-  width: var(--bobber-w);
-  height:auto;
-  transform-origin: 50% 50%;
-  transform: scale(var(--bobber-scale));
-}
-
-#heroImg{
-  width:100%;
-  height:auto;
-  display:block;
-}
-
-#rodImg{
-  position:absolute;
-  left: var(--rod-x);
-  top: var(--rod-y);
-  width: var(--rod-h);
-  height:auto;
-  transform: translate(-50%, -50%) rotate(var(--rod-rot)) scale(var(--rod-scale));
-  transform-origin: 18% 60%;
-  transition: transform .18s ease;
-}
-
+#bgPortraitImg{display:none;}
+#bgLandscapeImg{display:block;}
 @media (orientation: portrait){
-  :root{
-    --hero-x: 52%;
-    --hero-y: 62%;
-    --hero-h: min(64vh, 520px);
-    --rod-x: 60%;
-    --rod-y: 38%;
-    --rod-h: 78%;
-    --hole-x: 60%;
-    --hole-y: 70%;
-    --hole-w: min(36vw, 320px);
-    --bobber-x: var(--hole-x);
-    --bobber-y: var(--hole-y);
-    --bobber-w: 26%;
-    --bobber-scale: 2.0;
-  }
+  #bgPortraitImg{display:block;}
+  #bgLandscapeImg{display:none;}
+}
+
+#holeLayer{
+  left:63%;
+  top:72%;
+  width:min(22vw,240px);
+  transform:translate(-50%,-50%);
+}
+#heroLayer{
+  left:52%;
+  top:66%;
+  height:min(54vh,520px);
+  transform:translate(-50%,-50%);
+}
+#rodLayer{
+  left:48%;
+  top:52%;
+  height:min(42vh,420px);
+  transform:translate(-50%,-50%) rotate(-18deg);
+  transform-origin: 20% 70%;
+}
+#bobberLayer{
+  left:63%;
+  top:67%;
+  width:min(4vw,48px);
+  transform:translate(-50%,-50%) scale(2.0);
+  transition: opacity .18s ease;
+  opacity:0;
+}
+
+@media (orientation:portrait){
+  #holeLayer{left:60%; top:70%; width:min(34vw,280px);}
+  #heroLayer{left:54%; top:64%; height:min(46vh,420px);}
+  #rodLayer{left:50%; top:50%; height:min(36vh,340px);}
+  #bobberLayer{left:60%; top:66%; width:min(6vw,56px); transform:translate(-50%,-50%) scale(2.2);}
 }
 
 #lakeScene.state-idle #bobberLayer{
@@ -736,28 +669,28 @@ button:active{transform:translateY(1px)}
   opacity:1;
 }
 
-#lakeScene.state-fishing #bobberImg{
+#lakeScene.state-fishing #bobberLayer{
   animation: bobber-sway 2.4s ease-in-out infinite;
 }
-#lakeScene.state-bite #bobberImg{
+#lakeScene.state-bite #bobberLayer{
   animation: bobber-jerk 0.18s ease-in-out 5, bobber-sway 2.4s ease-in-out infinite;
 }
 
-#lakeScene.state-fishing #rodImg{
+#lakeScene.state-fishing #rodLayer{
   animation: rod-sway 2.6s ease-in-out infinite;
 }
-#lakeScene.state-cast #rodImg{
+#lakeScene.state-cast #rodLayer{
   animation: rod-cast 0.32s ease-out;
 }
-#lakeScene.state-striking #rodImg{
+#lakeScene.state-striking #rodLayer{
   animation: rod-strike-up 0.22s ease-out;
 }
 
-#lakeScene.state-fishing #heroImg{
+#lakeScene.state-fishing #heroLayer{
   animation: hero-sway 3.6s ease-in-out infinite;
 }
-#lakeScene.state-bite #heroImg,
-#lakeScene.state-striking #heroImg{
+#lakeScene.state-bite #heroLayer,
+#lakeScene.state-striking #heroLayer{
   animation: hero-sway-strong 2.8s ease-in-out infinite;
 }
 
