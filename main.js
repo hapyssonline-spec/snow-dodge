@@ -293,6 +293,9 @@ if ("serviceWorker" in navigator) {
   const TENSION_RELAX_POWER = 0.05;
   const RELAX_MULT_EARLY = 1.7;
   const RELAX_MULT_LATE = 2.4;
+  const TENSION_TIME_BASE = 0.03;
+  const TENSION_TIME_POWER = 0.06;
+  const TENSION_TIME_RAMP = 0.08;
   const TAP_TENSION_BUMP_BASE = 0.009;
   const TAP_TENSION_BUMP_POWER = 0.006;
   const TAP_TENSION_BUMP_HIGH_BASE = 0.015;
@@ -1874,7 +1877,9 @@ if ("serviceWorker" in navigator) {
       const line = getLineStats();
       const weightKg = game.catch?.weightKg || 0;
       const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.12) : 1;
-      const pull = (TENSION_PULL_BASE + game.fishPower * TENSION_PULL_POWER) * dt * line.tensionMult * weightPenalty;
+      const timePressure = 1 + Math.min(game.t * TENSION_TIME_RAMP, 2.0);
+      const pull = (TENSION_PULL_BASE + game.fishPower * TENSION_PULL_POWER) * dt * line.tensionMult * weightPenalty * timePressure;
+      const timeCreep = (TENSION_TIME_BASE + game.fishPower * TENSION_TIME_POWER) * dt * line.tensionMult * timePressure;
       let relax = (TENSION_RELAX_BASE - game.fishPower * TENSION_RELAX_POWER) * dt;
 
       if (game.lastTap > 0.45) {
@@ -1885,7 +1890,7 @@ if ("serviceWorker" in navigator) {
         relax *= 0.6;
       }
 
-      game.tension = clamp(game.tension + pull - relax, 0, 1.2);
+      game.tension = clamp(game.tension + pull + timeCreep - relax, 0, 1.2);
 
       // progress decay (fish pulls line out)
       const progDecay = (0.040 + game.fishPower * 0.055) * dt;
@@ -1899,10 +1904,6 @@ if ("serviceWorker" in navigator) {
       // lose conditions
       if (game.tension >= line.breakThreshold) {
         escape("Леска лопнула");
-        return;
-      }
-      if (game.t > (7.2 - game.fishPower * 2.2)) {
-        escape("Ушла в глубину");
         return;
       }
 
