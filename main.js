@@ -287,14 +287,14 @@ if ("serviceWorker" in navigator) {
   }
 
   // ===== Tension balance (REELING) =====
-  const TENSION_PULL_BASE = 0.05;
-  const TENSION_PULL_POWER = 0.08;
-  const TENSION_RELAX_BASE = 0.25;
-  const TENSION_RELAX_POWER = 0.05;
-  const RELAX_MULT_EARLY = 2.0;
-  const RELAX_MULT_LATE = 2.8;
-  const TENSION_TIME_BASE = 0.015;
-  const TENSION_TIME_POWER = 0.03;
+  const TENSION_PULL_BASE = 0.06;
+  const TENSION_PULL_POWER = 0.11;
+  const TENSION_RELAX_BASE = 0.2;
+  const TENSION_RELAX_POWER = 0.04;
+  const RELAX_MULT_EARLY = 1.6;
+  const RELAX_MULT_LATE = 2.2;
+  const TENSION_TIME_BASE = 0.02;
+  const TENSION_TIME_POWER = 0.04;
   const TENSION_TIME_RAMP = 0.04;
   const TAP_TENSION_BUMP_BASE = 0.006;
   const TAP_TENSION_BUMP_POWER = 0.004;
