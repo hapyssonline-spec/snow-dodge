@@ -1643,17 +1643,6 @@ if ("serviceWorker" in navigator) {
     setMsg("ПОКЛЁВКА! Свайп вверх (подсечка)!", 1.0);
   }
 
-  function escape(reason = "Сорвалась…") {
-    game.mode = "IDLE";
-    game.t = 0;
-    bobber.visible = false;
-    bobber.inWater = false;
-    game.catch = null;
-    setFishing(false);
-    beep(220, 0.10, 0.05);
-    setMsg(`${reason} Тап — забросить снова.`, 1.6);
-  }
-
   function hook() {
     if (game.mode !== "BITE") return;
     triggerStrike();
@@ -1867,7 +1856,16 @@ if ("serviceWorker" in navigator) {
     }
 
     if (game.mode === "BITE") {
-      if (game.t > game.biteWindow) escape("Не успел подсечь");
+      if (game.t > game.biteWindow) {
+        game.mode = "IDLE";
+        game.t = 0;
+        bobber.visible = false;
+        bobber.inWater = false;
+        game.catch = null;
+        setFishing(false);
+        beep(220, 0.10, 0.05);
+        setMsg("Не успел подсечь. Тап — забросить снова.", 1.6);
+      }
     }
 
     if (game.mode === "HOOKED") {
@@ -1904,7 +1902,14 @@ if ("serviceWorker" in navigator) {
 
       // lose conditions
       if (game.tension >= line.breakThreshold) {
-        escape("Леска лопнула");
+        game.mode = "IDLE";
+        game.t = 0;
+        bobber.visible = false;
+        bobber.inWater = false;
+        game.catch = null;
+        setFishing(false);
+        beep(220, 0.10, 0.05);
+        setMsg("Леска лопнула. Тап — забросить снова.", 1.6);
         return;
       }
 
