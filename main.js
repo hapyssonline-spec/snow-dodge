@@ -287,18 +287,18 @@ if ("serviceWorker" in navigator) {
   }
 
   // ===== Tension + progress balance (REELING) =====
-  const TENSION_BASE_RISE = 0.04;
-  const TENSION_POWER_RISE = 0.075;
-  const TENSION_TIME_PRESSURE = 0.014;
-  const TENSION_SURGE_PRIMARY = 0.06;
-  const TENSION_SURGE_SECONDARY = 0.03;
-  const TENSION_HEAT_RISE = 0.07;
-  const TENSION_RELAX = 0.018;
-  const TENSION_RELAX_POWER = 0.004;
-  const TENSION_MAX = 1.35;
-  const TENSION_SWEET_MIN = 0.45;
-  const TENSION_SWEET_MAX = 0.68;
-  const TENSION_RED_ZONE = 0.88;
+  const TENSION_BASE_RISE = 0.03;
+  const TENSION_POWER_RISE = 0.055;
+  const TENSION_TIME_PRESSURE = 0.012;
+  const TENSION_SURGE_PRIMARY = 0.05;
+  const TENSION_SURGE_SECONDARY = 0.024;
+  const TENSION_HEAT_RISE = 0.055;
+  const TENSION_RELAX = 0.03;
+  const TENSION_RELAX_POWER = 0.0025;
+  const TENSION_MAX = 1.22;
+  const TENSION_SWEET_MIN = 0.42;
+  const TENSION_SWEET_MAX = 0.72;
+  const TENSION_RED_ZONE = 0.84;
 
   const ROD_LENGTH_FACTOR = 0.13;
   const ROD_WIDTH = 3;
@@ -535,7 +535,7 @@ if ("serviceWorker" in navigator) {
     const weightKg = Math.round(clamp(rawWeight, species.minKg, species.maxKg) * 100) / 100;
     const sellValue = Math.round(weightKg * species.pricePerKg);
     const weightRatio = (weightKg - species.minKg) / (species.maxKg - species.minKg);
-    const power = clamp(0.35 + weightRatio * 0.5 + (rarityPower[species.rarity] || 0), 0.25, 1.05);
+    const power = clamp(0.32 + weightRatio * 0.48 + (rarityPower[species.rarity] || 0), 0.25, 0.9);
 
     return {
       speciesId: species.id,
@@ -1760,12 +1760,12 @@ if ("serviceWorker" in navigator) {
       const sweetFactor = clamp(1 - Math.abs(game.tension - sweetCenter) / sweetRange, 0, 1);
       const fatiguePenalty = 1 - game.reelHeat * 0.5;
       const powerPenalty = 1 - game.fishPower * 0.25;
-      const baseGain = 0.055 + rod.reelBonus * 0.65;
+      const baseGain = 0.065 + rod.reelBonus * 0.6;
       const gain = Math.max(0.018, baseGain * sweetFactor * fatiguePenalty * powerPenalty);
       game.progress += gain;
 
-      game.reelHeat = clamp(game.reelHeat + 0.25, 0, 1);
-      const bump = (0.025 + game.fishPower * 0.03) * (0.7 + game.reelHeat * 0.8);
+      game.reelHeat = clamp(game.reelHeat + 0.18, 0, 1);
+      const bump = (0.018 + game.fishPower * 0.022) * (0.65 + game.reelHeat * 0.7);
       game.tension += bump;
 
       beep(520, 0.03, 0.03);
@@ -1881,7 +1881,7 @@ if ("serviceWorker" in navigator) {
       const line = getLineStats();
       const weightKg = game.catch?.weightKg || 0;
       const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.1) : 1;
-      game.reelHeat = clamp(game.reelHeat - dt * 0.35, 0, 1);
+      game.reelHeat = clamp(game.reelHeat - dt * 0.45, 0, 1);
 
       const surgeSpeed = 1.6 + game.fishPower * 1.6;
       const surge =
@@ -1907,7 +1907,7 @@ if ("serviceWorker" in navigator) {
       // progress decay (fish pulls line out) - harsher outside sweet zone
       const sweetCenter = (TENSION_SWEET_MIN + TENSION_SWEET_MAX) * 0.5;
       const tensionOffset = Math.abs(game.tension - sweetCenter);
-      let progDecay = (0.03 + game.fishPower * 0.06) * (1 + game.reelHeat * 0.7) * dt;
+      let progDecay = (0.022 + game.fishPower * 0.05) * (1 + game.reelHeat * 0.6) * dt;
       if (tensionOffset > 0.16) {
         progDecay += (tensionOffset - 0.16) * 0.5 * dt;
       }
