@@ -728,13 +728,13 @@ button:disabled{
   --cast-y: 70%;
 
   /* Герой — слева от точки заброса */
-  --hero-x: 36%;
-  --hero-y: 72%;
+  --hero-x: 32%;
+  --hero-y: 68%;
   --hero-h: min(44vh, 420px);
 
   /* Удочка — строго в руках героя */
-  --rod-dx: 3%;
-  --rod-dy: 8%;
+  --rod-dx: 2%;
+  --rod-dy: 6%;
   --rod-h:  min(28vh, 280px);
   --rod-rot: -18deg;
 
@@ -750,12 +750,12 @@ button:disabled{
     --cast-x: 50%;
     --cast-y: 69%;
 
-    --hero-x: 34%;
-    --hero-y: 74%;
+    --hero-x: 30%;
+    --hero-y: 70%;
     --hero-h: min(38vh, 380px);
 
-    --rod-dx: 5%;
-    --rod-dy: 5%;
+    --rod-dx: 3%;
+    --rod-dy: 3%;
     --rod-h:  min(24vh, 240px);
     --rod-rot: -22deg;
 
