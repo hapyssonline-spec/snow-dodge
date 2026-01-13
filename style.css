@@ -576,3 +576,74 @@ button{
 button.secondary{background: rgba(15,26,36,.55)}
 button:active{transform:translateY(1px)}
 .small{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.35}
+
+/* --- Lake scene (layered) --- */
+.scene{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+#lakeScene{
+  background: url('bg_lake_portrait.png') center/cover no-repeat;
+}
+
+@media (min-aspect-ratio: 1/1){
+  #lakeScene{
+    background-image: url('bg_lake_landscape.png');
+  }
+}
+
+.anchor{
+  position:absolute;
+  transform: translate(-50%, -50%);
+}
+
+/* Базовые координаты — потом подгоним */
+#holeAnchor{
+  left: 58%;
+  top: 78%;
+  width: min(42vw, 420px);
+}
+
+#heroAnchor{
+  left: 30%;
+  top: 74%;
+  width: min(28vw, 320px);
+}
+
+#holeImg{
+  width:100%;
+  height:auto;
+  display:block;
+}
+
+#bobberImg{
+  position:absolute;
+  left:50%;
+  top:46%;
+  width:14%;
+  height:auto;
+  transform: translate(-50%, -50%);
+}
+
+#heroImg{
+  width:100%;
+  height:auto;
+  display:block;
+}
+
+#rodImg{
+  position:absolute;
+  left:58%;
+  top:44%;
+  width:75%;
+  height:auto;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  transform-origin: 18% 60%;
+}
+
+/* Canvas можно скрыть, чтобы не мешал визуально */
+#game{
+  display:none;
+}
