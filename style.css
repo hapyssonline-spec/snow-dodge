@@ -751,10 +751,10 @@ button:disabled{
     --cast-y: 69%;
 
     --hero-x: 30%;
-    --hero-y: 70%;
+    --hero-y: 68%;
     --hero-h: min(38vh, 380px);
 
-    --rod-dx: 4%;
+    --rod-dx: 5%;
     --rod-dy: 0%;
     --rod-h:  min(24vh, 240px);
     --rod-rot: -22deg;
