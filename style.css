@@ -10,19 +10,21 @@
   --warn:#ffd166;
   --bad:#ff6b6b;
   --stroke: rgba(166,185,218,.18);
-  --hero-x: 38%;
-  --hero-y: 72%;
-  --hero-h: min(26vw, 320px);
+  --hero-x: 48%;
+  --hero-y: 64%;
+  --hero-h: min(60vh, 520px);
   --rod-x: 60%;
-  --rod-y: 42%;
-  --rod-h: 68%;
-  --rod-rot: -14deg;
-  --bobber-x: 59%;
-  --bobber-y: 77%;
+  --rod-y: 40%;
+  --rod-h: 70%;
+  --rod-rot: -18deg;
+  --rod-scale: 0.92;
+  --hole-x: 63%;
+  --hole-y: 72%;
+  --hole-w: min(26vw, 260px);
+  --bobber-x: var(--hole-x);
+  --bobber-y: var(--hole-y);
   --bobber-w: 22%;
-  --hole-x: 60%;
-  --hole-y: 78%;
-  --hole-w: min(40vw, 420px);
+  --bobber-scale: 1.8;
 }
 
 *{box-sizing:border-box}
@@ -74,6 +76,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   width:100%;
   height:100%;
   display:block;
+  pointer-events:auto;
   touch-action:none;
   background: transparent;
 }
@@ -685,6 +688,7 @@ button:active{transform:translateY(1px)}
   width: var(--bobber-w);
   height:auto;
   transform-origin: 50% 50%;
+  transform: scale(var(--bobber-scale));
 }
 
 #heroImg{
@@ -699,26 +703,26 @@ button:active{transform:translateY(1px)}
   top: var(--rod-y);
   width: var(--rod-h);
   height:auto;
-  transform: translate(-50%, -50%) rotate(var(--rod-rot));
+  transform: translate(-50%, -50%) rotate(var(--rod-rot)) scale(var(--rod-scale));
   transform-origin: 18% 60%;
   transition: transform .18s ease;
 }
 
 @media (orientation: portrait){
   :root{
-    --hero-x: 54%;
-    --hero-y: 76%;
-    --hero-h: min(46vw, 360px);
-    --rod-x: 62%;
-    --rod-y: 44%;
-    --rod-h: 72%;
-    --rod-rot: -12deg;
-    --bobber-x: 58%;
-    --bobber-y: 80%;
+    --hero-x: 52%;
+    --hero-y: 62%;
+    --hero-h: min(64vh, 520px);
+    --rod-x: 60%;
+    --rod-y: 38%;
+    --rod-h: 78%;
+    --hole-x: 60%;
+    --hole-y: 70%;
+    --hole-w: min(36vw, 320px);
+    --bobber-x: var(--hole-x);
+    --bobber-y: var(--hole-y);
     --bobber-w: 26%;
-    --hole-x: 57%;
-    --hole-y: 81%;
-    --hole-w: min(56vw, 440px);
+    --bobber-scale: 2.0;
   }
 }
 
@@ -769,20 +773,20 @@ button:active{transform:translateY(1px)}
 }
 
 @keyframes rod-sway{
-  0%, 100%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 2deg))}
-  50%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) + 2deg))}
+  0%, 100%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 2deg)) scale(var(--rod-scale))}
+  50%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) + 2deg)) scale(var(--rod-scale))}
 }
 
 @keyframes rod-cast{
-  0%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 8deg))}
-  60%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) + 10deg))}
-  100%{transform: translate(-50%, -50%) rotate(var(--rod-rot))}
+  0%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 8deg)) scale(var(--rod-scale))}
+  60%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) + 10deg)) scale(var(--rod-scale))}
+  100%{transform: translate(-50%, -50%) rotate(var(--rod-rot)) scale(var(--rod-scale))}
 }
 
 @keyframes rod-strike-up{
-  0%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 2deg))}
-  50%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 18deg))}
-  100%{transform: translate(-50%, -50%) rotate(var(--rod-rot))}
+  0%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 2deg)) scale(var(--rod-scale))}
+  50%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 18deg)) scale(var(--rod-scale))}
+  100%{transform: translate(-50%, -50%) rotate(var(--rod-rot)) scale(var(--rod-scale))}
 }
 
 @keyframes hero-sway{
@@ -824,4 +828,29 @@ button,
 #game,
 #lakeScene {
   touch-action: manipulation;
+}
+
+html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+}
+
+#lakeScene img, #bgLayer img {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  pointer-events: none !important;
+}
+
+:focus {
+  outline: none !important;
+}
+
+::selection {
+  background: transparent !important;
+}
+
+::-moz-selection {
+  background: transparent !important;
 }
