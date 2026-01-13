@@ -16,6 +16,10 @@ if ("serviceWorker" in navigator) {
   // ===== DOM =====
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: false });
+  const lakeScene = document.getElementById("lakeScene");
+  const holeImg = document.getElementById("holeImg");
+  const rodImg = document.getElementById("rodImg");
+  const bobberLayer = document.getElementById("bobberLayer");
 
   const coinsEl = document.getElementById("coins");
   const fishEl = document.getElementById("fish");
@@ -89,6 +93,114 @@ if ("serviceWorker" in navigator) {
 
   function setVhVar() {
     document.documentElement.style.setProperty("--vh", `${window.innerHeight * 0.01}px`);
+  }
+
+  const lakeStates = ["state-idle", "state-fishing", "state-bite", "state-striking", "state-cast"];
+  let lakeState = "idle";
+  let bobberAnimation = null;
+  let biteTimer = null;
+  let strikeTimer = null;
+
+  function setLakeState(state) {
+    if (!lakeScene) return;
+    lakeState = state;
+    lakeStates.forEach((cls) => lakeScene.classList.remove(cls));
+    lakeScene.classList.add(`state-${state}`);
+  }
+
+  function getRodTipPoint() {
+    if (!rodImg) return null;
+    const rect = rodImg.getBoundingClientRect();
+    return {
+      x: rect.right - rect.width * 0.08,
+      y: rect.top + rect.height * 0.16
+    };
+  }
+
+  function getHoleCenter() {
+    if (!holeImg) return null;
+    const rect = holeImg.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width * 0.5,
+      y: rect.top + rect.height * 0.52
+    };
+  }
+
+  function bobberTransform(x, y) {
+    return `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+  }
+
+  function placeBobberAt(x, y) {
+    if (!bobberLayer) return;
+    bobberLayer.style.setProperty("--bobber-x", `${x}px`);
+    bobberLayer.style.setProperty("--bobber-y", `${y}px`);
+    bobberLayer.style.transform = "";
+  }
+
+  function syncBobberToHole() {
+    const holeCenter = getHoleCenter();
+    if (!holeCenter) return;
+    placeBobberAt(holeCenter.x, holeCenter.y);
+  }
+
+  function startCast() {
+    if (!bobberLayer) return;
+    const rodTip = getRodTipPoint();
+    const holeCenter = getHoleCenter();
+    if (!rodTip || !holeCenter) return;
+
+    setLakeState("cast");
+    if (bobberAnimation) bobberAnimation.cancel();
+    placeBobberAt(rodTip.x, rodTip.y);
+    bobberLayer.style.transform = bobberTransform(rodTip.x, rodTip.y);
+    bobberAnimation = bobberLayer.animate(
+      [
+        { transform: bobberTransform(rodTip.x, rodTip.y) },
+        { transform: bobberTransform(holeCenter.x, holeCenter.y) }
+      ],
+      { duration: 450, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" }
+    );
+    bobberAnimation.onfinish = () => {
+      placeBobberAt(holeCenter.x, holeCenter.y);
+      if (game.mode === "CASTING" || game.mode === "WAITING") {
+        setFishing(true);
+      }
+    };
+  }
+
+  function setFishing(active) {
+    if (active) {
+      setLakeState("fishing");
+      syncBobberToHole();
+    } else {
+      setLakeState("idle");
+    }
+  }
+
+  function triggerBite() {
+    if (!lakeScene) return;
+    if (biteTimer) window.clearTimeout(biteTimer);
+    setLakeState("bite");
+    biteTimer = window.setTimeout(() => {
+      if (game.mode === "BITE") {
+        setLakeState("fishing");
+      }
+    }, 800);
+  }
+
+  function triggerStrike() {
+    if (!lakeScene) return;
+    if (strikeTimer) window.clearTimeout(strikeTimer);
+    setLakeState("striking");
+    strikeTimer = window.setTimeout(() => {
+      if (game.mode === "BITE") {
+        setLakeState("bite");
+      } else if (["WAITING", "HOOKED", "REELING"].includes(game.mode)) {
+        setLakeState("fishing");
+      } else {
+        setLakeState("idle");
+      }
+    }, 200);
   }
 
   function triangular(min, mode, max) {
@@ -447,6 +559,9 @@ if ("serviceWorker" in navigator) {
     }
 
     layoutCity();
+    if (["WAITING", "BITE", "HOOKED", "REELING"].includes(game.mode)) {
+      syncBobberToHole();
+    }
   }
   function handleResize() {
     if (resizeTimer) window.clearTimeout(resizeTimer);
@@ -1405,6 +1520,7 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     bobber.visible = false;
     bobber.inWater = false;
+    setFishing(false);
     setScene(SCENE_LAKE);
     setSubtitle("Тап — заброс. Поклёвка → свайп вверх. Тапы — выматывать.");
     setHint(`Тапни по воде, чтобы забросить. Приманка: ${getActiveBaitLabel()}`);
@@ -1441,6 +1557,7 @@ if ("serviceWorker" in navigator) {
   function castTo(x, y) {
     game.mode = "CASTING";
     game.t = 0;
+    startCast();
 
     bobber.visible = true;
     bobber.inWater = false;
@@ -1465,12 +1582,14 @@ if ("serviceWorker" in navigator) {
     game.mode = "WAITING";
     game.t = 0;
     scheduleBite();
+    setFishing(true);
     setMsg("Ждём поклёвку…", 1.1);
   }
 
   function enterBite() {
     game.mode = "BITE";
     game.t = 0;
+    triggerBite();
     beep(820, 0.08, 0.05);
     setMsg("ПОКЛЁВКА! Свайп вверх (подсечка)!", 1.0);
   }
@@ -1481,12 +1600,14 @@ if ("serviceWorker" in navigator) {
     bobber.visible = false;
     bobber.inWater = false;
     game.catch = null;
+    setFishing(false);
     beep(220, 0.10, 0.05);
     setMsg(`${reason} Тап — забросить снова.`, 1.6);
   }
 
   function hook() {
     if (game.mode !== "BITE") return;
+    triggerStrike();
 
     const catchData = buildCatch();
     game.catch = catchData;
@@ -1510,6 +1631,7 @@ if ("serviceWorker" in navigator) {
     game.mode = "REELING";
     game.t = 0;
     game.lastTap = 999;
+    setFishing(true);
     setMsg("Тапай, чтобы выматывать. Следи за натяжением!", 1.2);
   }
 
@@ -1583,6 +1705,10 @@ if ("serviceWorker" in navigator) {
       const y = clamp(p.y, scene.lakeY - 10, H - 20);
       castTo(p.x, y);
       return;
+    }
+
+    if (game.mode === "WAITING" || game.mode === "BITE") {
+      triggerStrike();
     }
 
     if (game.mode === "REELING") {
@@ -1754,6 +1880,7 @@ if ("serviceWorker" in navigator) {
         game.t = 0;
         bobber.visible = false;
         bobber.inWater = false;
+        setFishing(false);
         setHint("Тапни по воде, чтобы забросить.");
       }
     }
@@ -2117,6 +2244,7 @@ if ("serviceWorker" in navigator) {
   resize();
   renderInventory();
   setScene(SCENE_LAKE);
+  setLakeState("idle");
 
   // intro overlay
   showOverlay();
