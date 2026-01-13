@@ -287,22 +287,22 @@ if ("serviceWorker" in navigator) {
   }
 
   // ===== Tension balance (REELING) =====
-  const TENSION_PULL_BASE = 0.10;
-  const TENSION_PULL_POWER = 0.16;
-  const TENSION_RELAX_BASE = 0.20;
-  const TENSION_RELAX_POWER = 0.05;
-  const RELAX_MULT_EARLY = 1.7;
-  const RELAX_MULT_LATE = 2.4;
-  const TENSION_TIME_BASE = 0.03;
-  const TENSION_TIME_POWER = 0.06;
-  const TENSION_TIME_RAMP = 0.08;
-  const TAP_TENSION_BUMP_BASE = 0.009;
-  const TAP_TENSION_BUMP_POWER = 0.006;
-  const TAP_TENSION_BUMP_HIGH_BASE = 0.015;
-  const TAP_TENSION_BUMP_HIGH_POWER = 0.010;
-  const TENSION_RED_ZONE = 0.82;
-  const DEEP_ESCAPE_CHANCE_BASE = 0.015;
-  const DEEP_ESCAPE_CHANCE_RAMP = 0.045;
+  const TENSION_PULL_BASE = 0.07;
+  const TENSION_PULL_POWER = 0.12;
+  const TENSION_RELAX_BASE = 0.24;
+  const TENSION_RELAX_POWER = 0.04;
+  const RELAX_MULT_EARLY = 2.0;
+  const RELAX_MULT_LATE = 2.8;
+  const TENSION_TIME_BASE = 0.02;
+  const TENSION_TIME_POWER = 0.04;
+  const TENSION_TIME_RAMP = 0.05;
+  const TAP_TENSION_BUMP_BASE = 0.006;
+  const TAP_TENSION_BUMP_POWER = 0.004;
+  const TAP_TENSION_BUMP_HIGH_BASE = 0.011;
+  const TAP_TENSION_BUMP_HIGH_POWER = 0.008;
+  const TENSION_RED_ZONE = 0.86;
+  const DEEP_ESCAPE_CHANCE_BASE = 0.006;
+  const DEEP_ESCAPE_CHANCE_RAMP = 0.028;
 
   const ROD_LENGTH_FACTOR = 0.13;
   const ROD_WIDTH = 3;
@@ -1768,8 +1768,8 @@ if ("serviceWorker" in navigator) {
       // reel tap: increases progress but may also increase tension slightly
       game.lastTap = 0;
       const rod = getRodStats();
-      const baseGain = 0.070 - game.fishPower * 0.020 + rod.reelBonus;
-      const gain = Math.max(0.030, baseGain);
+      const baseGain = 0.082 - game.fishPower * 0.016 + rod.reelBonus;
+      const gain = Math.max(0.040, baseGain);
       game.progress += gain;
 
       // tapping adds a smaller tension bump; higher if tension already high
@@ -1898,7 +1898,7 @@ if ("serviceWorker" in navigator) {
       game.tension = clamp(game.tension + pull + timeCreep - relax, 0, 1.2);
 
       // progress decay (fish pulls line out)
-      const progDecay = (0.040 + game.fishPower * 0.055) * dt;
+      const progDecay = (0.024 + game.fishPower * 0.040) * dt;
       game.progress = Math.max(0, game.progress - progDecay);
 
       // moving bobber toward shore with progress
