@@ -301,8 +301,6 @@ if ("serviceWorker" in navigator) {
   const TAP_TENSION_BUMP_HIGH_BASE = 0.011;
   const TAP_TENSION_BUMP_HIGH_POWER = 0.008;
   const TENSION_RED_ZONE = 0.86;
-  const DEEP_ESCAPE_CHANCE_BASE = 0.006;
-  const DEEP_ESCAPE_CHANCE_RAMP = 0.028;
 
   const ROD_LENGTH_FACTOR = 0.13;
   const ROD_WIDTH = 3;
@@ -1509,7 +1507,6 @@ if ("serviceWorker" in navigator) {
     need: 1.0,
     tension: 0.35,    // 0..1
     tensionVel: 0.0,
-    redTensionTime: 0,
     // input
     lastTap: 999,
     // messages
@@ -1672,7 +1669,6 @@ if ("serviceWorker" in navigator) {
     game.need = clamp(1.0 + game.fishPower * 0.65, 1.05, 1.65);
     game.tension = 0.35 + game.fishPower * 0.10;
     game.tensionVel = 0;
-    game.redTensionTime = 0;
 
     game.mode = "HOOKED";
     game.t = 0;
@@ -1910,17 +1906,6 @@ if ("serviceWorker" in navigator) {
       if (game.tension >= line.breakThreshold) {
         escape("Леска лопнула");
         return;
-      }
-
-      if (game.tension >= TENSION_RED_ZONE) {
-        game.redTensionTime += dt;
-        const escapeChance = (DEEP_ESCAPE_CHANCE_BASE + game.redTensionTime * DEEP_ESCAPE_CHANCE_RAMP) * dt;
-        if (Math.random() < escapeChance) {
-          escape("Ушла в глубину");
-          return;
-        }
-      } else {
-        game.redTensionTime = 0;
       }
 
       // win condition
