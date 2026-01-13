@@ -167,6 +167,12 @@ if ("serviceWorker" in navigator) {
     return Number.parseFloat(scale) || 1;
   }
 
+  function placeBobberAt(x, y) {
+    if (!bobberLayer) return;
+    bobberLayer.style.left = `${x}px`;
+    bobberLayer.style.top = `${y}px`;
+  }
+
   function animateCastToHole() {
     if (!bobberLayer) return;
     const rodTip = getRodTipPoint();

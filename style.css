@@ -706,20 +706,20 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
 /* ===== LAKE RIG (single source of truth) ===== */
 :root{
   /* Лунка */
-  --hole-x: 68%;
+  --hole-x: 50%;
   --hole-y: 70%;
   --hole-w: min(18vw, 220px);
 
   /* Герой — слева от лунки */
-  --hero-x: 56%;
+  --hero-x: 36%;
   --hero-y: 72%;
   --hero-h: min(44vh, 420px);
 
   /* Удочка — строго в руках героя */
-  --rod-dx: 3%;
-  --rod-dy: -28%;
+  --rod-dx: 5%;
+  --rod-dy: -24%;
   --rod-h:  min(30vh, 300px);
-  --rod-rot: -28deg;
+  --rod-rot: -24deg;
 
   /* Поплавок — утоплен в лунку */
   --bobber-x: var(--hole-x);
@@ -730,18 +730,18 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
 
 @media (orientation: portrait){
   :root{
-    --hole-x: 62%;
+    --hole-x: 50%;
     --hole-y: 69%;
     --hole-w: min(30vw, 260px);
 
-    --hero-x: 54%;
+    --hero-x: 34%;
     --hero-y: 74%;
     --hero-h: min(38vh, 380px);
 
-    --rod-dx: 1.8%;
-    --rod-dy: -8%;
+    --rod-dx: 4%;
+    --rod-dy: -6%;
     --rod-h:  min(26vh, 260px);
-    --rod-rot: -30deg;
+    --rod-rot: -28deg;
 
     --bobber-y: calc(var(--hole-y) - 1.0%);
     --bobber-w: min(5.2vw, 54px);
