@@ -286,21 +286,19 @@ if ("serviceWorker" in navigator) {
     }, 1200);
   }
 
-  // ===== Tension balance (REELING) =====
-  const TENSION_PULL_BASE = 0.06;
-  const TENSION_PULL_POWER = 0.11;
-  const TENSION_RELAX_BASE = 0.2;
-  const TENSION_RELAX_POWER = 0.04;
-  const RELAX_MULT_EARLY = 1.6;
-  const RELAX_MULT_LATE = 2.2;
-  const TENSION_TIME_BASE = 0.02;
-  const TENSION_TIME_POWER = 0.04;
-  const TENSION_TIME_RAMP = 0.04;
-  const TAP_TENSION_BUMP_BASE = 0.006;
-  const TAP_TENSION_BUMP_POWER = 0.004;
-  const TAP_TENSION_BUMP_HIGH_BASE = 0.011;
-  const TAP_TENSION_BUMP_HIGH_POWER = 0.008;
-  const TENSION_RED_ZONE = 0.86;
+  // ===== Tension + progress balance (REELING) =====
+  const TENSION_BASE_RISE = 0.04;
+  const TENSION_POWER_RISE = 0.075;
+  const TENSION_TIME_PRESSURE = 0.014;
+  const TENSION_SURGE_PRIMARY = 0.06;
+  const TENSION_SURGE_SECONDARY = 0.03;
+  const TENSION_HEAT_RISE = 0.07;
+  const TENSION_RELAX = 0.018;
+  const TENSION_RELAX_POWER = 0.004;
+  const TENSION_MAX = 1.35;
+  const TENSION_SWEET_MIN = 0.45;
+  const TENSION_SWEET_MAX = 0.68;
+  const TENSION_RED_ZONE = 0.88;
 
   const ROD_LENGTH_FACTOR = 0.13;
   const ROD_WIDTH = 3;
@@ -1507,6 +1505,8 @@ if ("serviceWorker" in navigator) {
     need: 1.0,
     tension: 0.35,    // 0..1
     tensionVel: 0.0,
+    reelHeat: 0,
+    surgeSeed: 0,
     // input
     lastTap: 999,
     // messages
@@ -1655,9 +1655,11 @@ if ("serviceWorker" in navigator) {
 
     // reel mechanics
     game.progress = 0;
-    game.need = clamp(1.0 + game.fishPower * 0.65, 1.05, 1.65);
-    game.tension = 0.35 + game.fishPower * 0.10;
+    game.need = clamp(1.4 + game.fishPower * 0.9, 1.5, 2.6);
+    game.tension = 0.48 + game.fishPower * 0.12;
     game.tensionVel = 0;
+    game.reelHeat = 0;
+    game.surgeSeed = rand(0, Math.PI * 2);
 
     game.mode = "HOOKED";
     game.t = 0;
@@ -1750,17 +1752,20 @@ if ("serviceWorker" in navigator) {
     }
 
     if (game.mode === "REELING") {
-      // reel tap: increases progress but may also increase tension slightly
+      // reel tap: progress depends on sweet tension zone, but adds heat and tension
       game.lastTap = 0;
       const rod = getRodStats();
-      const baseGain = 0.082 - game.fishPower * 0.016 + rod.reelBonus;
-      const gain = Math.max(0.040, baseGain);
+      const sweetCenter = (TENSION_SWEET_MIN + TENSION_SWEET_MAX) * 0.5;
+      const sweetRange = (TENSION_SWEET_MAX - TENSION_SWEET_MIN) * 0.5;
+      const sweetFactor = clamp(1 - Math.abs(game.tension - sweetCenter) / sweetRange, 0, 1);
+      const fatiguePenalty = 1 - game.reelHeat * 0.5;
+      const powerPenalty = 1 - game.fishPower * 0.25;
+      const baseGain = 0.055 + rod.reelBonus * 0.65;
+      const gain = Math.max(0.018, baseGain * sweetFactor * fatiguePenalty * powerPenalty);
       game.progress += gain;
 
-      // tapping adds a smaller tension bump; higher if tension already high
-      const bump = (game.tension > 0.72)
-        ? (TAP_TENSION_BUMP_HIGH_BASE + game.fishPower * TAP_TENSION_BUMP_HIGH_POWER)
-        : (TAP_TENSION_BUMP_BASE + game.fishPower * TAP_TENSION_BUMP_POWER);
+      game.reelHeat = clamp(game.reelHeat + 0.25, 0, 1);
+      const bump = (0.025 + game.fishPower * 0.03) * (0.7 + game.reelHeat * 0.8);
       game.tension += bump;
 
       beep(520, 0.03, 0.03);
@@ -1875,24 +1880,40 @@ if ("serviceWorker" in navigator) {
     if (game.mode === "REELING") {
       const line = getLineStats();
       const weightKg = game.catch?.weightKg || 0;
-      const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.12) : 1;
-      const timePressure = 1 + Math.min(game.t * TENSION_TIME_RAMP, 2.0);
-      const pull = (TENSION_PULL_BASE + game.fishPower * TENSION_PULL_POWER) * dt * line.tensionMult * weightPenalty * timePressure;
-      const timeCreep = (TENSION_TIME_BASE + game.fishPower * TENSION_TIME_POWER) * dt * line.tensionMult * timePressure;
-      let relax = (TENSION_RELAX_BASE - game.fishPower * TENSION_RELAX_POWER) * dt;
+      const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.1) : 1;
+      game.reelHeat = clamp(game.reelHeat - dt * 0.35, 0, 1);
 
-      if (game.lastTap > 0.45) {
-        relax *= RELAX_MULT_LATE;
-      } else if (game.lastTap > 0.20) {
-        relax *= RELAX_MULT_EARLY;
+      const surgeSpeed = 1.6 + game.fishPower * 1.6;
+      const surge =
+        (Math.sin(game.t * surgeSpeed + game.surgeSeed) * TENSION_SURGE_PRIMARY +
+          Math.sin(game.t * 0.65 + game.surgeSeed * 1.8) * TENSION_SURGE_SECONDARY) *
+        weightPenalty;
+
+      const baseRise = (TENSION_BASE_RISE + game.fishPower * TENSION_POWER_RISE) * line.tensionMult * weightPenalty;
+      const heatRise = game.reelHeat * TENSION_HEAT_RISE * (1 + game.fishPower * 0.4);
+      const timeRise = Math.min(game.t * TENSION_TIME_PRESSURE, 0.4);
+      let relax = TENSION_RELAX - game.fishPower * TENSION_RELAX_POWER;
+
+      if (game.lastTap > 0.7) {
+        relax *= 1.5;
+      } else if (game.lastTap > 0.35) {
+        relax *= 1.2;
       } else {
         relax *= 0.6;
       }
 
-      game.tension = clamp(game.tension + pull + timeCreep - relax, 0, 1.2);
+      game.tension = clamp(game.tension + (baseRise + heatRise + timeRise + surge) * dt - relax * dt, 0, TENSION_MAX);
 
-      // progress decay (fish pulls line out)
-      const progDecay = (0.016 + game.fishPower * 0.028) * dt;
+      // progress decay (fish pulls line out) - harsher outside sweet zone
+      const sweetCenter = (TENSION_SWEET_MIN + TENSION_SWEET_MAX) * 0.5;
+      const tensionOffset = Math.abs(game.tension - sweetCenter);
+      let progDecay = (0.03 + game.fishPower * 0.06) * (1 + game.reelHeat * 0.7) * dt;
+      if (tensionOffset > 0.16) {
+        progDecay += (tensionOffset - 0.16) * 0.5 * dt;
+      }
+      if (game.tension > line.breakThreshold * 0.9) {
+        progDecay += 0.05 * dt;
+      }
       game.progress = Math.max(0, game.progress - progDecay);
 
       // moving bobber toward shore with progress
@@ -1922,7 +1943,8 @@ if ("serviceWorker" in navigator) {
       // guidance hint based on tension
       if (game.t % 0.5 < dt) {
         if (game.tension > TENSION_RED_ZONE) setHint("Красная зона — пауза, не тапай!");
-        else if (game.tension < 0.25) setHint("Натяжение низкое — можно тапать.");
+        else if (game.tension < TENSION_SWEET_MIN - 0.08) setHint("Слишком слабое натяжение — рыба уходит.");
+        else if (game.tension > TENSION_SWEET_MAX + 0.08) setHint("Слишком туго — дай леске отдохнуть.");
         else setHint("Держи натяжение в зелёной зоне.");
       }
     }
@@ -2127,15 +2149,15 @@ if ("serviceWorker" in navigator) {
     // green zone
     ctx.globalAlpha = 0.22;
     ctx.fillStyle = "#66e6a0";
-    const gz0 = 0.28, gz1 = 0.72;
+    const gz0 = TENSION_SWEET_MIN, gz1 = TENSION_SWEET_MAX;
     roundRect(x - barW / 2 + 2 + (barW - 4) * gz0, ty - barH / 2 + 2, (barW - 4) * (gz1 - gz0), barH - 4, 8);
     ctx.fill();
 
     // tension fill with color
     ctx.globalAlpha = 0.92;
     const color =
-      (t < 0.25) ? "#ffd166" :
-      (t > 0.82) ? "#ff6b6b" :
+      (t < TENSION_SWEET_MIN - 0.06) ? "#ffd166" :
+      (t > TENSION_SWEET_MAX + 0.08) ? "#ff6b6b" :
       "#66e6a0";
     ctx.fillStyle = color;
     roundRect(x - barW / 2 + 2, ty - barH / 2 + 2, (barW - 4) * t, barH - 4, 8);
