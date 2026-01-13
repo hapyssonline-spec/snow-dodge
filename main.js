@@ -28,10 +28,10 @@ if ("serviceWorker" in navigator) {
 
   // ===== DOM =====
   const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d", { alpha: false });
+  const ctx = canvas.getContext("2d", { alpha: true });
   const lakeScene = document.getElementById("lakeScene");
-  const holeImg = document.getElementById("holeImg");
-  const rodImg = document.getElementById("rodImg");
+  const holeLayer = document.getElementById("holeLayer");
+  const rodLayer = document.getElementById("rodLayer");
   const bobberLayer = document.getElementById("bobberLayer");
 
   const coinsEl = document.getElementById("coins");
@@ -122,8 +122,8 @@ if ("serviceWorker" in navigator) {
   }
 
   function getRodTipPoint() {
-    if (!rodImg) return null;
-    const rect = rodImg.getBoundingClientRect();
+    if (!rodLayer) return null;
+    const rect = rodLayer.getBoundingClientRect();
     return {
       x: rect.right - rect.width * 0.08,
       y: rect.top + rect.height * 0.16
@@ -131,23 +131,18 @@ if ("serviceWorker" in navigator) {
   }
 
   function getHoleCenter() {
-    if (!holeImg) return null;
-    const rect = holeImg.getBoundingClientRect();
+    if (!holeLayer) return null;
+    const rect = holeLayer.getBoundingClientRect();
     return {
       x: rect.left + rect.width * 0.5,
       y: rect.top + rect.height * 0.52
     };
   }
 
-  function bobberTransform(x, y) {
-    return `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
-  }
-
   function placeBobberAt(x, y) {
     if (!bobberLayer) return;
-    bobberLayer.style.setProperty("--bobber-x", `${x}px`);
-    bobberLayer.style.setProperty("--bobber-y", `${y}px`);
-    bobberLayer.style.transform = "";
+    bobberLayer.style.left = `${x}px`;
+    bobberLayer.style.top = `${y}px`;
   }
 
   function syncBobberToHole() {
@@ -165,11 +160,10 @@ if ("serviceWorker" in navigator) {
     setLakeState("cast");
     if (bobberAnimation) bobberAnimation.cancel();
     placeBobberAt(rodTip.x, rodTip.y);
-    bobberLayer.style.transform = bobberTransform(rodTip.x, rodTip.y);
     bobberAnimation = bobberLayer.animate(
       [
-        { transform: bobberTransform(rodTip.x, rodTip.y) },
-        { transform: bobberTransform(holeCenter.x, holeCenter.y) }
+        { left: `${rodTip.x}px`, top: `${rodTip.y}px` },
+        { left: `${holeCenter.x}px`, top: `${holeCenter.y}px` }
       ],
       { duration: 450, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" }
     );
@@ -1575,9 +1569,9 @@ if ("serviceWorker" in navigator) {
     bobber.visible = true;
     bobber.inWater = false;
     bobber.wave = 0;
-
-    bobber.x = rod.baseX + 18;
-    bobber.y = rod.baseY - 6;
+    const rodTip = getRodTipPoint();
+    bobber.x = rodTip ? rodTip.x : rod.tipX;
+    bobber.y = rodTip ? rodTip.y : rod.tipY;
 
     const tx = clamp(x, W * 0.40, W * 0.92);
     const ty = scene.lakeY + 18;
@@ -1822,6 +1816,7 @@ if ("serviceWorker" in navigator) {
         bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * amp;
         bobber.x += Math.sin(bobber.wave * 1.2) * 0.25;
       }
+      placeBobberAt(bobber.x, bobber.y);
     }
 
     // state transitions
@@ -1913,126 +1908,20 @@ if ("serviceWorker" in navigator) {
   }
 
   function drawLake() {
-    // background
-    ctx.fillStyle = "#0b1621";
-    ctx.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
 
-    // sky gradient
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, scene.horizonY);
-    skyGrad.addColorStop(0, "#07121b");
-    skyGrad.addColorStop(1, "#132b3f");
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, W, scene.horizonY + 2);
-
-    // horizon fog
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = "#cfe7ff";
-    ctx.fillRect(0, scene.horizonY - 10, W, 24);
-    ctx.globalAlpha = 1;
-
-    // distant treeline
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = "#061018";
-    const hy = scene.horizonY + 10;
-    ctx.beginPath();
-    ctx.moveTo(0, hy);
-    for (let x = 0; x <= W; x += 24) {
-      const h = 10 + Math.sin(x * 0.07 + scene.t * 0.4) * 7 + rand(-1, 1);
-      ctx.lineTo(x, hy - h);
-    }
-    ctx.lineTo(W, hy + 80);
-    ctx.lineTo(0, hy + 80);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // lake
-    ctx.fillStyle = "#071f2e";
-    ctx.fillRect(0, scene.lakeY, W, H - scene.lakeY);
-
-    // ripples
-    ctx.globalAlpha = 0.14;
-    ctx.strokeStyle = "#9ad1ff";
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 10; i++) {
-      const y = scene.lakeY + 24 + i * 24 + Math.sin(scene.t * 1.1 + i) * 4;
-      ctx.beginPath();
-      ctx.moveTo(W * 0.08, y);
-      ctx.quadraticCurveTo(W * 0.52, y + Math.sin(i) * 6, W * 0.92, y);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-
-    // dock
-    ctx.fillStyle = "#162433";
-    ctx.fillRect(0, scene.dockY, W, 14);
-    ctx.globalAlpha = 0.30;
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, scene.dockY + 12, W, 3);
-    ctx.globalAlpha = 1;
-
-    // fisherman
-    const manX = rod.baseX - 12;
-    const manY = rod.baseY - 10;
-
-    // body
-    ctx.fillStyle = "#eaf2ff";
-    roundRect(manX - 10, manY + 6, 24, 26, 8);
-    ctx.fill();
-
-    // head
-    ctx.beginPath();
-    ctx.arc(manX, manY, 10, 0, Math.PI * 2);
-    ctx.fill();
-
-    // scarf
-    ctx.strokeStyle = "#7bd3ff";
-    ctx.lineWidth = 4;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(manX - 8, manY + 18);
-    ctx.lineTo(manX + 10, manY + 18);
-    ctx.stroke();
-
-    // rod
-    ctx.strokeStyle = "#cda873";
-    ctx.lineWidth = rod.width || 3;
-    ctx.beginPath();
-    ctx.moveTo(rod.baseX, rod.baseY);
-    ctx.lineTo(rod.tipX, rod.tipY);
-    ctx.stroke();
-
-    // line + bobber
     if (bobber.visible) {
-      ctx.strokeStyle = "rgba(230,240,255,0.55)";
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(rod.tipX, rod.tipY);
-
-      const midX = (rod.tipX + bobber.x) * 0.5;
-      const midY = (rod.tipY + bobber.y) * 0.5 + 30;
-      ctx.quadraticCurveTo(midX, midY, bobber.x, bobber.y);
-      ctx.stroke();
-
-      // bobber shadow
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.beginPath();
-      ctx.arc(bobber.x + 3, bobber.y + 3, bobber.r * 0.92, 0, Math.PI * 2);
-      ctx.fill();
-
-      // bobber
-      ctx.fillStyle = "#ffcc33";
-      ctx.beginPath();
-      ctx.arc(bobber.x, bobber.y, bobber.r, 0, Math.PI * 2);
-      ctx.fill();
-
-      // highlight
-      ctx.globalAlpha = 0.55;
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(bobber.x - 3, bobber.y - 3, bobber.r * 0.35, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
+      const rodTip = getRodTipPoint();
+      if (rodTip) {
+        ctx.strokeStyle = "rgba(230,240,255,0.65)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(rodTip.x, rodTip.y);
+        const midX = (rodTip.x + bobber.x) * 0.5;
+        const midY = (rodTip.y + bobber.y) * 0.5 + 30;
+        ctx.quadraticCurveTo(midX, midY, bobber.x, bobber.y);
+        ctx.stroke();
+      }
     }
 
     // UI meters on canvas

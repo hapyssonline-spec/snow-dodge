@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icon-180.png" />
   <link rel="manifest" href="manifest.json" />
 
-  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=10" />
 </head>
 <body>
   <div id="app">
@@ -40,31 +40,17 @@
     <main id="stage">
       <div id="sceneRoot">
         <div id="bgLayer">
-<div id="sceneRoot">
-  <div id="bgLayer">
-    <img id="bgPortraitImg" src="./bg_lake_portrait.png?v=9" alt="" draggable="false">
-    <img id="bgLandscapeImg" src="./bg_lake_landscape.png?v=9" alt="" draggable="false">
-  </div>
+          <img id="bgPortraitImg" src="./bg_lake_portrait.png?v=10" alt="" draggable="false">
+          <img id="bgLandscapeImg" src="./bg_lake_landscape.png?v=10" alt="" draggable="false">
+        </div>
 
-  <canvas id="game"></canvas>
+        <canvas id="game"></canvas>
 
-  <div id="lakeScene" class="scene" aria-hidden="true">
-    <div id="holeAnchor" class="anchor">
-      <img id="holeImg" src="./hole.png?v=9" alt="" draggable="false">
-    </div>
-
-    <div id="bobberLayer" class="sprite">
-      <img id="bobberImg" src="./bobber.png?v=9" alt="" draggable="false">
-    </div>
-
-    <div id="heroAnchor" class="anchor">
-      <img id="heroImg" src="./hero.png?v=9" alt="" draggable="false">
-      <img id="rodImg" src="./rod.png?v=9" alt="" draggable="false">
-    </div>
-  </div>
-</div>
-
-          </div>
+        <div id="lakeScene" aria-hidden="true">
+          <img id="holeLayer" class="layer hole" src="./hole.png?v=10" alt="" draggable="false">
+          <img id="heroLayer" class="layer hero" src="./hero.png?v=10" alt="" draggable="false">
+          <img id="rodLayer" class="layer rod" src="./rod.png?v=10" alt="" draggable="false">
+          <img id="bobberLayer" class="layer bobber" src="./bobber.png?v=10" alt="" draggable="false">
         </div>
       </div>
 
@@ -231,6 +217,6 @@
     </footer>
   </div>
 
-  <script src="main.js?v=9"></script>
+  <script src="main.js?v=10"></script>
 </body>
 </html>
