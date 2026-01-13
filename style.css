@@ -647,3 +647,34 @@ button:active{transform:translateY(1px)}
 #game{
   display:none;
 }
+
+html,
+body,
+#lakeScene,
+#lakeScene * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#lakeScene img,
+img.layer,
+#lakeScene .layer {
+  -webkit-user-drag: none;
+  user-drag: none;
+  draggable: false;
+  pointer-events: none;
+}
+
+button,
+.btn {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#sceneRoot,
+#game,
+#lakeScene {
+  touch-action: manipulation;
+}
