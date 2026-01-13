@@ -68,15 +68,6 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   touch-action:none;
   background: transparent;
 }
-#lakeScene{
-  position:fixed;
-  inset:0;
-  z-index:2;
-  pointer-events:none;
-}
-#lakeScene .layer{
-  position:absolute;
-}
 
 #bottombar{
   display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -624,112 +615,36 @@ button:active{transform:translateY(1px)}
   #bgLandscapeImg{display:none;}
 }
 
-#holeLayer{
-  left:63%;
-  top:72%;
-  width:min(22vw,240px);
-  transform:translate(-50%,-50%);
-}
-#heroLayer{
-  left:52%;
-  top:66%;
-  height:min(54vh,520px);
-  transform:translate(-50%,-50%);
-}
-#rodLayer{
-  left:48%;
-  top:52%;
-  height:min(42vh,420px);
-  transform:translate(-50%,-50%) rotate(-18deg);
-  transform-origin: 20% 70%;
-}
-#bobberLayer{
-  left:63%;
-  top:67%;
-  width:min(4vw,48px);
-  transform:translate(-50%,-50%) scale(2.0);
-  transition: opacity .18s ease;
-  opacity:0;
-}
-
-@media (orientation:portrait){
-  #holeLayer{left:60%; top:70%; width:min(34vw,280px);}
-  #heroLayer{left:54%; top:64%; height:min(46vh,420px);}
-  #rodLayer{left:50%; top:50%; height:min(36vh,340px);}
-  #bobberLayer{left:60%; top:66%; width:min(6vw,56px); transform:translate(-50%,-50%) scale(2.2);}
-}
-
-#lakeScene.state-idle #bobberLayer{
-  opacity:0;
-}
-#lakeScene.state-cast #bobberLayer,
-#lakeScene.state-fishing #bobberLayer,
-#lakeScene.state-bite #bobberLayer,
-#lakeScene.state-striking #bobberLayer{
-  opacity:1;
-}
-
-#lakeScene.state-fishing #bobberLayer{
-  animation: bobber-sway 2.4s ease-in-out infinite;
-}
-#lakeScene.state-bite #bobberLayer{
-  animation: bobber-jerk 0.18s ease-in-out 5, bobber-sway 2.4s ease-in-out infinite;
-}
-
-#lakeScene.state-fishing #rodLayer{
-  animation: rod-sway 2.6s ease-in-out infinite;
-}
-#lakeScene.state-cast #rodLayer{
-  animation: rod-cast 0.32s ease-out;
-}
-#lakeScene.state-striking #rodLayer{
-  animation: rod-strike-up 0.22s ease-out;
-}
-
-#lakeScene.state-fishing #heroLayer{
-  animation: hero-sway 3.6s ease-in-out infinite;
-}
-#lakeScene.state-bite #heroLayer,
-#lakeScene.state-striking #heroLayer{
-  animation: hero-sway-strong 2.8s ease-in-out infinite;
-}
-
 @keyframes bobber-sway{
-  0%, 100%{transform: translateY(0) rotate(-2deg)}
-  50%{transform: translateY(-4px) rotate(2deg)}
+  0%, 100%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(0) rotate(-2deg)}
+  50%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(-4px) rotate(2deg)}
 }
 
 @keyframes bobber-jerk{
-  0%{transform: translateY(0) rotate(-3deg)}
-  50%{transform: translateY(-8px) rotate(4deg)}
-  100%{transform: translateY(0) rotate(-2deg)}
+  0%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(0) rotate(-3deg)}
+  50%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(-8px) rotate(4deg)}
+  100%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(0) rotate(-2deg)}
 }
 
 @keyframes rod-sway{
-  0%, 100%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 2deg)) scale(var(--rod-scale))}
-  50%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) + 2deg)) scale(var(--rod-scale))}
-}
-
-@keyframes rod-cast{
-  0%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 8deg)) scale(var(--rod-scale))}
-  60%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) + 10deg)) scale(var(--rod-scale))}
-  100%{transform: translate(-50%, -50%) rotate(var(--rod-rot)) scale(var(--rod-scale))}
+  0%, 100%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 2deg))}
+  50%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) + 2deg))}
 }
 
 @keyframes rod-strike-up{
-  0%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 2deg)) scale(var(--rod-scale))}
-  50%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 18deg)) scale(var(--rod-scale))}
-  100%{transform: translate(-50%, -50%) rotate(var(--rod-rot)) scale(var(--rod-scale))}
+  0%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 2deg))}
+  50%{transform: translate(-50%, -50%) rotate(calc(var(--rod-rot) - 18deg))}
+  100%{transform: translate(-50%, -50%) rotate(var(--rod-rot))}
 }
 
 @keyframes hero-sway{
-  0%, 100%{transform: translateY(0)}
-  50%{transform: translateY(-4px)}
+  0%, 100%{transform: translate(-50%, -50%) translateY(0)}
+  50%{transform: translate(-50%, -50%) translateY(-4px)}
 }
 
 @keyframes hero-sway-strong{
-  0%, 100%{transform: translateY(0)}
-  50%{transform: translateY(-7px)}
+  0%, 100%{transform: translate(-50%, -50%) translateY(0)}
+  50%{transform: translate(-50%, -50%) translateY(-7px)}
 }
 
 html,
@@ -786,4 +701,115 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
 
 ::-moz-selection {
   background: transparent !important;
+}
+
+/* ===== LAKE RIG (single source of truth) ===== */
+:root{
+  /* Hole anchor */
+  --hole-x: 66%;
+  --hole-y: 68%;
+  --hole-w: min(22vw, 240px);
+
+  /* Hero anchor */
+  --hero-x: 52%;
+  --hero-y: 68%;
+  --hero-h: min(54vh, 520px);
+
+  /* Rod relative to hero (в руках) */
+  --rod-dx: 10%;   /* смещение от hero center вправо */
+  --rod-dy: -22%;  /* смещение вверх относительно hero */
+  --rod-h:  min(34vh, 340px);
+  --rod-rot: -18deg;
+
+  /* Bobber anchor (центр лунки) */
+  --bobber-x: var(--hole-x);
+  --bobber-y: calc(var(--hole-y) - 3%);
+  --bobber-w: min(4vw, 48px);
+  --bobber-scale: 2.0;
+}
+
+@media (orientation: portrait){
+  :root{
+    --hole-x: 62%;
+    --hole-y: 66%;
+    --hole-w: min(34vw, 280px);
+
+    --hero-x: 54%;
+    --hero-y: 68%;
+    --hero-h: min(46vh, 420px);
+
+    --rod-dx: 12%;
+    --rod-dy: -24%;
+    --rod-h:  min(30vh, 300px);
+    --rod-rot: -20deg;
+
+    --bobber-w: min(6vw, 56px);
+    --bobber-scale: 2.2;
+  }
+}
+
+#lakeScene{ position:fixed; inset:0; z-index:2; pointer-events:none; }
+#lakeScene .layer{ position:absolute; transform: translate(-50%,-50%); }
+
+#holeLayer{
+  left: var(--hole-x);
+  top:  var(--hole-y);
+  width: var(--hole-w);
+  height: auto;
+  z-index: 10;
+}
+
+#heroLayer{
+  left: var(--hero-x);
+  top:  var(--hero-y);
+  height: var(--hero-h);
+  width: auto;
+  z-index: 20;
+}
+
+#rodLayer{
+  left: calc(var(--hero-x) + var(--rod-dx));
+  top:  calc(var(--hero-y) + var(--rod-dy));
+  height: var(--rod-h);
+  width: auto;
+  z-index: 30;
+  transform: translate(-50%,-50%) rotate(var(--rod-rot));
+  transform-origin: 18% 70%;
+}
+
+#bobberLayer{
+  left: var(--bobber-x);
+  top:  var(--bobber-y);
+  width: var(--bobber-w);
+  height: auto;
+  z-index: 40;
+  transform: translate(-50%,-50%) scale(var(--bobber-scale));
+  opacity: 0; /* по умолчанию скрыт */
+  transition: opacity .18s ease;
+}
+
+#lakeScene.is-fishing #bobberLayer{ opacity: 1; }
+#lakeScene.is-idle #bobberLayer{ opacity: 0; }
+
+#lakeScene.is-fishing #bobberLayer{
+  animation: bobber-sway 2.4s ease-in-out infinite;
+}
+#lakeScene.is-bite #bobberLayer{
+  opacity: 1;
+  animation: bobber-jerk 0.18s ease-in-out 5, bobber-sway 2.4s ease-in-out infinite;
+}
+
+#lakeScene.is-fishing #rodLayer{
+  animation: rod-sway 2.6s ease-in-out infinite;
+}
+#lakeScene.is-strike #rodLayer{
+  animation: rod-strike-up 0.22s ease-out;
+}
+
+#lakeScene.is-fishing #heroLayer{
+  animation: hero-sway 3.6s ease-in-out infinite;
+}
+#lakeScene.is-bite #heroLayer,
+#lakeScene.is-strike #heroLayer{
+  animation: hero-sway-strong 2.8s ease-in-out infinite;
 }
