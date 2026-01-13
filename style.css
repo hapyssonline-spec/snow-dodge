@@ -733,8 +733,8 @@ button:disabled{
   --hero-h: min(44vh, 420px);
 
   /* Удочка — строго в руках героя */
-  --rod-dx: -2%;
-  --rod-dy: 6%;
+  --rod-dx: 1%;
+  --rod-dy: 8%;
   --rod-h:  min(28vh, 280px);
   --rod-rot: -18deg;
 
@@ -754,8 +754,8 @@ button:disabled{
     --hero-y: 74%;
     --hero-h: min(38vh, 380px);
 
-    --rod-dx: 1%;
-    --rod-dy: 3%;
+    --rod-dx: 3%;
+    --rod-dy: 5%;
     --rod-h:  min(24vh, 240px);
     --rod-rot: -22deg;
 
