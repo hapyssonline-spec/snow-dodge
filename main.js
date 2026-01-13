@@ -108,18 +108,39 @@ if ("serviceWorker" in navigator) {
     document.documentElement.style.setProperty("--vh", `${window.innerHeight * 0.01}px`);
   }
 
-  const lakeStates = ["state-idle", "state-fishing", "state-bite", "state-striking", "state-cast"];
   let lakeState = "idle";
   let bobberAnimation = null;
   let biteTimer = null;
   let strikeTimer = null;
 
-  function setLakeState(state) {
+  const debounce = (fn, delay = 100) => {
+    let timer = null;
+    return (...args) => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => fn(...args), delay);
+    };
+  };
+
+  function applyLakeRig() {
     if (!lakeScene) return;
-    lakeState = state;
-    lakeStates.forEach((cls) => lakeScene.classList.remove(cls));
-    lakeScene.classList.add(`state-${state}`);
+    lakeScene.classList.toggle("is-idle", lakeState === "idle");
+    lakeScene.classList.toggle("is-fishing", ["fishing", "bite", "strike"].includes(lakeState));
+    lakeScene.classList.toggle("is-bite", lakeState === "bite");
+    lakeScene.classList.toggle("is-strike", lakeState === "strike");
   }
+
+  function setLakeState(state) {
+    lakeState = state;
+    applyLakeRig();
+  }
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+      applyLakeRig();
+    },
+    { once: true }
+  );
 
   function getRodTipPoint() {
     if (!rodLayer) return null;
@@ -139,49 +160,46 @@ if ("serviceWorker" in navigator) {
     };
   }
 
-  function placeBobberAt(x, y) {
-    if (!bobberLayer) return;
-    bobberLayer.style.left = `${x}px`;
-    bobberLayer.style.top = `${y}px`;
+  function getBobberScale() {
+    const scale = getComputedStyle(document.documentElement)
+      .getPropertyValue("--bobber-scale")
+      .trim();
+    return Number.parseFloat(scale) || 1;
   }
 
-  function syncBobberToHole() {
-    const holeCenter = getHoleCenter();
-    if (!holeCenter) return;
-    placeBobberAt(holeCenter.x, holeCenter.y);
-  }
-
-  function startCast() {
+  function animateCastToHole() {
     if (!bobberLayer) return;
     const rodTip = getRodTipPoint();
     const holeCenter = getHoleCenter();
     if (!rodTip || !holeCenter) return;
 
-    setLakeState("cast");
+    setLakeState("fishing");
+    const scale = getBobberScale();
+    const dx = rodTip.x - holeCenter.x;
+    const dy = rodTip.y - holeCenter.y;
+
     if (bobberAnimation) bobberAnimation.cancel();
-    placeBobberAt(rodTip.x, rodTip.y);
+    bobberLayer.style.animation = "none";
+    bobberLayer.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
     bobberAnimation = bobberLayer.animate(
       [
-        { left: `${rodTip.x}px`, top: `${rodTip.y}px` },
-        { left: `${holeCenter.x}px`, top: `${holeCenter.y}px` }
+        { transform: `translate3d(${dx}px, ${dy}px, 0) scale(${scale})` },
+        { transform: `translate3d(0px, 0px, 0) scale(${scale})` }
       ],
-      { duration: 450, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" }
+      { duration: 450, easing: "cubic-bezier(.2,.8,.2,1)" }
     );
     bobberAnimation.onfinish = () => {
-      placeBobberAt(holeCenter.x, holeCenter.y);
-      if (game.mode === "CASTING" || game.mode === "WAITING") {
-        setFishing(true);
-      }
+      bobberLayer.style.transform = "";
+      bobberLayer.style.animation = "";
+    };
+    bobberAnimation.oncancel = () => {
+      bobberLayer.style.transform = "";
+      bobberLayer.style.animation = "";
     };
   }
 
   function setFishing(active) {
-    if (active) {
-      setLakeState("fishing");
-      syncBobberToHole();
-    } else {
-      setLakeState("idle");
-    }
+    setLakeState(active ? "fishing" : "idle");
   }
 
   function triggerBite() {
@@ -198,7 +216,7 @@ if ("serviceWorker" in navigator) {
   function triggerStrike() {
     if (!lakeScene) return;
     if (strikeTimer) window.clearTimeout(strikeTimer);
-    setLakeState("striking");
+    setLakeState("strike");
     strikeTimer = window.setTimeout(() => {
       if (game.mode === "BITE") {
         setLakeState("bite");
@@ -537,7 +555,6 @@ if ("serviceWorker" in navigator) {
 
   // ===== DPI / Resize =====
   let W = 0, H = 0, DPR = 1;
-  let resizeTimer = null;
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -566,17 +583,12 @@ if ("serviceWorker" in navigator) {
     }
 
     layoutCity();
-    if (["WAITING", "BITE", "HOOKED", "REELING"].includes(game.mode)) {
-      syncBobberToHole();
-    }
   }
-  function handleResize() {
-    if (resizeTimer) window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(() => {
-      setVhVar();
-      resize();
-    }, 80);
-  }
+  const handleResize = debounce(() => {
+    setVhVar();
+    resize();
+    applyLakeRig();
+  }, 100);
   window.addEventListener("resize", handleResize);
   window.addEventListener("orientationchange", handleResize);
 
@@ -1564,7 +1576,7 @@ if ("serviceWorker" in navigator) {
   function castTo(x, y) {
     game.mode = "CASTING";
     game.t = 0;
-    startCast();
+    animateCastToHole();
 
     bobber.visible = true;
     bobber.inWater = false;
