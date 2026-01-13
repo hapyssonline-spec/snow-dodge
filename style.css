@@ -716,8 +716,8 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
   --hero-h: min(44vh, 420px);
 
   /* Удочка — строго в руках героя */
-  --rod-dx: 1.2%;
-  --rod-dy: -17%;
+  --rod-dx: 3%;
+  --rod-dy: -40%;
   --rod-h:  min(30vh, 300px);
   --rod-rot: -28deg;
 
