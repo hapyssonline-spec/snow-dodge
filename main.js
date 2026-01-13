@@ -1901,11 +1901,6 @@ if ("serviceWorker" in navigator) {
         escape("Леска лопнула");
         return;
       }
-      if (game.t > (7.2 - game.fishPower * 2.2)) {
-        escape("Ушла в глубину");
-        return;
-      }
-
       // win condition
       if (game.progress >= game.need) {
         land();
