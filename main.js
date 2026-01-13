@@ -1,3 +1,16 @@
+(() => {
+  const isUi = (t) => t && t.closest && t.closest("#controls, .controls, .hud, button, a, input, textarea, select");
+  const inScene = (t) => t && t.closest && (t.closest("#sceneRoot") || t.id === "game" || t.closest("#lakeScene"));
+  const kill = (e) => {
+    if (!inScene(e.target) || isUi(e.target)) return;
+    e.preventDefault();
+  };
+  document.addEventListener("selectstart", kill, { passive: false });
+  document.addEventListener("dragstart", kill, { passive: false });
+  document.addEventListener("contextmenu", kill, { passive: false });
+  document.addEventListener("mousedown", kill, { passive: false });
+})();
+
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistration().then((reg) => {
     if (reg) reg.update();
