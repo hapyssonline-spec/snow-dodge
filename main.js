@@ -233,7 +233,7 @@ if ("serviceWorker" in navigator) {
       if (game.mode === "BITE") {
         setLakeState("fishing");
       }
-    }, 800);
+    }, Math.round(game.biteWindow * 1000));
   }
 
   function triggerStrike() {
@@ -287,14 +287,14 @@ if ("serviceWorker" in navigator) {
   }
 
   // ===== Tension + progress balance (REELING) =====
-  const TENSION_BASE_RISE = 0.03;
-  const TENSION_POWER_RISE = 0.055;
-  const TENSION_TIME_PRESSURE = 0.012;
+  const TENSION_BASE_RISE = 0.024;
+  const TENSION_POWER_RISE = 0.048;
+  const TENSION_TIME_PRESSURE = 0.008;
   const TENSION_SURGE_PRIMARY = 0.05;
   const TENSION_SURGE_SECONDARY = 0.024;
   const TENSION_HEAT_RISE = 0.055;
-  const TENSION_RELAX = 0.03;
-  const TENSION_RELAX_POWER = 0.0025;
+  const TENSION_RELAX = 0.04;
+  const TENSION_RELAX_POWER = 0.003;
   const TENSION_MAX = 1.22;
   const TENSION_SWEET_MIN = 0.42;
   const TENSION_SWEET_MAX = 0.72;
@@ -1495,7 +1495,7 @@ if ("serviceWorker" in navigator) {
     mode: "INTRO",
     t: 0,
     biteAt: 0,
-    biteWindow: 0.95,
+    biteWindow: 1.35,
     fishPower: 0.0,
     rarity: "обычная",
     reward: 0,
@@ -1889,18 +1889,15 @@ if ("serviceWorker" in navigator) {
           Math.sin(game.t * 0.65 + game.surgeSeed * 1.8) * TENSION_SURGE_SECONDARY) *
         weightPenalty;
 
-      const baseRise = (TENSION_BASE_RISE + game.fishPower * TENSION_POWER_RISE) * line.tensionMult * weightPenalty;
-      const heatRise = game.reelHeat * TENSION_HEAT_RISE * (1 + game.fishPower * 0.4);
-      const timeRise = Math.min(game.t * TENSION_TIME_PRESSURE, 0.4);
-      let relax = TENSION_RELAX - game.fishPower * TENSION_RELAX_POWER;
+      const baseRelax = TENSION_RELAX - game.fishPower * TENSION_RELAX_POWER;
+      const idleBonus = clamp((game.lastTap - 0.2) / 0.8, 0, 1);
+      const relax = baseRelax * (0.7 + idleBonus * 1.4);
 
-      if (game.lastTap > 0.7) {
-        relax *= 1.5;
-      } else if (game.lastTap > 0.35) {
-        relax *= 1.2;
-      } else {
-        relax *= 0.6;
-      }
+      const idleDamp = clamp((game.lastTap - 0.3) / 0.8, 0, 1);
+      const riseDamp = 1 - idleDamp * 0.45;
+      const baseRise = (TENSION_BASE_RISE + game.fishPower * TENSION_POWER_RISE) * line.tensionMult * weightPenalty * riseDamp;
+      const heatRise = game.reelHeat * TENSION_HEAT_RISE * (1 + game.fishPower * 0.4);
+      const timeRise = Math.min(game.t * TENSION_TIME_PRESSURE, 0.4) * riseDamp;
 
       game.tension = clamp(game.tension + (baseRise + heatRise + timeRise + surge) * dt - relax * dt, 0, TENSION_MAX);
 
