@@ -27,6 +27,8 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   background: linear-gradient(180deg, rgba(16,31,48,.96), rgba(16,31,48,.72));
   border-bottom: 1px solid var(--stroke);
   gap:10px;
+  position:relative;
+  z-index:5;
 }
 .stat{min-width:84px}
 .stat.right{text-align:right}
@@ -43,6 +45,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   width:100vw;
   height:100vh;
   overflow:hidden;
+  z-index:0;
 }
 #bgLayer{
   position:fixed;
@@ -74,6 +77,8 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   padding:10px 12px;
   border-top: 1px solid var(--stroke);
   background: linear-gradient(0deg, rgba(16,31,48,.95), rgba(16,31,48,.70));
+  position:relative;
+  z-index:5;
 }
 .chip{
   flex:1;
@@ -105,6 +110,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   padding:18px;
   backdrop-filter: blur(10px);
   background: rgba(11,22,33,.55);
+  z-index:6;
 }
 .hidden{display:none !important;}
 
@@ -114,6 +120,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   padding:18px;
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.68);
+  z-index:6;
 }
 
 #catchOverlay{
@@ -125,6 +132,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   padding:18px;
   background: rgba(6,12,20,.68);
   backdrop-filter: blur(10px);
+  z-index:6;
 }
 
 #shopOverlay{
@@ -136,12 +144,14 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   padding:18px;
   background: rgba(6,12,20,.68);
   backdrop-filter: blur(10px);
+  z-index:6;
 }
 
 #travelHud{
   position:absolute;
   inset:0;
   pointer-events:none;
+  z-index:6;
 }
 
 .invCard{
@@ -281,6 +291,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   bottom:16px;
   left:50%;
   transform:translateX(-50%);
+  z-index:6;
 }
 
 .shopCard{
@@ -423,6 +434,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   font-size:12px;
   opacity:0;
   transition: opacity .2s ease;
+  z-index:7;
 }
 
 .toast.show{
@@ -436,6 +448,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   opacity:0;
   transition: opacity .3s ease;
   pointer-events:none;
+  z-index:6;
 }
 
 .sceneFade.active{
@@ -691,6 +704,11 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
   pointer-events: none !important;
 }
 
+button:disabled{
+  opacity:0.55;
+  cursor:not-allowed;
+}
+
 :focus {
   outline: none !important;
 }
@@ -705,12 +723,11 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
 
 /* ===== LAKE RIG (single source of truth) ===== */
 :root{
-  /* Лунка */
-  --hole-x: 50%;
-  --hole-y: 70%;
-  --hole-w: min(18vw, 220px);
+  /* Точка заброса */
+  --cast-x: 50%;
+  --cast-y: 70%;
 
-  /* Герой — слева от лунки */
+  /* Герой — слева от точки заброса */
   --hero-x: 36%;
   --hero-y: 72%;
   --hero-h: min(44vh, 420px);
@@ -721,18 +738,17 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
   --rod-h:  min(28vh, 280px);
   --rod-rot: -18deg;
 
-  /* Поплавок — утоплен в лунку */
-  --bobber-x: var(--hole-x);
-  --bobber-y: calc(var(--hole-y) - 1.6%);
+  /* Поплавок — в точке заброса */
+  --bobber-x: var(--cast-x);
+  --bobber-y: calc(var(--cast-y) - 1.6%);
   --bobber-w: min(3.6vw, 46px);
   --bobber-scale: 1.9;
 }
 
 @media (orientation: portrait){
   :root{
-    --hole-x: 50%;
-    --hole-y: 69%;
-    --hole-w: min(30vw, 260px);
+    --cast-x: 50%;
+    --cast-y: 69%;
 
     --hero-x: 34%;
     --hero-y: 74%;
@@ -743,7 +759,7 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
     --rod-h:  min(24vh, 240px);
     --rod-rot: -22deg;
 
-    --bobber-y: calc(var(--hole-y) - 1.0%);
+    --bobber-y: calc(var(--cast-y) - 1.0%);
     --bobber-w: min(5.2vw, 54px);
     --bobber-scale: 2.1;
   }
@@ -751,14 +767,6 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
 
 #lakeScene{ position:fixed; inset:0; z-index:2; pointer-events:none; }
 #lakeScene .layer{ position:absolute; transform: translate(-50%,-50%); }
-
-#holeLayer{
-  left: var(--hole-x);
-  top:  var(--hole-y);
-  width: var(--hole-w);
-  height: auto;
-  z-index: 10;
-}
 
 #heroLayer{
   left: var(--hero-x);

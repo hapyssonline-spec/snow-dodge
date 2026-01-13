@@ -15,12 +15,6 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistration().then((reg) => {
     if (reg) reg.update();
   });
-  let reloaded = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (reloaded) return;
-    reloaded = true;
-    location.reload();
-  });
 }
 
 (() => {
@@ -30,7 +24,6 @@ if ("serviceWorker" in navigator) {
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: true });
   const lakeScene = document.getElementById("lakeScene");
-  const holeLayer = document.getElementById("holeLayer");
   const rodLayer = document.getElementById("rodLayer");
   const bobberLayer = document.getElementById("bobberLayer");
 
@@ -151,12 +144,12 @@ if ("serviceWorker" in navigator) {
     };
   }
 
-  function getHoleCenter() {
-    if (!holeLayer) return null;
-    const rect = holeLayer.getBoundingClientRect();
+  function getCastPoint() {
+    if (!bobberLayer) return null;
+    const rect = bobberLayer.getBoundingClientRect();
     return {
       x: rect.left + rect.width * 0.5,
-      y: rect.top + rect.height * 0.52
+      y: rect.top + rect.height * 0.5
     };
   }
 
@@ -176,13 +169,13 @@ if ("serviceWorker" in navigator) {
   function animateCastToHole() {
     if (!bobberLayer) return;
     const rodTip = getRodTipPoint();
-    const holeCenter = getHoleCenter();
-    if (!rodTip || !holeCenter) return;
+    const castPoint = getCastPoint();
+    if (!rodTip || !castPoint) return;
 
     setLakeState("fishing");
     const scale = getBobberScale();
-    const dx = rodTip.x - holeCenter.x;
-    const dy = rodTip.y - holeCenter.y;
+    const dx = rodTip.x - castPoint.x;
+    const dy = rodTip.y - castPoint.y;
 
     if (bobberAnimation) bobberAnimation.cancel();
     bobberLayer.style.animation = "none";
@@ -2157,20 +2150,41 @@ if ("serviceWorker" in navigator) {
     } catch {}
   }
 
+  async function preloadSceneAssets() {
+    const images = Array.from(document.images || []);
+    const waitFor = (img) =>
+      new Promise((resolve) => {
+        if (img.complete) return resolve();
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+      });
+    await Promise.all(images.map(waitFor));
+  }
+
+  async function boot() {
+    showOverlay();
+    setOverlayText("Загрузка...");
+    if (btnPlay) btnPlay.disabled = true;
+
+    load();
+    updateHUD();
+    setVhVar();
+    resize();
+    renderInventory();
+    setScene(SCENE_LAKE);
+    setLakeState("idle");
+    registerSW();
+
+    await preloadSceneAssets();
+
+    setOverlayText("Тапни «Играть». Управление: тап — заброс, поклёвка → свайп вверх, затем тапами выматывай.");
+    setHint("Нажми «Играть».");
+    if (btnPlay) btnPlay.disabled = false;
+
+    requestAnimationFrame(loop);
+  }
+
   // ===== Boot =====
-  load();
-  updateHUD();
-  setVhVar();
-  resize();
-  renderInventory();
-  setScene(SCENE_LAKE);
-  setLakeState("idle");
-
-  // intro overlay
-  showOverlay();
-  setOverlayText("Тапни «Играть». Управление: тап — заброс, поклёвка → свайп вверх, затем тапами выматывай.");
-  setHint("Нажми «Играть».");
-  registerSW();
-
-  requestAnimationFrame(loop);
+  boot();
 })();
