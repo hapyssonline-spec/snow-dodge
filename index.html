@@ -38,18 +38,22 @@
     </header>
 
     <main id="stage">
-      <canvas id="game"></canvas>
-      <div id="lakeScene" class="scene">
-        <img id="bgPortraitImg" class="hidden" src="./bg_lake_portrait.png?v=8" alt="" draggable="false">
-        <img id="bgLandscapeImg" class="hidden" src="./bg_lake_landscape.png?v=8" alt="" draggable="false">
-        <div id="holeAnchor" class="anchor">
-          <img id="holeImg" src="./hole.png?v=8" alt="" draggable="false">
-          <img id="bobberImg" src="./bobber.png?v=8" alt="" draggable="false">
+      <div id="sceneRoot">
+        <div id="bgLayer">
+          <img id="bgPortraitImg" class="hidden" src="./bg_lake_portrait.png?v=8" alt="" draggable="false">
+          <img id="bgLandscapeImg" class="hidden" src="./bg_lake_landscape.png?v=8" alt="" draggable="false">
         </div>
+        <canvas id="game"></canvas>
+        <div id="lakeScene" class="scene" aria-hidden="true">
+          <div id="holeAnchor" class="anchor">
+            <img id="holeImg" src="./hole.png?v=8" alt="" draggable="false">
+            <img id="bobberImg" src="./bobber.png?v=8" alt="" draggable="false">
+          </div>
 
-        <div id="heroAnchor" class="anchor">
-          <img id="heroImg" src="./hero.png?v=8" alt="" draggable="false">
-          <img id="rodImg" src="./rod.png?v=8" alt="" draggable="false">
+          <div id="heroAnchor" class="anchor">
+            <img id="heroImg" src="./hero.png?v=8" alt="" draggable="false">
+            <img id="rodImg" src="./rod.png?v=8" alt="" draggable="false">
+          </div>
         </div>
       </div>
 
