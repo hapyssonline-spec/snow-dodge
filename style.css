@@ -705,46 +705,47 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
 
 /* ===== LAKE RIG (single source of truth) ===== */
 :root{
-  /* Hole anchor */
-  --hole-x: 66%;
-  --hole-y: 68%;
-  --hole-w: min(22vw, 240px);
+  /* Лунка */
+  --hole-x: 68%;
+  --hole-y: 70%;
+  --hole-w: min(18vw, 220px);
 
-  /* Hero anchor */
-  --hero-x: 52%;
-  --hero-y: 68%;
-  --hero-h: min(54vh, 520px);
+  /* Герой — слева от лунки */
+  --hero-x: 56%;
+  --hero-y: 72%;
+  --hero-h: min(44vh, 420px);
 
-  /* Rod relative to hero (в руках) */
-  --rod-dx: 10%;   /* смещение от hero center вправо */
-  --rod-dy: -22%;  /* смещение вверх относительно hero */
-  --rod-h:  min(34vh, 340px);
-  --rod-rot: -18deg;
+  /* Удочка — строго в руках героя */
+  --rod-dx: 1.2%;
+  --rod-dy: -17%;
+  --rod-h:  min(30vh, 300px);
+  --rod-rot: -28deg;
 
-  /* Bobber anchor (центр лунки) */
+  /* Поплавок — утоплен в лунку */
   --bobber-x: var(--hole-x);
-  --bobber-y: calc(var(--hole-y) - 3%);
-  --bobber-w: min(4vw, 48px);
-  --bobber-scale: 2.0;
+  --bobber-y: calc(var(--hole-y) - 1.6%);
+  --bobber-w: min(3.6vw, 46px);
+  --bobber-scale: 1.9;
 }
 
 @media (orientation: portrait){
   :root{
     --hole-x: 62%;
-    --hole-y: 66%;
-    --hole-w: min(34vw, 280px);
+    --hole-y: 69%;
+    --hole-w: min(30vw, 260px);
 
     --hero-x: 54%;
-    --hero-y: 68%;
-    --hero-h: min(46vh, 420px);
+    --hero-y: 74%;
+    --hero-h: min(38vh, 380px);
 
-    --rod-dx: 12%;
-    --rod-dy: -24%;
-    --rod-h:  min(30vh, 300px);
-    --rod-rot: -20deg;
+    --rod-dx: 1.8%;
+    --rod-dy: -18%;
+    --rod-h:  min(26vh, 260px);
+    --rod-rot: -30deg;
 
-    --bobber-w: min(6vw, 56px);
-    --bobber-scale: 2.2;
+    --bobber-y: calc(var(--hole-y) - 1.0%);
+    --bobber-w: min(5.2vw, 54px);
+    --bobber-scale: 2.1;
   }
 }
 
@@ -774,7 +775,7 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
   width: auto;
   z-index: 30;
   transform: translate(-50%,-50%) rotate(var(--rod-rot));
-  transform-origin: 18% 70%;
+  transform-origin: 22% 74%;
 }
 
 #bobberLayer{
