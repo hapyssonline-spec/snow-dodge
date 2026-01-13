@@ -1,6 +1,6 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-const CACHE_VERSION = "icefish-v7";
+const CACHE_VERSION = "icefish-v8";
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
 const ASSETS = [
@@ -36,6 +36,19 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
+    const url = new URL(req.url);
+    const hasV = url.searchParams.has("v");
+    if (hasV) {
+      try {
+        return await fetch(req, { cache: "no-store" });
+      } catch (e) {
+        if (req.mode === "navigate") {
+          const fallback = await cache.match("./index.html");
+          if (fallback) return fallback;
+        }
+        throw e;
+      }
+    }
     const cached = await cache.match(req);
     if (cached) return cached;
 
