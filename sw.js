@@ -1,6 +1,6 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-const CACHE_VERSION = "icefish-v18";
+const CACHE_VERSION = "icefish-v19";
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
 const ASSETS = [
