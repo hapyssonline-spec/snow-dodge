@@ -145,11 +145,23 @@ if ("serviceWorker" in navigator) {
   }
 
   function getCastPoint() {
-    if (!bobberLayer) return null;
-    const rect = bobberLayer.getBoundingClientRect();
+    if (!lakeScene) return null;
+    const rect = lakeScene.getBoundingClientRect();
+    const rootStyle = getComputedStyle(document.documentElement);
+    const castXValue = rootStyle.getPropertyValue("--cast-x").trim();
+    const castYValue = rootStyle.getPropertyValue("--cast-y").trim();
+    const parseCssLength = (value, size, fallbackPercent = 0.5) => {
+      if (!value) return size * fallbackPercent;
+      if (value.endsWith("%")) return (Number.parseFloat(value) / 100) * size;
+      if (value.endsWith("px")) return Number.parseFloat(value);
+      const numeric = Number.parseFloat(value);
+      return Number.isNaN(numeric) ? size * fallbackPercent : numeric;
+    };
+    const castX = parseCssLength(castXValue, rect.width, 0.5);
+    const castY = parseCssLength(castYValue, rect.height, 0.5);
     return {
-      x: rect.left + rect.width * 0.5,
-      y: rect.top + rect.height * 0.5
+      x: rect.left + castX,
+      y: rect.top + castY
     };
   }
 
@@ -164,6 +176,15 @@ if ("serviceWorker" in navigator) {
     if (!bobberLayer) return;
     bobberLayer.style.left = `${x}px`;
     bobberLayer.style.top = `${y}px`;
+  }
+
+  function syncBobberToRodTip() {
+    if (!bobberLayer) return;
+    const rodTip = getRodTipPoint();
+    if (!rodTip) return;
+    bobber.x = rodTip.x;
+    bobber.y = rodTip.y;
+    placeBobberAt(rodTip.x, rodTip.y);
   }
 
   function animateCastToHole() {
@@ -199,6 +220,9 @@ if ("serviceWorker" in navigator) {
 
   function setFishing(active) {
     setLakeState(active ? "fishing" : "idle");
+    if (!active && !bobber.visible) {
+      syncBobberToRodTip();
+    }
   }
 
   function triggerBite() {
@@ -587,6 +611,9 @@ if ("serviceWorker" in navigator) {
     setVhVar();
     resize();
     applyLakeRig();
+    if (!bobber.visible) {
+      syncBobberToRodTip();
+    }
   }, 100);
   window.addEventListener("resize", handleResize);
   window.addEventListener("orientationchange", handleResize);
@@ -2177,6 +2204,7 @@ if ("serviceWorker" in navigator) {
     registerSW();
 
     await preloadSceneAssets();
+    syncBobberToRodTip();
 
     setOverlayText("Тапни «Играть». Управление: тап — заброс, поклёвка → свайп вверх, затем тапами выматывай.");
     setHint("Нажми «Играть».");
