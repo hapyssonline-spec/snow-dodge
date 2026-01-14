@@ -1752,8 +1752,8 @@ if ("serviceWorker" in navigator) {
       // reel tap: original balance (steady gains, no sweet-spot multiplier)
       game.lastTap = 0;
       const rod = getRodStats();
-      const baseGain = 0.065 - game.fishPower * 0.020;
-      const gain = Math.max(0.028, baseGain + rod.reelBonus * 0.6);
+      const baseGain = 0.092 - game.fishPower * 0.020;
+      const gain = Math.max(0.045, baseGain + rod.reelBonus * 0.9);
       game.progress += gain;
 
       game.reelHeat = clamp(game.reelHeat + 0.18, 0, 1);
