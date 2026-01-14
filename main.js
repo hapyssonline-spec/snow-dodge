@@ -287,7 +287,7 @@ if ("serviceWorker" in navigator) {
   }
 
   // ===== Tension + progress balance (REELING) =====
-  const TENSION_RELAX = 0.04;
+  const TENSION_RELAX = 0.045;
   const TENSION_RELAX_POWER = 0.003;
   const TENSION_MAX = 1.22;
   const TENSION_SWEET_MIN = 0.42;
@@ -1878,12 +1878,13 @@ if ("serviceWorker" in navigator) {
       game.reelHeat = clamp(game.reelHeat - dt * 0.45, 0, 1);
 
       const baseRelax = TENSION_RELAX - game.fishPower * TENSION_RELAX_POWER;
-      const idleBonus = clamp((game.lastTap - 0.2) / 0.8, 0, 1);
-      const relax = baseRelax * (0.7 + idleBonus * 1.4);
+      const idleBonus = clamp((game.lastTap - 0.15) / 0.65, 0, 1);
+      const relax = baseRelax * (0.6 + idleBonus * 2.0);
       game.tension = clamp(game.tension - relax * dt, 0, TENSION_MAX);
 
       // progress decay (original balance)
-      const decay = game.reelDecay * dt * (1.0 + Math.min(1.5, game.lastTap * 1.2));
+      const decayBoost = 0.6 + Math.min(1.0, game.lastTap * 0.8);
+      const decay = game.reelDecay * dt * decayBoost;
       game.progress = Math.max(0, game.progress - decay);
 
       // moving bobber toward shore with progress
