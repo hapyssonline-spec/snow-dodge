@@ -1790,6 +1790,16 @@ if ("serviceWorker" in navigator) {
 
   function onUp(e) {
     e.preventDefault();
+    if (pointerDown && game.mode === "BITE" && !swipeDone) {
+      const p = typeof e.clientX === "number" ? getXY(e) : { x: lastX, y: lastY };
+      const dy = p.y - startY;
+      const dx = p.x - startX;
+
+      if (dy < -42 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+        swipeDone = true;
+        hook();
+      }
+    }
     pointerDown = false;
   }
 
