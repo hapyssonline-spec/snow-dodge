@@ -287,12 +287,10 @@ if ("serviceWorker" in navigator) {
   }
 
   // ===== Tension + progress balance (REELING) =====
-  const TENSION_RELAX = 0.045;
-  const TENSION_RELAX_POWER = 0.003;
-  const TENSION_MAX = 1.22;
-  const TENSION_SWEET_MIN = 0.42;
-  const TENSION_SWEET_MAX = 0.72;
-  const TENSION_RED_ZONE = 0.84;
+  const TENSION_MAX = 1.32;
+  const TAP_HISTORY = 6;
+  const HINT_COOLDOWN = 0.5;
+  const TELEGRAPH_PULSE = 0.25;
 
   const ROD_LENGTH_FACTOR = 0.13;
   const ROD_WIDTH = 3;
@@ -541,6 +539,144 @@ if ("serviceWorker" in navigator) {
       sellValue,
       story: species.story,
       power
+    };
+  }
+
+  const fishStateRanges = {
+    CALM: { force: [-0.05, 0.02], duration: [1.2, 2.3] },
+    REST: { force: [-0.12, -0.04], duration: [0.8, 1.6] },
+    PULL: { force: [0.12, 0.22], duration: [0.6, 1.2] },
+    DASH: { force: [0.26, 0.4], duration: [0.35, 0.75] },
+    PANIC: { force: [0.18, 0.3], duration: [0.5, 1.0] }
+  };
+
+  function getRarityTuning(rarity) {
+    switch (rarity) {
+      case "legendary":
+        return { dashBias: 1.45, telegraph: 0.72, duration: 0.78, force: 1.25 };
+      case "epic":
+        return { dashBias: 1.25, telegraph: 0.82, duration: 0.86, force: 1.15 };
+      case "rare":
+        return { dashBias: 1.12, telegraph: 0.92, duration: 0.94, force: 1.07 };
+      case "uncommon":
+        return { dashBias: 1.0, telegraph: 1.0, duration: 1.0, force: 1.0 };
+      default:
+        return { dashBias: 0.92, telegraph: 1.15, duration: 1.08, force: 0.92 };
+    }
+  }
+
+  function getStateProgressMult(state) {
+    if (state === "REST" || state === "CALM") return 1.15;
+    if (state === "PULL") return 0.7;
+    if (state === "DASH") return 0.35;
+    if (state === "PANIC") return 0.55;
+    return 1.0;
+  }
+
+  function getStateDuration(state, tune, fatigue = 0) {
+    const range = fishStateRanges[state]?.duration || [0.8, 1.4];
+    const base = rand(range[0], range[1]) * tune.duration;
+    if (state === "PULL" || state === "DASH") return base * (1 - fatigue * 0.25);
+    return base;
+  }
+
+  function getStateForceTarget(state, tune, powerScale, weightScale) {
+    const range = fishStateRanges[state]?.force || [-0.04, 0.02];
+    const base = rand(range[0], range[1]);
+    const forceScale = (0.6 + powerScale * 0.9) * tune.force * weightScale;
+    return base * forceScale;
+  }
+
+  function pickFishState(reel, tension, cadence) {
+    const zones = reel.zones;
+    const weights = {
+      CALM: 0.28,
+      REST: 0.2,
+      PULL: 0.24,
+      DASH: 0.15 * reel.fishAI.tune.dashBias,
+      PANIC: 0.13 * reel.fishAI.tune.dashBias
+    };
+
+    const inSweet = tension >= zones.sweetMin && tension <= zones.sweetMax;
+    if (tension < zones.safeMin) {
+      weights.PULL += 0.12;
+      weights.DASH += 0.1;
+      weights.REST -= 0.08;
+    }
+    if (tension > zones.dangerMin) {
+      weights.PANIC += 0.12;
+      weights.DASH += 0.06;
+      weights.CALM -= 0.1;
+    }
+    if (inSweet) {
+      weights.REST += 0.12;
+      weights.CALM += 0.1;
+      weights.DASH -= 0.05;
+    }
+    if (cadence < 0.16) weights.PANIC += 0.08;
+    if (cadence > 0.75) weights.DASH += 0.08;
+
+    const entries = Object.entries(weights).map(([key, value]) => [key, Math.max(0.05, value)]);
+    const total = entries.reduce((sum, entry) => sum + entry[1], 0);
+    let roll = Math.random() * total;
+    for (const [key, value] of entries) {
+      roll -= value;
+      if (roll <= 0) return key;
+    }
+    return "CALM";
+  }
+
+  function buildReelModel(catchData) {
+    const line = getLineStats();
+    const rod = getRodStats();
+    const power = catchData.power;
+    const rarity = catchData.rarity;
+    const lineTier = line.id;
+
+    const baseCenter = clamp(0.56 + power * 0.12 - (lineTier - 1) * 0.01, 0.48, 0.74);
+    const sweetWidth = clamp(0.30 - power * 0.08 + (lineTier - 1) * 0.02, 0.22, 0.32);
+    const safeMinRatio = clamp(baseCenter - sweetWidth / 2 - (0.10 + power * 0.03), 0.08, 0.65);
+    const sweetMinRatio = clamp(baseCenter - sweetWidth / 2, safeMinRatio + 0.05, 0.78);
+    const sweetMaxRatio = clamp(baseCenter + sweetWidth / 2, sweetMinRatio + 0.18, 0.9);
+    const dangerMinRatio = clamp(baseCenter + sweetWidth / 2 + (0.10 + power * 0.04), sweetMaxRatio + 0.05, 0.85);
+
+    const scale = line.breakThreshold;
+    const zones = {
+      safeMin: safeMinRatio * scale,
+      sweetMin: sweetMinRatio * scale,
+      sweetMax: sweetMaxRatio * scale,
+      dangerMin: dangerMinRatio * scale
+    };
+
+    return {
+      zones,
+      baseTapProgress: clamp(0.045 + rod.reelBonus * 0.65 - power * 0.02, 0.02, 0.06),
+      slackRisk: 0,
+      slackFlash: 0,
+      slackHintCooldown: 0,
+      tapHistory: [],
+      tapCadence: 0.45,
+      overload: 0,
+      tapFlash: 0,
+      tapFlashType: "",
+      redTick: 0,
+      redTickPos: 0,
+      hintCooldown: 0,
+      telegraphPulse: 0,
+      lineBoost: 0,
+      fishForce: 0,
+      fatigue: 0,
+      bobberDrift: 0,
+      fishAI: {
+        state: "CALM",
+        timer: 0,
+        duration: rand(1.0, 1.8),
+        forceTarget: 0,
+        pendingState: null,
+        telegraphTimer: 0,
+        telegraphDuration: 0,
+        tune: getRarityTuning(rarity)
+      }
     };
   }
 
@@ -1499,9 +1635,7 @@ if ("serviceWorker" in navigator) {
     need: 1.0,
     tension: 0.35,    // 0..1
     tensionVel: 0.0,
-    reelHeat: 0,
-    surgeSeed: 0,
-    reelDecay: 0.0,
+    reel: null,
     // input
     lastTap: 999,
     // messages
@@ -1652,12 +1786,17 @@ if ("serviceWorker" in navigator) {
     // reel mechanics
     game.progress = 0;
     // tougher fights: strong fish require more total progress
-    game.need = clamp(1.20 + game.fishPower * 1.25, 1.35, 2.60);
-    game.tension = (0.48 + game.fishPower * 0.12) * line.tensionMult;
+    game.need = clamp(1.10 + game.fishPower * 1.35, 1.35, 2.7);
+    game.reel = buildReelModel(catchData);
+    const weightKg = catchData.weightKg || 0;
+    const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.05) : 1;
+    game.reel.fishAI.forceTarget = getStateForceTarget("CALM", game.reel.fishAI.tune, game.fishPower, weightPenalty);
+    game.tension = clamp(
+      (game.reel.zones.sweetMin + game.reel.zones.sweetMax) * 0.55,
+      game.reel.zones.safeMin * 0.9,
+      game.reel.zones.dangerMin - 0.04
+    );
     game.tensionVel = 0;
-    game.reelHeat = 0;
-    game.surgeSeed = rand(0, Math.PI * 2);
-    game.reelDecay = 0.10 + game.fishPower * 0.22;
 
     game.mode = "HOOKED";
     game.t = 0;
@@ -1670,7 +1809,7 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     game.lastTap = 999;
     setFishing(true);
-    setMsg("Тапами держи натяжение. В зелёной зоне рыба быстрее сдаётся.", 1.2);
+    setMsg("Прогресс только от тапов. Зелёная зона — максимум, красная — минимум.", 1.3);
   }
 
   function openCatchModal(catchData) {
@@ -1750,27 +1889,55 @@ if ("serviceWorker" in navigator) {
     }
 
     if (game.mode === "REELING") {
-      // reel tap: build tension for zone control
+      const reel = game.reel;
+      if (!reel) return;
+
+      // tap cadence tracking
+      if (Number.isFinite(game.lastTap)) {
+        reel.tapHistory.push(game.lastTap);
+        if (reel.tapHistory.length > TAP_HISTORY) reel.tapHistory.shift();
+        const avg = reel.tapHistory.reduce((sum, v) => sum + v, 0) / reel.tapHistory.length;
+        reel.tapCadence = clamp(avg, 0.08, 1.2);
+      }
       game.lastTap = 0;
-      game.reelHeat = clamp(game.reelHeat + 0.18, 0, 1);
+
       const line = getLineStats();
-      const weightKg = game.catch?.weightKg || 0;
-      const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.1) : 1;
-      const bump = (0.014 + game.fishPower * 0.020) * (0.65 + game.reelHeat * 0.7) * weightPenalty * line.tensionMult;
-      game.tension += bump;
-      game.tension = clamp(game.tension, 0, TENSION_MAX);
-
-      let zoneMult;
-      if (game.tension < TENSION_SWEET_MIN) zoneMult = 0.85;
-      else if (game.tension <= TENSION_SWEET_MAX) zoneMult = 1.25;
-      else if (game.tension <= TENSION_RED_ZONE) zoneMult = 0.35;
-      else zoneMult = 0.15;
       const rod = getRodStats();
-      const baseGain = clamp(0.080 - game.fishPower * 0.030 + rod.reelBonus * 0.85, 0.035, 0.090);
-      const tapFatigue = clamp(game.lastTap / 0.18, 0.35, 1.0);
-      game.progress += baseGain * zoneMult * tapFatigue;
+      const weightKg = game.catch?.weightKg || 0;
+      const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.05) : 1;
+      const zones = reel.zones;
+      const tensionBefore = game.tension;
 
-      beep(520, 0.03, 0.03);
+      let zone = "yellow";
+      if (tensionBefore >= zones.sweetMin && tensionBefore <= zones.sweetMax) zone = "green";
+      else if (tensionBefore >= zones.dangerMin) zone = "red";
+
+      const tapImpulse = clamp(0.42 + rod.reelBonus * 1.3 - game.fishPower * 0.18, 0.22, 0.7)
+        * line.tensionMult * weightPenalty;
+      game.tensionVel += tapImpulse;
+
+      if (reel.tapCadence < 0.16) {
+        reel.overload = clamp(reel.overload + 0.25, 0, 1);
+        game.tensionVel += tapImpulse * 0.25;
+      }
+
+      const zoneMult = zone === "green" ? 1.0 : zone === "yellow" ? 0.55 : 0.2;
+      const stateMult = getStateProgressMult(reel.fishAI.state);
+      const cadenceMult = reel.tapCadence < 0.16 ? 0.65 : reel.tapCadence > 0.75 ? 0.85 : 1.0;
+      game.progress += reel.baseTapProgress * zoneMult * stateMult * cadenceMult;
+
+      if (zone === "green") {
+        reel.tapFlash = 0.15;
+        reel.tapFlashType = "green";
+        beep(680, 0.03, 0.03);
+      } else if (zone === "red") {
+        reel.redTick = 0.2;
+        reel.redTickPos = clamp(tensionBefore / line.breakThreshold, 0, 1);
+        beep(360, 0.04, 0.03);
+      } else {
+        reel.tapFlashType = "yellow";
+        beep(520, 0.03, 0.03);
+      }
       return;
     }
   }
@@ -1859,10 +2026,35 @@ if ("serviceWorker" in navigator) {
           enterWaiting();
         }
       } else if (bobber.inWater) {
-        bobber.wave += dt * (1.4 + game.fishPower * 0.7);
-        const amp = (game.mode === "BITE") ? 4.6 : (game.mode === "REELING" ? 2.2 : 1.4);
-        bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * amp;
-        bobber.x += Math.sin(bobber.wave * 1.2) * 0.25;
+        let amp = (game.mode === "BITE") ? 4.6 : (game.mode === "REELING" ? 2.2 : 1.4);
+        let waveSpeed = 1.4 + game.fishPower * 0.7;
+        let jiggle = 0;
+
+        if (game.mode === "REELING" && game.reel?.fishAI) {
+          const state = game.reel.fishAI.state;
+          if (state === "CALM" || state === "REST") {
+            amp = 1.4;
+            waveSpeed = 1.1 + game.fishPower * 0.5;
+          } else if (state === "PULL") {
+            amp = 2.3;
+            waveSpeed = 1.6 + game.fishPower * 0.8;
+          } else if (state === "DASH") {
+            amp = 3.4;
+            waveSpeed = 2.1 + game.fishPower * 1.1;
+          } else if (state === "PANIC") {
+            amp = 3.0;
+            waveSpeed = 1.8 + game.fishPower * 1.0;
+          }
+          if (game.reel.telegraphPulse > 0) {
+            jiggle = Math.sin(game.t * 45) * 2.8 * (game.reel.telegraphPulse / TELEGRAPH_PULSE);
+          }
+        }
+
+        bobber.wave += dt * waveSpeed;
+        bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * amp + jiggle;
+        if (game.mode !== "REELING") {
+          bobber.x += Math.sin(bobber.wave * 1.2) * 0.25;
+        }
       }
       placeBobberAt(bobber.x, bobber.y);
     }
@@ -1890,25 +2082,107 @@ if ("serviceWorker" in navigator) {
     }
 
     if (game.mode === "REELING") {
+      const reel = game.reel;
+      if (!reel) return;
       const line = getLineStats();
-      game.reelHeat = clamp(game.reelHeat - dt * 0.45, 0, 1);
+      const zones = reel.zones;
+      const weightKg = game.catch?.weightKg || 0;
+      const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.05) : 1;
 
-      const baseRelax = TENSION_RELAX - game.fishPower * TENSION_RELAX_POWER;
-      const idleBonus = clamp((game.lastTap - 0.15) / 0.65, 0, 1);
-      const relax = baseRelax * (0.6 + idleBonus * 2.0);
-      game.tension = clamp(game.tension - relax * dt, 0, TENSION_MAX);
+      reel.overload = clamp(reel.overload - dt * 0.6, 0, 1);
+      reel.tapFlash = Math.max(0, reel.tapFlash - dt);
+      reel.redTick = Math.max(0, reel.redTick - dt);
+      reel.slackFlash = Math.max(0, reel.slackFlash - dt);
+      reel.telegraphPulse = Math.max(0, reel.telegraphPulse - dt);
+      reel.lineBoost = Math.max(0, reel.lineBoost - dt);
+      reel.hintCooldown = Math.max(0, reel.hintCooldown - dt);
+      reel.slackHintCooldown = Math.max(0, reel.slackHintCooldown - dt);
 
-      // progress decay when not tapping (uses existing reelDecay)
-      const idle = clamp((game.lastTap - 0.20) / 0.80, 0, 1);
-      const decay = game.reelDecay * idle * dt * 0.25; // мягко, чтобы не бесило
-      game.progress = Math.max(0, game.progress - decay);
+      const inSweet = game.tension >= zones.sweetMin && game.tension <= zones.sweetMax;
+      if (inSweet && reel.tapCadence > 0.18 && reel.tapCadence < 0.6) {
+        reel.fatigue = clamp(reel.fatigue + dt * 0.08, 0, 1);
+      } else {
+        reel.fatigue = clamp(reel.fatigue - dt * 0.12, 0, 1);
+      }
 
-      // moving bobber toward shore with progress
+      const ai = reel.fishAI;
+      if (ai.telegraphTimer > 0) {
+        ai.telegraphTimer -= dt;
+        if (ai.telegraphTimer <= 0 && ai.pendingState) {
+          ai.state = ai.pendingState;
+          ai.pendingState = null;
+          ai.timer = 0;
+          ai.duration = getStateDuration(ai.state, ai.tune, reel.fatigue);
+          ai.forceTarget = getStateForceTarget(ai.state, ai.tune, game.fishPower, weightPenalty);
+        }
+      } else {
+        ai.timer += dt;
+        if (ai.timer >= ai.duration) {
+          const nextState = pickFishState(reel, game.tension, reel.tapCadence);
+          if (nextState === "DASH" || nextState === "PULL") {
+            ai.pendingState = nextState;
+            ai.telegraphDuration = rand(0.15, 0.45) * ai.tune.telegraph;
+            ai.telegraphTimer = ai.telegraphDuration;
+            reel.telegraphPulse = TELEGRAPH_PULSE;
+            reel.lineBoost = 0.4;
+            if (reel.hintCooldown <= 0) {
+              setHint(nextState === "DASH" ? "Рывок!" : "Тянет!");
+              reel.hintCooldown = HINT_COOLDOWN;
+            }
+            beep(nextState === "DASH" ? 820 : 720, 0.05, 0.05);
+          } else {
+            ai.state = nextState;
+            ai.timer = 0;
+            ai.duration = getStateDuration(ai.state, ai.tune, reel.fatigue);
+            ai.forceTarget = getStateForceTarget(ai.state, ai.tune, game.fishPower, weightPenalty);
+            if (nextState === "REST" && reel.hintCooldown <= 0) {
+              setHint("Ослабла…");
+              reel.hintCooldown = HINT_COOLDOWN;
+            }
+          }
+        }
+      }
+
+      const fatigueMult = inSweet ? lerp(1, 0.7, reel.fatigue) : 1;
+      const forceTarget = ai.forceTarget * fatigueMult;
+      reel.fishForce = lerp(reel.fishForce, forceTarget, dt * 2.4);
+
+      const relax = 0.14 - game.fishPower * 0.05 + (game.lastTap > 0.7 ? 0.06 : 0.02);
+      game.tensionVel += reel.fishForce * dt;
+      game.tensionVel -= relax * dt;
+      game.tensionVel = clamp(game.tensionVel, -1.4, 1.8);
+      game.tensionVel *= (0.92 - reel.overload * 0.08);
+      game.tension = clamp(game.tension + game.tensionVel * dt, 0, TENSION_MAX);
+
+      const prevSlack = reel.slackRisk;
+      if (game.tension < zones.safeMin) {
+        const slackRatio = (zones.safeMin - game.tension) / zones.safeMin;
+        const accel = slackRatio > 0.6 ? 0.38 : 0.22;
+        reel.slackRisk = clamp(reel.slackRisk + dt * (accel + slackRatio * 0.45), 0, 1);
+      } else if (inSweet) {
+        reel.slackRisk = clamp(reel.slackRisk - dt * 0.28, 0, 1);
+      } else {
+        reel.slackRisk = clamp(reel.slackRisk - dt * 0.1, 0, 1);
+      }
+      if (reel.tapCadence > 0.8) {
+        reel.slackRisk = clamp(reel.slackRisk + dt * 0.05, 0, 1);
+      }
+      const slackRise = (reel.slackRisk - prevSlack) / Math.max(0.001, dt);
+      if (slackRise > 0.4) reel.slackFlash = 0.25;
+
+      if (game.tension < zones.safeMin) {
+        const rollback = dt * 0.02 * (zones.safeMin - game.tension) / zones.safeMin;
+        game.progress = Math.max(0, game.progress - rollback);
+      }
+
+      reel.bobberDrift = 0;
+      if (ai.state === "PULL") reel.bobberDrift = W * 0.015;
+      if (ai.state === "DASH") reel.bobberDrift = W * 0.025;
+      if (ai.state === "PANIC") reel.bobberDrift = W * 0.02;
+
       const p = clamp(game.progress / game.need, 0, 1);
-      bobber.x = lerp(W * 0.78, W * 0.42, p);
-      bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * 1.6;
+      bobber.x = lerp(W * 0.78, W * 0.42, p) + reel.bobberDrift;
 
-      // lose conditions
       if (game.tension >= line.breakThreshold) {
         game.mode = "IDLE";
         game.t = 0;
@@ -1920,7 +2194,7 @@ if ("serviceWorker" in navigator) {
         setMsg("Леска лопнула. Тап — забросить снова.", 1.6);
         return;
       }
-      if (game.tension <= 0) {
+      if (reel.slackRisk >= 1) {
         game.mode = "IDLE";
         game.t = 0;
         bobber.visible = false;
@@ -1928,22 +2202,29 @@ if ("serviceWorker" in navigator) {
         game.catch = null;
         setFishing(false);
         beep(220, 0.10, 0.05);
-        setMsg("Натяжение упало до нуля. Рыбалка сорвалась.", 1.6);
+        setMsg("Слабина! Рыба сорвалась.", 1.6);
         return;
       }
 
-      // win condition
       if (game.progress >= game.need) {
         land();
         return;
       }
 
-      // guidance hint based on tension
-      if (game.t % 0.5 < dt) {
-        if (game.tension > TENSION_RED_ZONE) setHint("Красная зона — пауза, не тапай!");
-        else if (game.tension < TENSION_SWEET_MIN - 0.08) setHint("Слишком слабое натяжение — рыба уходит.");
-        else if (game.tension > TENSION_SWEET_MAX + 0.08) setHint("Слишком туго — дай леске отдохнуть.");
-        else setHint("Держи натяжение в зелёной зоне.");
+      if (reel.slackRisk > 0.7 && reel.slackHintCooldown <= 0) {
+        setHint("Рыба почти сорвалась!");
+        reel.slackHintCooldown = 1.3;
+      } else if (reel.hintCooldown <= 0) {
+        if (game.tension > zones.dangerMin) {
+          setHint("Перегруз — пауза.");
+        } else if (game.tension < zones.safeMin) {
+          setHint("Слабина — уйдёт.");
+        } else if (inSweet) {
+          setHint("Зелёная — жми!");
+        } else {
+          setHint("Держи натяжение ровно.");
+        }
+        reel.hintCooldown = HINT_COOLDOWN;
       }
     }
 
@@ -1979,7 +2260,8 @@ if ("serviceWorker" in navigator) {
       const rodTip = getRodTipPoint();
       if (rodTip) {
         ctx.strokeStyle = "rgba(230,240,255,0.65)";
-        ctx.lineWidth = 1.2;
+        const lineBoost = game.mode === "REELING" && game.reel ? game.reel.lineBoost : 0;
+        ctx.lineWidth = 1.2 + lineBoost;
         ctx.beginPath();
         ctx.moveTo(rodTip.x, rodTip.y);
         const midX = (rodTip.x + bobber.x) * 0.5;
@@ -2119,6 +2401,16 @@ if ("serviceWorker" in navigator) {
     const y = scene.lakeY - 120;
     const barW = Math.min(360, W * 0.82);
     const barH = 14;
+    const innerW = barW - 4;
+    const line = getLineStats();
+    const reel = game.reel;
+    const zones = reel?.zones || { safeMin: 0.35, sweetMin: 0.48, sweetMax: 0.7, dangerMin: 0.85 };
+
+    const safeMinN = clamp(zones.safeMin / line.breakThreshold, 0, 1);
+    const sweetMinN = clamp(zones.sweetMin / line.breakThreshold, 0, 1);
+    const sweetMaxN = clamp(zones.sweetMax / line.breakThreshold, 0, 1);
+    const dangerMinN = clamp(zones.dangerMin / line.breakThreshold, 0, 1);
+    const t = clamp(game.tension / line.breakThreshold, 0, 1);
 
     // Progress (pulling fish)
     const p = clamp(game.progress / game.need, 0, 1);
@@ -2128,34 +2420,79 @@ if ("serviceWorker" in navigator) {
     roundRect(x - barW / 2, y - barH / 2, barW, barH, 10);
     ctx.fill();
 
-    ctx.globalAlpha = 0.90;
+    const aiState = reel?.fishAI?.state;
+    const shake = (aiState === "PULL" || aiState === "DASH") ? Math.sin(game.t * 24) * 1.5 : 0;
+    const pulse = (aiState === "PULL" || aiState === "DASH") ? 0.08 * Math.abs(Math.sin(game.t * 18)) : 0;
+
+    ctx.globalAlpha = 0.90 - pulse;
     ctx.fillStyle = "#7bd3ff";
-    roundRect(x - barW / 2 + 2, y - barH / 2 + 2, (barW - 4) * p, barH - 4, 8);
+    roundRect(x - barW / 2 + 2 + shake, y - barH / 2 + 2, innerW * p, barH - 4, 8);
     ctx.fill();
+
+    if (reel?.tapFlash > 0 && reel.tapFlashType === "green") {
+      ctx.globalAlpha = 0.35 * (reel.tapFlash / 0.15);
+      ctx.fillStyle = "#e7fff3";
+      ctx.fillRect(x - barW / 2 + 2 + shake, y - barH / 2 + 2, innerW * p, barH - 4);
+    }
 
     // Tension bar below
     const ty = y + 24;
-    const t = clamp(game.tension, 0, 1);
     ctx.globalAlpha = 0.85;
     ctx.fillStyle = "#0b0f14";
     roundRect(x - barW / 2, ty - barH / 2, barW, barH, 10);
     ctx.fill();
 
-    // green zone
+    // zone background
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#d6c278";
+    ctx.fillRect(x - barW / 2 + 2 + innerW * safeMinN, ty - barH / 2 + 2, innerW * (sweetMinN - safeMinN), barH - 4);
+    ctx.fillRect(x - barW / 2 + 2 + innerW * sweetMaxN, ty - barH / 2 + 2, innerW * (dangerMinN - sweetMaxN), barH - 4);
+
     ctx.globalAlpha = 0.22;
-    ctx.fillStyle = "#66e6a0";
-    const gz0 = TENSION_SWEET_MIN, gz1 = TENSION_SWEET_MAX;
-    roundRect(x - barW / 2 + 2 + (barW - 4) * gz0, ty - barH / 2 + 2, (barW - 4) * (gz1 - gz0), barH - 4, 8);
-    ctx.fill();
+    ctx.fillStyle = "#6fbf93";
+    ctx.fillRect(x - barW / 2 + 2 + innerW * sweetMinN, ty - barH / 2 + 2, innerW * (sweetMaxN - sweetMinN), barH - 4);
+
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = "#c97b7b";
+    ctx.fillRect(x - barW / 2 + 2 + innerW * dangerMinN, ty - barH / 2 + 2, innerW * (1 - dangerMinN), barH - 4);
 
     // tension fill with color
     ctx.globalAlpha = 0.92;
     const color =
-      (t < TENSION_SWEET_MIN - 0.06) ? "#ffd166" :
-      (t > TENSION_SWEET_MAX + 0.08) ? "#ff6b6b" :
-      "#66e6a0";
+      (t >= dangerMinN) ? "#ff6b6b" :
+      (t >= sweetMinN && t <= sweetMaxN) ? "#66e6a0" :
+      "#ffd166";
     ctx.fillStyle = color;
-    roundRect(x - barW / 2 + 2, ty - barH / 2 + 2, (barW - 4) * t, barH - 4, 8);
+    roundRect(x - barW / 2 + 2, ty - barH / 2 + 2, innerW * t, barH - 4, 8);
+    ctx.fill();
+
+    if (reel?.redTick > 0) {
+      ctx.globalAlpha = 0.75 * (reel.redTick / 0.2);
+      ctx.fillStyle = "#ff6b6b";
+      const markX = x - barW / 2 + 2 + innerW * reel.redTickPos;
+      ctx.fillRect(markX - 1, ty - barH / 2 - 6, 2, 6);
+    }
+
+    const slackRisk = reel?.slackRisk || 0;
+    const slackLabelY = ty + 24;
+    const slackBarW = 80;
+    const slackBarH = 6;
+    const slackX = x - barW / 2;
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#eaf2ff";
+    ctx.font = "700 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`Срыв: ${Math.round(slackRisk * 100)}%`, slackX, slackLabelY);
+
+    const flashAlpha = reel?.slackFlash > 0 ? 0.4 + 0.4 * Math.abs(Math.sin(game.t * 18)) : 0.4;
+    ctx.globalAlpha = 0.35 + flashAlpha * 0.35;
+    ctx.fillStyle = "#0b0f14";
+    roundRect(slackX + 72, slackLabelY - slackBarH / 2, slackBarW, slackBarH, 4);
+    ctx.fill();
+    ctx.globalAlpha = 0.8 + flashAlpha * 0.2;
+    ctx.fillStyle = slackRisk > 0.7 ? "#ff6b6b" : "#ffd166";
+    roundRect(slackX + 72 + 1, slackLabelY - slackBarH / 2 + 1, (slackBarW - 2) * clamp(slackRisk, 0, 1), slackBarH - 2, 3);
     ctx.fill();
 
     // labels
