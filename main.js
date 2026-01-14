@@ -1502,7 +1502,6 @@ if ("serviceWorker" in navigator) {
     reelHeat: 0,
     surgeSeed: 0,
     reelDecay: 0.0,
-    timeLimit: 0.0,
     // input
     lastTap: 999,
     // messages
@@ -1657,7 +1656,6 @@ if ("serviceWorker" in navigator) {
     game.reelHeat = 0;
     game.surgeSeed = rand(0, Math.PI * 2);
     game.reelDecay = 0.10 + game.fishPower * 0.22;
-    game.timeLimit = 6.5 - game.fishPower * 2.2;
 
     game.mode = "HOOKED";
     game.t = 0;
@@ -1901,19 +1899,6 @@ if ("serviceWorker" in navigator) {
       const p = clamp(game.progress / game.need, 0, 1);
       bobber.x = lerp(W * 0.78, W * 0.42, p);
       bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * 1.6;
-
-      // time limit (fish escapes)
-      if (game.t > game.timeLimit) {
-        game.mode = "IDLE";
-        game.t = 0;
-        bobber.visible = false;
-        bobber.inWater = false;
-        game.catch = null;
-        setFishing(false);
-        beep(220, 0.10, 0.05);
-        setMsg("Сорвалась… Тап — забросить снова.", 1.6);
-        return;
-      }
 
       // lose conditions
       if (game.tension >= line.breakThreshold) {
