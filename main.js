@@ -289,7 +289,7 @@ if ("serviceWorker" in navigator) {
   // ===== Tension + progress balance (REELING) =====
   const TENSION_BASE_RISE = 0.024;
   const TENSION_POWER_RISE = 0.048;
-  const TENSION_TIME_PRESSURE = 0.008;
+  const TENSION_TIME_PRESSURE = 0.0;
   const TENSION_SURGE_PRIMARY = 0.05;
   const TENSION_SURGE_SECONDARY = 0.024;
   const TENSION_HEAT_RISE = 0.055;
@@ -1495,7 +1495,7 @@ if ("serviceWorker" in navigator) {
     mode: "INTRO",
     t: 0,
     biteAt: 0,
-    biteWindow: 1.35,
+    biteWindow: 0.85,
     fishPower: 0.0,
     rarity: "обычная",
     reward: 0,
@@ -1507,6 +1507,8 @@ if ("serviceWorker" in navigator) {
     tensionVel: 0.0,
     reelHeat: 0,
     surgeSeed: 0,
+    reelDecay: 0.0,
+    timeLimit: 0.0,
     // input
     lastTap: 999,
     // messages
@@ -1585,7 +1587,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== Fishing logic =====
   function scheduleBite() {
-    game.biteAt = rand(1.2, 4.2);
+    game.biteAt = rand(1.2, 3.8);
   }
 
   function consumeBait() {
@@ -1655,11 +1657,13 @@ if ("serviceWorker" in navigator) {
 
     // reel mechanics
     game.progress = 0;
-    game.need = clamp(1.4 + game.fishPower * 0.9, 1.5, 2.6);
+    game.need = clamp(0.95 + game.fishPower * 0.65, 1.0, 1.55);
     game.tension = 0.48 + game.fishPower * 0.12;
     game.tensionVel = 0;
     game.reelHeat = 0;
     game.surgeSeed = rand(0, Math.PI * 2);
+    game.reelDecay = 0.10 + game.fishPower * 0.22;
+    game.timeLimit = 6.5 - game.fishPower * 2.2;
 
     game.mode = "HOOKED";
     game.t = 0;
@@ -1752,16 +1756,11 @@ if ("serviceWorker" in navigator) {
     }
 
     if (game.mode === "REELING") {
-      // reel tap: progress depends on sweet tension zone, but adds heat and tension
+      // reel tap: original balance (steady gains, no sweet-spot multiplier)
       game.lastTap = 0;
       const rod = getRodStats();
-      const sweetCenter = (TENSION_SWEET_MIN + TENSION_SWEET_MAX) * 0.5;
-      const sweetRange = (TENSION_SWEET_MAX - TENSION_SWEET_MIN) * 0.5;
-      const sweetFactor = clamp(1 - Math.abs(game.tension - sweetCenter) / sweetRange, 0, 1);
-      const fatiguePenalty = 1 - game.reelHeat * 0.5;
-      const powerPenalty = 1 - game.fishPower * 0.25;
-      const baseGain = 0.065 + rod.reelBonus * 0.6;
-      const gain = Math.max(0.018, baseGain * sweetFactor * fatiguePenalty * powerPenalty);
+      const baseGain = 0.065 - game.fishPower * 0.020;
+      const gain = Math.max(0.028, baseGain + rod.reelBonus * 0.6);
       game.progress += gain;
 
       game.reelHeat = clamp(game.reelHeat + 0.18, 0, 1);
@@ -1897,26 +1896,29 @@ if ("serviceWorker" in navigator) {
       const riseDamp = 1 - idleDamp * 0.45;
       const baseRise = (TENSION_BASE_RISE + game.fishPower * TENSION_POWER_RISE) * line.tensionMult * weightPenalty * riseDamp;
       const heatRise = game.reelHeat * TENSION_HEAT_RISE * (1 + game.fishPower * 0.4);
-      const timeRise = Math.min(game.t * TENSION_TIME_PRESSURE, 0.4) * riseDamp;
+      game.tension = clamp(game.tension + (baseRise + heatRise + surge) * dt - relax * dt, 0, TENSION_MAX);
 
-      game.tension = clamp(game.tension + (baseRise + heatRise + timeRise + surge) * dt - relax * dt, 0, TENSION_MAX);
-
-      // progress decay (fish pulls line out) - harsher outside sweet zone
-      const sweetCenter = (TENSION_SWEET_MIN + TENSION_SWEET_MAX) * 0.5;
-      const tensionOffset = Math.abs(game.tension - sweetCenter);
-      let progDecay = (0.022 + game.fishPower * 0.05) * (1 + game.reelHeat * 0.6) * dt;
-      if (tensionOffset > 0.16) {
-        progDecay += (tensionOffset - 0.16) * 0.5 * dt;
-      }
-      if (game.tension > line.breakThreshold * 0.9) {
-        progDecay += 0.05 * dt;
-      }
-      game.progress = Math.max(0, game.progress - progDecay);
+      // progress decay (original balance)
+      const decay = game.reelDecay * dt * (1.0 + Math.min(1.5, game.lastTap * 1.2));
+      game.progress = Math.max(0, game.progress - decay);
 
       // moving bobber toward shore with progress
       const p = clamp(game.progress / game.need, 0, 1);
       bobber.x = lerp(W * 0.78, W * 0.42, p);
       bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * 1.6;
+
+      // time limit (fish escapes)
+      if (game.t > game.timeLimit) {
+        game.mode = "IDLE";
+        game.t = 0;
+        bobber.visible = false;
+        bobber.inWater = false;
+        game.catch = null;
+        setFishing(false);
+        beep(220, 0.10, 0.05);
+        setMsg("Сорвалась… Тап — забросить снова.", 1.6);
+        return;
+      }
 
       // lose conditions
       if (game.tension >= line.breakThreshold) {
