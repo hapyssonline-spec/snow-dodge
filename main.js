@@ -1897,6 +1897,7 @@ if ("serviceWorker" in navigator) {
       const heatRise = game.reelHeat * TENSION_HEAT_RISE * (1 + game.fishPower * 0.4);
       game.tension = clamp(game.tension + (baseRise + heatRise + surge) * dt - relax * dt, 0, TENSION_MAX);
 
+
       // progress decay (original balance)
       const decay = game.reelDecay * dt * (1.0 + Math.min(1.5, game.lastTap * 1.2));
       game.progress = Math.max(0, game.progress - decay);
