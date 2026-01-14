@@ -1913,6 +1913,17 @@ if ("serviceWorker" in navigator) {
         setMsg("Леска лопнула. Тап — забросить снова.", 1.6);
         return;
       }
+      if (game.tension <= 0) {
+        game.mode = "IDLE";
+        game.t = 0;
+        bobber.visible = false;
+        bobber.inWater = false;
+        game.catch = null;
+        setFishing(false);
+        beep(220, 0.10, 0.05);
+        setMsg("Натяжение упало до нуля. Рыбалка сорвалась.", 1.6);
+        return;
+      }
 
       // win condition
       if (game.progress >= game.need) {
