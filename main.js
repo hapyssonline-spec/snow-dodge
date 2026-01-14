@@ -1661,7 +1661,7 @@ if ("serviceWorker" in navigator) {
     game.mode = "HOOKED";
     game.t = 0;
     beep(960, 0.06, 0.06);
-    setMsg(`Подсечка! Рыба: ${catchData.name} (${catchData.rarityLabel}).`, 1.1);
+    setMsg("Подсечка! Рыба на крючке.", 1.1);
   }
 
   function startReel() {
@@ -1749,18 +1749,13 @@ if ("serviceWorker" in navigator) {
     }
 
     if (game.mode === "REELING") {
-      // reel tap: original balance (steady gains, no sweet-spot multiplier)
+      // reel tap: build tension for zone control
       game.lastTap = 0;
-      const rod = getRodStats();
-      const baseGain = 0.092 - game.fishPower * 0.020;
-      const gain = Math.max(0.045, baseGain + rod.reelBonus * 0.9);
-      game.progress += gain;
-
       game.reelHeat = clamp(game.reelHeat + 0.18, 0, 1);
       const line = getLineStats();
       const weightKg = game.catch?.weightKg || 0;
       const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.1) : 1;
-      const bump = (0.018 + game.fishPower * 0.022) * (0.65 + game.reelHeat * 0.7) * weightPenalty * line.tensionMult;
+      const bump = (0.014 + game.fishPower * 0.020) * (0.65 + game.reelHeat * 0.7) * weightPenalty * line.tensionMult;
       game.tension += bump;
 
       beep(520, 0.03, 0.03);
@@ -1891,10 +1886,15 @@ if ("serviceWorker" in navigator) {
       const relax = baseRelax * (0.6 + idleBonus * 2.0);
       game.tension = clamp(game.tension - relax * dt, 0, TENSION_MAX);
 
-      // progress decay (original balance)
-      const decayBoost = 0.6 + Math.min(1.0, game.lastTap * 0.8);
-      const decay = game.reelDecay * decayBoost * dt * 0.5;
-      game.progress = Math.max(0, game.progress - decay);
+      // automatic progress based on tension zone
+      let zoneMult;
+      if (game.tension < TENSION_SWEET_MIN) zoneMult = 0.20;
+      else if (game.tension <= TENSION_SWEET_MAX) zoneMult = 1.00;
+      else if (game.tension <= TENSION_RED_ZONE) zoneMult = 0.35;
+      else zoneMult = 0.12;
+      const rod = getRodStats();
+      const baseProgRate = clamp(0.22 - game.fishPower * 0.10 + rod.reelBonus * 0.9, 0.10, 0.26);
+      game.progress += baseProgRate * zoneMult * dt;
 
       // moving bobber toward shore with progress
       const p = clamp(game.progress / game.need, 0, 1);
@@ -2113,9 +2113,6 @@ if ("serviceWorker" in navigator) {
     const barW = Math.min(360, W * 0.82);
     const barH = 14;
 
-    const catchData = game.catch;
-    const catchName = catchData ? `${catchData.name} • ${formatKg(catchData.weightKg)}` : "Рыба";
-
     // Progress (pulling fish)
     const p = clamp(game.progress / game.need, 0, 1);
     ctx.save();
@@ -2160,7 +2157,7 @@ if ("serviceWorker" in navigator) {
     ctx.font = "700 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
-    ctx.fillText(`Выматывание: ${(p * 100 | 0)}% • ${catchName}`, x, y - 12);
+    ctx.fillText(`Выматывание: ${(p * 100 | 0)}%`, x, y - 12);
     ctx.fillText("Натяжение лески", x, ty - 12);
 
     ctx.restore();
