@@ -1894,7 +1894,7 @@ if ("serviceWorker" in navigator) {
 
       // progress decay (original balance)
       const decayBoost = 0.6 + Math.min(1.0, game.lastTap * 0.8);
-
+      const decay = game.reelDecay * decayBoost * dt;
       game.progress = Math.max(0, game.progress - decay);
 
       // moving bobber toward shore with progress
