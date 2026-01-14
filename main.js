@@ -1647,11 +1647,12 @@ if ("serviceWorker" in navigator) {
     game.rarity = catchData.rarityLabel;
     game.fishPower = catchData.power;
     game.reward = catchData.sellValue;
+    const line = getLineStats();
 
     // reel mechanics
     game.progress = 0;
     game.need = clamp(0.95 + game.fishPower * 0.65, 1.0, 1.55);
-    game.tension = 0.48 + game.fishPower * 0.12;
+    game.tension = (0.48 + game.fishPower * 0.12) * line.tensionMult;
     game.tensionVel = 0;
     game.reelHeat = 0;
     game.surgeSeed = rand(0, Math.PI * 2);
@@ -1759,7 +1760,7 @@ if ("serviceWorker" in navigator) {
       const line = getLineStats();
       const weightKg = game.catch?.weightKg || 0;
       const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.1) : 1;
-      const bump = (0.018 + game.fishPower * 0.022) * (0.65 + game.reelHeat * 0.7) * weightPenalty;
+      const bump = (0.018 + game.fishPower * 0.022) * (0.65 + game.reelHeat * 0.7) * weightPenalty * line.tensionMult;
       game.tension += bump;
 
       beep(520, 0.03, 0.03);
