@@ -755,7 +755,7 @@ button:disabled{
     --hero-h: min(38vh, 380px);
 
     --rod-dx: 10%;
-    --rod-dy: 0%;
+    --rod-dy: 1.2%;
     --rod-h:  min(24vh, 240px);
     --rod-rot: -22deg;
 
