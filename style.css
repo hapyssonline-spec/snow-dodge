@@ -734,6 +734,9 @@ button:disabled{
 
   /* Удочка — строго в руках героя */
   --rod-dx: 3%;
+  --rod-dx-fishing: var(--rod-dx);
+  --rod-dx-bite: var(--rod-dx-fishing);
+  --rod-dx-current: var(--rod-dx);
   --rod-dy: 1.5%;
   --rod-h:  min(28vh, 280px);
   --rod-rot: -18deg;
@@ -755,6 +758,8 @@ button:disabled{
     --hero-h: min(38vh, 380px);
 
     --rod-dx: 10%;
+    --rod-dx-fishing: 6%;
+    --rod-dx-bite: 8%;
     --rod-dy: 1.2%;
     --rod-h:  min(24vh, 240px);
     --rod-rot: -22deg;
@@ -768,6 +773,18 @@ button:disabled{
 #lakeScene{ position:fixed; inset:0; z-index:2; pointer-events:none; }
 #lakeScene .layer{ position:absolute; transform: translate(-50%,-50%); }
 
+#lakeScene{
+  --rod-dx-current: var(--rod-dx);
+}
+
+#lakeScene.is-fishing:not(.is-bite){
+  --rod-dx-current: var(--rod-dx-fishing);
+}
+
+#lakeScene.is-bite{
+  --rod-dx-current: var(--rod-dx-bite);
+}
+
 #heroLayer{
   left: var(--hero-x);
   top:  var(--hero-y);
@@ -777,7 +794,7 @@ button:disabled{
 }
 
 #rodLayer{
-  left: calc(var(--hero-x) + var(--rod-dx));
+  left: calc(var(--hero-x) + var(--rod-dx-current));
   top:  calc(var(--hero-y) + var(--rod-dy));
   height: var(--rod-h);
   width: auto;
