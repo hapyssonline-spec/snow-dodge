@@ -1760,6 +1760,16 @@ if ("serviceWorker" in navigator) {
       game.tension += bump;
       game.tension = clamp(game.tension, 0, TENSION_MAX);
 
+      let zoneMult;
+      if (game.tension < TENSION_SWEET_MIN) zoneMult = 0.85;
+      else if (game.tension <= TENSION_SWEET_MAX) zoneMult = 1.25;
+      else if (game.tension <= TENSION_RED_ZONE) zoneMult = 0.35;
+      else zoneMult = 0.15;
+      const rod = getRodStats();
+      const baseGain = clamp(0.080 - game.fishPower * 0.030 + rod.reelBonus * 0.85, 0.035, 0.090);
+      const tapFatigue = clamp(game.lastTap / 0.18, 0.35, 1.0);
+      game.progress += baseGain * zoneMult * tapFatigue;
+
       beep(520, 0.03, 0.03);
       return;
     }
@@ -1888,15 +1898,10 @@ if ("serviceWorker" in navigator) {
       const relax = baseRelax * (0.6 + idleBonus * 2.0);
       game.tension = clamp(game.tension - relax * dt, 0, TENSION_MAX);
 
-      // automatic progress based on tension zone
-      let zoneMult;
-      if (game.tension < TENSION_SWEET_MIN) zoneMult = 0.08;
-      else if (game.tension <= TENSION_SWEET_MAX) zoneMult = 1.00;
-      else if (game.tension <= TENSION_RED_ZONE) zoneMult = 0.16;
-      else zoneMult = 0.04;
-      const rod = getRodStats();
-      const baseProgRate = clamp(0.14 - game.fishPower * 0.06 + rod.reelBonus * 0.6, 0.07, 0.16);
-      game.progress += baseProgRate * zoneMult * dt;
+      // progress decay when not tapping (uses existing reelDecay)
+      const idle = clamp((game.lastTap - 0.20) / 0.80, 0, 1);
+      const decay = game.reelDecay * idle * dt * 0.25; // мягко, чтобы не бесило
+      game.progress = Math.max(0, game.progress - decay);
 
       // moving bobber toward shore with progress
       const p = clamp(game.progress / game.need, 0, 1);
