@@ -2109,7 +2109,7 @@ if ("serviceWorker" in navigator) {
 
   function drawMeters() {
     const x = W * 0.5;
-    const y = scene.lakeY - 24;
+    const y = scene.lakeY - 120;
     const barW = Math.min(360, W * 0.82);
     const barH = 14;
 
