@@ -289,7 +289,6 @@ if ("serviceWorker" in navigator) {
   // ===== Tension + progress balance (REELING) =====
   const TENSION_BASE_RISE = 0.024;
   const TENSION_POWER_RISE = 0.048;
-  const TENSION_TIME_PRESSURE = 0.008;
   const TENSION_SURGE_PRIMARY = 0.05;
   const TENSION_SURGE_SECONDARY = 0.024;
   const TENSION_HEAT_RISE = 0.055;
@@ -1896,9 +1895,8 @@ if ("serviceWorker" in navigator) {
       const riseDamp = 1 - idleDamp * 0.45;
       const baseRise = (TENSION_BASE_RISE + game.fishPower * TENSION_POWER_RISE) * line.tensionMult * weightPenalty * riseDamp;
       const heatRise = game.reelHeat * TENSION_HEAT_RISE * (1 + game.fishPower * 0.4);
-      const timeRise = Math.min(game.t * TENSION_TIME_PRESSURE, 0.4) * riseDamp;
+      game.tension = clamp(game.tension + (baseRise + heatRise + surge) * dt - relax * dt, 0, TENSION_MAX);
 
-      game.tension = clamp(game.tension + (baseRise + heatRise + timeRise + surge) * dt - relax * dt, 0, TENSION_MAX);
 
       // progress decay (original balance)
       const decay = game.reelDecay * dt * (1.0 + Math.min(1.5, game.lastTap * 1.2));
