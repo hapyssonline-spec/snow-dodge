@@ -287,12 +287,6 @@ if ("serviceWorker" in navigator) {
   }
 
   // ===== Tension + progress balance (REELING) =====
-  const TENSION_BASE_RISE = 0.024;
-  const TENSION_POWER_RISE = 0.048;
-  const TENSION_TIME_PRESSURE = 0.008;
-  const TENSION_SURGE_PRIMARY = 0.05;
-  const TENSION_SURGE_SECONDARY = 0.024;
-  const TENSION_HEAT_RISE = 0.055;
   const TENSION_RELAX = 0.04;
   const TENSION_RELAX_POWER = 0.003;
   const TENSION_MAX = 1.22;
@@ -1764,7 +1758,10 @@ if ("serviceWorker" in navigator) {
       game.progress += gain;
 
       game.reelHeat = clamp(game.reelHeat + 0.18, 0, 1);
-      const bump = (0.018 + game.fishPower * 0.022) * (0.65 + game.reelHeat * 0.7);
+      const line = getLineStats();
+      const weightKg = game.catch?.weightKg || 0;
+      const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.1) : 1;
+      const bump = (0.018 + game.fishPower * 0.022) * (0.65 + game.reelHeat * 0.7) * weightPenalty;
       game.tension += bump;
 
       beep(520, 0.03, 0.03);
@@ -1878,27 +1875,12 @@ if ("serviceWorker" in navigator) {
 
     if (game.mode === "REELING") {
       const line = getLineStats();
-      const weightKg = game.catch?.weightKg || 0;
-      const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.1) : 1;
       game.reelHeat = clamp(game.reelHeat - dt * 0.45, 0, 1);
-
-      const surgeSpeed = 1.6 + game.fishPower * 1.6;
-      const surge =
-        (Math.sin(game.t * surgeSpeed + game.surgeSeed) * TENSION_SURGE_PRIMARY +
-          Math.sin(game.t * 0.65 + game.surgeSeed * 1.8) * TENSION_SURGE_SECONDARY) *
-        weightPenalty;
 
       const baseRelax = TENSION_RELAX - game.fishPower * TENSION_RELAX_POWER;
       const idleBonus = clamp((game.lastTap - 0.2) / 0.8, 0, 1);
       const relax = baseRelax * (0.7 + idleBonus * 1.4);
-
-      const idleDamp = clamp((game.lastTap - 0.3) / 0.8, 0, 1);
-      const riseDamp = 1 - idleDamp * 0.45;
-      const baseRise = (TENSION_BASE_RISE + game.fishPower * TENSION_POWER_RISE) * line.tensionMult * weightPenalty * riseDamp;
-      const heatRise = game.reelHeat * TENSION_HEAT_RISE * (1 + game.fishPower * 0.4);
-      const timeRise = Math.min(game.t * TENSION_TIME_PRESSURE, 0.4) * riseDamp;
-
-      game.tension = clamp(game.tension + (baseRise + heatRise + timeRise + surge) * dt - relax * dt, 0, TENSION_MAX);
+      game.tension = clamp(game.tension - relax * dt, 0, TENSION_MAX);
 
       // progress decay (original balance)
       const decay = game.reelDecay * dt * (1.0 + Math.min(1.5, game.lastTap * 1.2));
