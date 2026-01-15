@@ -316,10 +316,10 @@ if ("serviceWorker" in navigator) {
   const TAP_HISTORY = 6;
   const HINT_COOLDOWN = 0.5;
   const TELEGRAPH_PULSE = 0.25;
-  const TENSION_RELAX_MULT = 3.5;
-  const PROGRESS_DECAY_IDLE = 0.35;
-  const PROGRESS_DECAY_ACTIVE = 0.08;
-  const PROGRESS_DECAY_DANGER_BONUS = 0.18;
+  const TENSION_RELAX_MULT = 4.5;
+  const PROGRESS_DECAY_IDLE = 0.22;
+  const PROGRESS_DECAY_ACTIVE = 0.05;
+  const PROGRESS_DECAY_DANGER_BONUS = 0.12;
 
   const ROD_LENGTH_FACTOR = 0.13;
   const ROD_WIDTH = 3;
