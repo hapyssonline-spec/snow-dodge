@@ -211,6 +211,12 @@ if ("serviceWorker" in navigator) {
       this.speciesStage = -1;
       this.weightText = null;
       this.speciesText = null;
+      this.realSpecies = null;
+      this.mateSpecies = null;
+      this.firstCandidate = null;
+      this.secondCandidate = null;
+      this.rareSecondCandidate = null;
+      this.isRarePlus = false;
       this.startWidth = null;
       this.minWidth = null;
       this.candidates = null;
@@ -235,7 +241,14 @@ if ("serviceWorker" in navigator) {
       this.wPrev = null;
       this.startWidth = clamp(4 + this.weightKg * 0.45, 4, 8);
       this.minWidth = clamp(1.0 + Math.sqrt(this.weightKg) * 0.08, 1.0, 1.6);
-      this.candidates = this.pickSpeciesCandidates();
+      const species = this.fishTable.find((entry) => entry.id === this.speciesId);
+      this.realSpecies = fish.speciesName || fish.name || species?.name || "Неизвестно";
+      this.mateSpecies = this.pickMateFromConfusionGroups(this.speciesId);
+      const realFirst = Math.random() < 0.5;
+      this.firstCandidate = realFirst ? this.realSpecies : this.mateSpecies;
+      this.secondCandidate = realFirst ? this.mateSpecies : this.realSpecies;
+      this.rareSecondCandidate = Math.random() < 0.5 ? this.firstCandidate : this.secondCandidate;
+      this.isRarePlus = (this.rarityRank[this.rarity] ?? 0) >= this.rarityRank.rare;
     }
 
     update(progress) {
@@ -275,13 +288,16 @@ if ("serviceWorker" in navigator) {
     }
 
     buildSpeciesHint() {
-      if (!this.speciesStage || !this.candidates) return null;
-      const { primary, secondary, isRarePlus } = this.candidates;
+      if (!this.speciesStage || !this.firstCandidate || !this.secondCandidate) return null;
       if (this.speciesStage === 1) {
-        return isRarePlus ? `Порода: ${primary}/${secondary}/???` : `Порода: ${primary}/${secondary}`;
+        return this.isRarePlus
+          ? `Порода: ${this.firstCandidate}/${this.secondCandidate}/???`
+          : `Порода: ${this.firstCandidate}/${this.secondCandidate}`;
       }
       if (this.speciesStage === 2) {
-        return isRarePlus ? `Порода: ???/${primary}` : `Порода: ${primary}/${secondary}`;
+        return this.isRarePlus
+          ? `Порода: ???/${this.rareSecondCandidate}`
+          : `Порода: ${this.firstCandidate}/${this.secondCandidate}`;
       }
       return null;
     }
@@ -377,23 +393,20 @@ if ("serviceWorker" in navigator) {
       return Math.ceil(value / step) * step;
     }
 
-    pickSpeciesCandidates() {
-      const species = this.fishTable.find((entry) => entry.id === this.speciesId);
-      const primary = species?.name || "Неизвестно";
-      const group = this.confusionGroups.find((list) => list.includes(this.speciesId));
+    pickMateFromConfusionGroups(realId) {
+      const group = this.confusionGroups.find((list) => list.includes(realId));
       let secondaryId = null;
       if (group) {
-        const options = group.filter((id) => id !== this.speciesId);
+        const options = group.filter((id) => id !== realId);
         secondaryId = options[Math.floor(Math.random() * options.length)] || null;
       }
       if (!secondaryId) {
-        const commons = this.fishTable.filter((entry) => entry.rarity === "common" && entry.id !== this.speciesId);
+        const commons = this.fishTable.filter((entry) => entry.rarity === "common" && entry.id !== realId);
         const fallback = commons[Math.floor(Math.random() * commons.length)];
-        secondaryId = fallback?.id || this.speciesId;
+        secondaryId = fallback?.id || realId;
       }
-      const secondary = this.fishTable.find((entry) => entry.id === secondaryId)?.name || primary;
-      const isRarePlus = (this.rarityRank[this.rarity] ?? 0) >= this.rarityRank.rare;
-      return { primary, secondary, isRarePlus };
+      const secondary = this.fishTable.find((entry) => entry.id === secondaryId)?.name;
+      return secondary || this.realSpecies || "Неизвестно";
     }
 
     logWeightStage(stage, range, prevRange) {
@@ -846,6 +859,40 @@ if ("serviceWorker" in navigator) {
 
   if (DEV_MODE) {
     runRevealSimulation(1000);
+    runSpeciesOrderSimulation(200);
+  }
+
+  function runSpeciesOrderSimulation(attempts = 200) {
+    const pool = fishSpeciesTable.filter((species) => ["common", "uncommon"].includes(species.rarity));
+    let realFirst = 0;
+    let orderMismatch = 0;
+
+    for (let i = 0; i < attempts; i += 1) {
+      const species = pool[Math.floor(Math.random() * pool.length)];
+      const weightKg = species.minKg;
+      revealSystem.startAttempt({
+        speciesId: species.id,
+        rarity: species.rarity,
+        weightKg,
+        speciesName: species.name
+      });
+
+      if (revealSystem.firstCandidate === revealSystem.realSpecies) realFirst += 1;
+
+      revealSystem.update(0.6);
+      const stageOne = revealSystem.speciesText;
+      revealSystem.update(0.8);
+      const stageTwo = revealSystem.speciesText;
+
+      const expected = `Порода: ${revealSystem.firstCandidate}/${revealSystem.secondCandidate}`;
+      if (stageOne !== expected || stageTwo !== expected) orderMismatch += 1;
+    }
+
+    const ratio = realFirst / Math.max(1, attempts);
+    console.log("[RevealSystem] species order attempts:", attempts);
+    console.log("[RevealSystem] real first ratio:", ratio.toFixed(3));
+    console.log("[RevealSystem] order mismatch count:", orderMismatch);
+    revealSystem.reset();
   }
 
   const baitItems = [
