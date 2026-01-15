@@ -1950,6 +1950,10 @@ if ("serviceWorker" in navigator) {
       const gain = getTapProgressGain(tapZone, game.need);
       if (gain > 0) {
         game.progress = clamp(game.progress + gain, 0, game.need);
+        if (game.progress >= game.need) {
+          land();
+          return;
+        }
       }
       if (reel.hintCooldown <= 0) {
         if (tapZone === "GREEN") setHint("Зелёная зона: +10% за тап.");
