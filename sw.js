@@ -1,6 +1,6 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-const CACHE_VERSION = 29;
+const CACHE_VERSION = 30;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
