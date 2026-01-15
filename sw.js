@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 45 for reel hint HUD updates.
-const CACHE_VERSION = 45;
+// CACHE_VERSION bumped to 46 for compact fight HUD hints.
+const CACHE_VERSION = 46;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
