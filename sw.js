@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 42 for RevealSystem updates.
-const CACHE_VERSION = 42;
+// CACHE_VERSION bumped to 43 for reel hint HUD updates.
+const CACHE_VERSION = 43;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 

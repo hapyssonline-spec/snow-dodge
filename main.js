@@ -93,6 +93,9 @@ if ("serviceWorker" in navigator) {
   const tensionMarker = fightHud?.querySelector(".tensionMarker");
   const reelFill = fightHud?.querySelector(".reelFill");
   const reelPercent = fightHud?.querySelector(".reelPercent");
+  const revealHint = document.getElementById("revealHint");
+  const hintWeight = document.getElementById("hintWeight");
+  const hintSpecies = document.getElementById("hintSpecies");
   const slipBadge = document.getElementById("slipBadge");
   const slipText = slipBadge?.querySelector(".slipText");
 
@@ -133,6 +136,10 @@ if ("serviceWorker" in navigator) {
 
   let fightHudVisible = false;
   let fightHudHideTimer = null;
+  let revealHintVisible = false;
+  let revealHintHideTimer = null;
+  let lastHintWeightText = null;
+  let lastHintSpeciesText = null;
 
   function setFightHudVisible(visible) {
     if (!fightHud) return;
@@ -291,13 +298,13 @@ if ("serviceWorker" in navigator) {
       if (!this.speciesStage || !this.firstCandidate || !this.secondCandidate) return null;
       if (this.speciesStage === 1) {
         return this.isRarePlus
-          ? `Порода: ${this.firstCandidate}/${this.secondCandidate}/???`
-          : `Порода: ${this.firstCandidate}/${this.secondCandidate}`;
+          ? `${this.firstCandidate} / ${this.secondCandidate} / ???`
+          : `${this.firstCandidate} / ${this.secondCandidate}`;
       }
       if (this.speciesStage === 2) {
         return this.isRarePlus
-          ? `Порода: ???/${this.rareSecondCandidate}`
-          : `Порода: ${this.firstCandidate}/${this.secondCandidate}`;
+          ? `??? / ${this.rareSecondCandidate}`
+          : `${this.firstCandidate} / ${this.secondCandidate}`;
       }
       return null;
     }
@@ -382,7 +389,7 @@ if ("serviceWorker" in navigator) {
     }
 
     formatWeightText(range) {
-      return `Вес: ${range.low.toFixed(1)}–${range.high.toFixed(1)} кг`;
+      return `${range.low.toFixed(1)}–${range.high.toFixed(1)} кг`;
     }
 
     roundDown(value, step) {
@@ -884,7 +891,7 @@ if ("serviceWorker" in navigator) {
       revealSystem.update(0.8);
       const stageTwo = revealSystem.speciesText;
 
-      const expected = `Порода: ${revealSystem.firstCandidate}/${revealSystem.secondCandidate}`;
+      const expected = `${revealSystem.firstCandidate} / ${revealSystem.secondCandidate}`;
       if (stageOne !== expected || stageTwo !== expected) orderMismatch += 1;
     }
 
@@ -2099,6 +2106,39 @@ if ("serviceWorker" in navigator) {
     if (chipHint) chipHint.textContent = text;
   }
 
+  function setHintTexts(weightTextOrNull, speciesTextOrNull) {
+    if (!revealHint || !hintWeight || !hintSpecies) return;
+    if (revealHintHideTimer) {
+      window.clearTimeout(revealHintHideTimer);
+      revealHintHideTimer = null;
+    }
+    const nextWeight = weightTextOrNull || null;
+    const nextSpecies = speciesTextOrNull || null;
+    if (nextWeight !== lastHintWeightText) {
+      hintWeight.textContent = nextWeight || "";
+      lastHintWeightText = nextWeight;
+    }
+    if (nextSpecies !== lastHintSpeciesText) {
+      hintSpecies.textContent = nextSpecies || "";
+      lastHintSpeciesText = nextSpecies;
+    }
+    hintSpecies.classList.toggle("hidden", !nextSpecies);
+    const shouldShow = Boolean(nextWeight);
+    if (shouldShow !== revealHintVisible) {
+      revealHintVisible = shouldShow;
+      revealHint.classList.toggle("hidden", !shouldShow);
+      revealHint.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+    }
+  }
+
+  function scheduleRevealHintHide(delay = 320) {
+    if (!revealHint) return;
+    if (revealHintHideTimer) window.clearTimeout(revealHintHideTimer);
+    revealHintHideTimer = window.setTimeout(() => {
+      setHintTexts(null, null);
+    }, delay);
+  }
+
   function setSubtitle(text) {
     if (subtitleEl) subtitleEl.textContent = text;
   }
@@ -2156,6 +2196,7 @@ if ("serviceWorker" in navigator) {
     bobber.inWater = false;
     setFishing(false);
     revealSystem.reset();
+    setHintTexts(null, null);
     setScene(SCENE_LAKE);
     setDefaultSubtitle();
     setHint(`Тапни по воде, чтобы забросить. Приманка: ${getActiveBaitLabel()}`);
@@ -2268,6 +2309,7 @@ if ("serviceWorker" in navigator) {
     game.lastTap = 999;
     setFishing(true);
     setSubtitle("Вываживание…");
+    setHintTexts(null, null);
     setMsg("Прогресс только от тапов. Зелёная зона — максимум, красная — минимум.", 1.3);
   }
 
@@ -2303,6 +2345,7 @@ if ("serviceWorker" in navigator) {
     setMsg(`Поймал: ${game.catch.name} ${formatKg(game.catch.weightKg)}.`, 1.8);
     setDefaultSubtitle();
     revealSystem.reset();
+    scheduleRevealHintHide(320);
 
     openCatchModal(game.catch);
     game.catch = null;
@@ -2661,10 +2704,7 @@ if ("serviceWorker" in navigator) {
 
       revealSystem.update(p);
       const revealHint = revealSystem.getHint();
-      const revealParts = [];
-      if (revealHint.weightText) revealParts.push(revealHint.weightText);
-      if (revealHint.speciesText) revealParts.push(revealHint.speciesText);
-      setSubtitle(revealParts.length ? revealParts.join(" • ") : "Вываживание…");
+      setHintTexts(revealHint.weightText, revealHint.speciesText);
 
       if (game.tension >= line.breakThreshold) {
         game.mode = "IDLE";
@@ -2677,6 +2717,7 @@ if ("serviceWorker" in navigator) {
         setMsg("Леска лопнула. Тап — забросить снова.", 1.6);
         setDefaultSubtitle();
         revealSystem.reset();
+        scheduleRevealHintHide(320);
         return;
       }
       if (reel.slackRisk >= 1) {
@@ -2690,6 +2731,7 @@ if ("serviceWorker" in navigator) {
         setMsg("Слабина! Рыба сорвалась.", 1.6);
         setDefaultSubtitle();
         revealSystem.reset();
+        scheduleRevealHintHide(320);
         return;
       }
 
