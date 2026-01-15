@@ -92,6 +92,7 @@ if ("serviceWorker" in navigator) {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + Math.random() * (b - a);
+  const DEFAULT_SUBTITLE = "Тап — заброс. Поклёвка → свайп вверх. Тапы — выматывать.";
 
   function getTensionZone(tension) {
     const zones = game.reel?.zones;
@@ -121,6 +122,175 @@ if ("serviceWorker" in navigator) {
   const formatKg = (value) => `${value.toFixed(2)} кг`;
   const formatCoins = (value) => `${value} монет`;
   const formatPercent = (value) => `${Math.round(value)}%`;
+
+  class RevealSystem {
+    constructor(options) {
+      this.fishTable = options.fishTable;
+      this.confusionGroups = options.confusionGroups;
+      this.rarityRank = options.rarityRank;
+      this.reset();
+    }
+
+    reset() {
+      this.active = false;
+      this.weightKg = 0;
+      this.rarity = "common";
+      this.speciesId = null;
+      this.maxProgress = 0;
+      this.weightStage = null;
+      this.speciesStage = null;
+      this.weightText = null;
+      this.speciesText = null;
+      this.lastWidth = null;
+      this.lastDisplayWidth = null;
+      this.startWidth = null;
+      this.endWidth = null;
+      this.candidates = null;
+      this.lastWeightRange = null;
+    }
+
+    startAttempt(fish) {
+      if (!fish) return;
+      this.active = true;
+      this.weightKg = fish.weightKg || 0;
+      this.rarity = fish.rarity || "common";
+      this.speciesId = fish.speciesId || null;
+      this.maxProgress = 0;
+      this.weightStage = null;
+      this.speciesStage = null;
+      this.weightText = null;
+      this.speciesText = null;
+      this.lastWidth = null;
+      this.lastDisplayWidth = null;
+      this.lastWeightRange = null;
+
+      this.startWidth = clamp(4 + this.weightKg * 0.45, 4, 8);
+      this.endWidth = clamp(1.0 + Math.sqrt(this.weightKg) * 0.08, 1.0, 1.6);
+      this.candidates = this.pickSpeciesCandidates();
+    }
+
+    update(progress) {
+      if (!this.active) return;
+      this.maxProgress = Math.max(this.maxProgress, progress);
+
+      let nextWeightStage = null;
+      if (this.maxProgress >= 0.3) {
+        nextWeightStage = Math.floor((this.maxProgress - 0.3) / 0.05);
+      }
+      if (nextWeightStage !== this.weightStage) {
+        this.weightStage = nextWeightStage;
+        if (this.weightStage !== null) {
+          this.weightText = this.buildWeightHint(this.weightStage);
+        } else {
+          this.weightText = null;
+        }
+      }
+
+      let nextSpeciesStage = null;
+      if (this.maxProgress >= 0.8) {
+        nextSpeciesStage = "late";
+      } else if (this.maxProgress >= 0.6) {
+        nextSpeciesStage = "mid";
+      }
+      if (nextSpeciesStage !== this.speciesStage) {
+        this.speciesStage = nextSpeciesStage;
+        this.speciesText = this.buildSpeciesHint();
+      }
+    }
+
+    getHint() {
+      return {
+        weightText: this.weightText,
+        speciesText: this.speciesText
+      };
+    }
+
+    buildSpeciesHint() {
+      if (!this.speciesStage || !this.candidates) return null;
+      const { primary, secondary, isRarePlus } = this.candidates;
+      if (this.speciesStage === "mid") {
+        return isRarePlus ? `Порода: ${primary}/${secondary}/???` : `Порода: ${primary}/${secondary}`;
+      }
+      if (this.speciesStage === "late") {
+        return isRarePlus ? `Порода: ???/${primary}` : `Порода: ${primary}/${secondary}`;
+      }
+      return null;
+    }
+
+    buildWeightHint(stage) {
+      let width = this.pickWidthForStage(stage);
+      let range = this.buildRangeForWidth(width);
+      let attempts = 0;
+
+      while (this.lastDisplayWidth !== null && range.width > this.lastDisplayWidth && attempts < 6) {
+        width = Math.max(this.endWidth, width - 0.2);
+        range = this.buildRangeForWidth(width);
+        attempts += 1;
+      }
+
+      this.lastDisplayWidth = range.width;
+      this.lastWeightRange = range;
+      return `Вес: ${range.low.toFixed(1)}–${range.high.toFixed(1)} кг`;
+    }
+
+    pickWidthForStage(stage) {
+      const totalStages = 14;
+      const t = clamp(stage / totalStages, 0, 1);
+      const baseWidth = lerp(this.startWidth, this.endWidth, t);
+      const noisyWidth = clamp(baseWidth + rand(-0.2, 0.2), this.endWidth, this.startWidth);
+      const width = this.lastWidth !== null ? Math.min(noisyWidth, this.lastWidth) : noisyWidth;
+      this.lastWidth = width;
+      return width;
+    }
+
+    buildRangeForWidth(width) {
+      const alpha = Math.random();
+      let low = this.weightKg - alpha * width;
+      let high = low + width;
+
+      low += rand(-0.1, 0.1);
+      high += rand(-0.1, 0.1);
+
+      const lowStep = Math.random() < 0.5 ? 0.2 : 0.3;
+      const highStep = Math.random() < 0.5 ? 0.2 : 0.4;
+      low = this.roundDown(low, lowStep);
+      high = this.roundUp(high, highStep);
+
+      low = Math.max(0.1, low);
+      low = Math.min(low, this.weightKg);
+      high = Math.max(high, this.weightKg);
+      if (high < low) high = low;
+
+      return { low, high, width: high - low };
+    }
+
+    roundDown(value, step) {
+      return Math.floor(value / step) * step;
+    }
+
+    roundUp(value, step) {
+      return Math.ceil(value / step) * step;
+    }
+
+    pickSpeciesCandidates() {
+      const species = this.fishTable.find((entry) => entry.id === this.speciesId);
+      const primary = species?.name || "Неизвестно";
+      const group = this.confusionGroups.find((list) => list.includes(this.speciesId));
+      let secondaryId = null;
+      if (group) {
+        const options = group.filter((id) => id !== this.speciesId);
+        secondaryId = options[Math.floor(Math.random() * options.length)] || null;
+      }
+      if (!secondaryId) {
+        const commons = this.fishTable.filter((entry) => entry.rarity === "common" && entry.id !== this.speciesId);
+        const fallback = commons[Math.floor(Math.random() * commons.length)];
+        secondaryId = fallback?.id || this.speciesId;
+      }
+      const secondary = this.fishTable.find((entry) => entry.id === secondaryId)?.name || primary;
+      const isRarePlus = (this.rarityRank[this.rarity] ?? 0) >= this.rarityRank.rare;
+      return { primary, secondary, isRarePlus };
+    }
+  }
 
   function setVhVar() {
     document.documentElement.style.setProperty("--vh", `${window.innerHeight * 0.01}px`);
@@ -456,12 +626,27 @@ if ("serviceWorker" in navigator) {
     }
   ];
 
+  const confusionGroups = [
+    ["roach", "crucian", "bream"],
+    ["perch", "zander"],
+    ["pike", "trout"],
+    ["catfish", "sturgeon"]
+  ];
+
   const rarityLabels = {
     common: "обычная",
     uncommon: "необычная",
     rare: "редкая",
     epic: "эпическая",
     legendary: "легендарная"
+  };
+
+  const rarityRank = {
+    common: 0,
+    uncommon: 1,
+    rare: 2,
+    epic: 3,
+    legendary: 4
   };
 
   const rarityPower = {
@@ -471,6 +656,71 @@ if ("serviceWorker" in navigator) {
     epic: 0.16,
     legendary: 0.22
   };
+
+  const revealSystem = new RevealSystem({
+    fishTable: fishSpeciesTable,
+    confusionGroups,
+    rarityRank
+  });
+
+  const DEV_MODE = new URLSearchParams(window.location.search).has("dev");
+
+  function runRevealSimulation(attempts = 1000) {
+    const mids = [];
+    const weights = [];
+    let outOfRange = 0;
+    let widthIncreases = 0;
+
+    for (let i = 0; i < attempts; i += 1) {
+      const species = fishSpeciesTable[Math.floor(Math.random() * fishSpeciesTable.length)];
+      const rawWeight = triangular(species.minKg, species.modeKg, species.maxKg);
+      const weightKg = Math.round(clamp(rawWeight, species.minKg, species.maxKg) * 100) / 100;
+      revealSystem.startAttempt({
+        speciesId: species.id,
+        rarity: species.rarity,
+        weightKg
+      });
+
+      let prevWidth = null;
+      for (let stage = 0; stage <= 14; stage += 1) {
+        const p = 0.3 + stage * 0.05;
+        revealSystem.update(p);
+        const range = revealSystem.lastWeightRange;
+        if (!range) continue;
+        if (weightKg < range.low || weightKg > range.high) outOfRange += 1;
+        if (prevWidth !== null && range.width > prevWidth + 1e-6) widthIncreases += 1;
+        if (stage === 0) {
+          mids.push((range.low + range.high) / 2);
+          weights.push(weightKg);
+        }
+        prevWidth = range.width;
+      }
+    }
+
+    const mean = (arr) => arr.reduce((sum, v) => sum + v, 0) / Math.max(1, arr.length);
+    const meanMid = mean(mids);
+    const meanW = mean(weights);
+    let cov = 0;
+    let varMid = 0;
+    let varW = 0;
+    for (let i = 0; i < mids.length; i += 1) {
+      const dm = mids[i] - meanMid;
+      const dw = weights[i] - meanW;
+      cov += dm * dw;
+      varMid += dm * dm;
+      varW += dw * dw;
+    }
+    const corr = cov / Math.sqrt(Math.max(1e-6, varMid * varW));
+    console.log("[RevealSystem] sim attempts:", attempts);
+    console.log("[RevealSystem] correlation(mid, W) @30%:", Number.isFinite(corr) ? corr.toFixed(3) : "n/a");
+    console.log("[RevealSystem] out of range count:", outOfRange);
+    console.log("[RevealSystem] width increases count:", widthIncreases);
+    revealSystem.reset();
+  }
+
+  if (DEV_MODE) {
+    runRevealSimulation(1000);
+  }
 
   const baitItems = [
     {
@@ -1680,6 +1930,10 @@ if ("serviceWorker" in navigator) {
     if (subtitleEl) subtitleEl.textContent = text;
   }
 
+  function setDefaultSubtitle() {
+    setSubtitle(DEFAULT_SUBTITLE);
+  }
+
   function setMsg(text, seconds = 1.2) {
     game.msg = text;
     game.msgT = seconds;
@@ -1728,8 +1982,9 @@ if ("serviceWorker" in navigator) {
     bobber.visible = false;
     bobber.inWater = false;
     setFishing(false);
+    revealSystem.reset();
     setScene(SCENE_LAKE);
-    setSubtitle("Тап — заброс. Поклёвка → свайп вверх. Тапы — выматывать.");
+    setDefaultSubtitle();
     setHint(`Тапни по воде, чтобы забросить. Приманка: ${getActiveBaitLabel()}`);
     updateHUD();
     save();
@@ -1810,6 +2065,7 @@ if ("serviceWorker" in navigator) {
     game.rarity = catchData.rarityLabel;
     game.fishPower = catchData.power;
     game.reward = catchData.sellValue;
+    revealSystem.startAttempt(catchData);
     const line = getLineStats();
 
     // reel mechanics
@@ -1838,6 +2094,7 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     game.lastTap = 999;
     setFishing(true);
+    setSubtitle("Вываживание…");
     setMsg("Прогресс только от тапов. Зелёная зона — максимум, красная — минимум.", 1.3);
   }
 
@@ -1871,6 +2128,8 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     beep(660, 0.08, 0.06);
     setMsg(`Поймал: ${game.catch.name} ${formatKg(game.catch.weightKg)}.`, 1.8);
+    setDefaultSubtitle();
+    revealSystem.reset();
 
     openCatchModal(game.catch);
     game.catch = null;
@@ -2227,6 +2486,13 @@ if ("serviceWorker" in navigator) {
       const p = clamp(game.progress / game.need, 0, 1);
       bobber.x = lerp(W * 0.78, W * 0.42, p) + reel.bobberDrift;
 
+      revealSystem.update(p);
+      const revealHint = revealSystem.getHint();
+      const revealParts = [];
+      if (revealHint.weightText) revealParts.push(revealHint.weightText);
+      if (revealHint.speciesText) revealParts.push(revealHint.speciesText);
+      setSubtitle(revealParts.length ? revealParts.join(" • ") : "Вываживание…");
+
       if (game.tension >= line.breakThreshold) {
         game.mode = "IDLE";
         game.t = 0;
@@ -2236,6 +2502,8 @@ if ("serviceWorker" in navigator) {
         setFishing(false);
         beep(220, 0.10, 0.05);
         setMsg("Леска лопнула. Тап — забросить снова.", 1.6);
+        setDefaultSubtitle();
+        revealSystem.reset();
         return;
       }
       if (reel.slackRisk >= 1) {
@@ -2247,6 +2515,8 @@ if ("serviceWorker" in navigator) {
         setFishing(false);
         beep(220, 0.10, 0.05);
         setMsg("Слабина! Рыба сорвалась.", 1.6);
+        setDefaultSubtitle();
+        revealSystem.reset();
         return;
       }
 
