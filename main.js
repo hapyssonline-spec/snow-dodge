@@ -93,6 +93,31 @@ if ("serviceWorker" in navigator) {
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + Math.random() * (b - a);
 
+  function getTensionZone(tension) {
+    const zones = game.reel?.zones;
+    if (!zones) return "SLACK";
+    if (tension <= 0.10) return "SLACK";
+    if (tension < zones.sweetMin) return "YELLOW";
+    if (tension <= zones.sweetMax) return "GREEN";
+    if (tension < zones.dangerMin) return "RED";
+    return "DANGER";
+  }
+
+  function getTapProgressGain(zone, need) {
+    switch (zone) {
+      case "GREEN":
+        return 0.10 * need;
+      case "YELLOW":
+        return 0.04 * need;
+      case "RED":
+        return 0.02 * need;
+      case "DANGER":
+        return 0.01 * need;
+      default:
+        return 0;
+    }
+  }
+
   const formatKg = (value) => `${value.toFixed(2)} кг`;
   const formatCoins = (value) => `${value} монет`;
   const formatPercent = (value) => `${Math.round(value)}%`;
@@ -291,6 +316,10 @@ if ("serviceWorker" in navigator) {
   const TAP_HISTORY = 6;
   const HINT_COOLDOWN = 0.5;
   const TELEGRAPH_PULSE = 0.25;
+  const TENSION_RELAX_MULT = 3.5;
+  const PROGRESS_DECAY_IDLE = 0.35;
+  const PROGRESS_DECAY_ACTIVE = 0.08;
+  const PROGRESS_DECAY_DANGER_BONUS = 0.18;
 
   const ROD_LENGTH_FACTOR = 0.13;
   const ROD_WIDTH = 3;
@@ -1905,12 +1934,7 @@ if ("serviceWorker" in navigator) {
       const rod = getRodStats();
       const weightKg = game.catch?.weightKg || 0;
       const weightPenalty = weightKg > line.maxKg ? (1 + (weightKg - line.maxKg) * 0.05) : 1;
-      const zones = reel.zones;
       const tensionBefore = game.tension;
-
-      let zone = "yellow";
-      if (tensionBefore >= zones.sweetMin && tensionBefore <= zones.sweetMax) zone = "green";
-      else if (tensionBefore >= zones.dangerMin) zone = "red";
 
       const tapImpulse = clamp(0.42 + rod.reelBonus * 1.3 - game.fishPower * 0.18, 0.22, 0.7)
         * line.tensionMult * weightPenalty;
@@ -1921,16 +1945,26 @@ if ("serviceWorker" in navigator) {
         game.tensionVel += tapImpulse * 0.25;
       }
 
-      const zoneMult = zone === "green" ? 1.0 : zone === "yellow" ? 0.55 : 0.2;
-      const stateMult = getStateProgressMult(reel.fishAI.state);
-      const cadenceMult = reel.tapCadence < 0.16 ? 0.65 : reel.tapCadence > 0.75 ? 0.85 : 1.0;
-      game.progress += reel.baseTapProgress * zoneMult * stateMult * cadenceMult;
+      const tensionAfter = clamp(game.tension + game.tensionVel * 0.05, 0, TENSION_MAX);
+      const tapZone = getTensionZone(tensionAfter);
+      const gain = getTapProgressGain(tapZone, game.need);
+      if (gain > 0) {
+        game.progress = clamp(game.progress + gain, 0, game.need);
+      }
+      if (reel.hintCooldown <= 0) {
+        if (tapZone === "GREEN") setHint("Зелёная зона: +10% за тап.");
+        else if (tapZone === "YELLOW") setHint("Жёлтая: +4% за тап. Попади в зелёную.");
+        else if (tapZone === "RED") setHint("Красная: +2% за тап. Ослабь.");
+        else if (tapZone === "DANGER") setHint("Опасно: +1% за тап. Леска на грани!");
+        else setHint("Слабо: почти нет прогресса.");
+        reel.hintCooldown = 0.25;
+      }
 
-      if (zone === "green") {
+      if (tapZone === "GREEN") {
         reel.tapFlash = 0.15;
         reel.tapFlashType = "green";
         beep(680, 0.03, 0.03);
-      } else if (zone === "red") {
+      } else if (tapZone === "DANGER") {
         reel.redTick = 0.2;
         reel.redTickPos = clamp(tensionBefore / line.breakThreshold, 0, 1);
         beep(360, 0.04, 0.03);
@@ -2149,7 +2183,7 @@ if ("serviceWorker" in navigator) {
 
       const relax = 0.14 - game.fishPower * 0.05 + (game.lastTap > 0.7 ? 0.06 : 0.02);
       game.tensionVel += reel.fishForce * dt;
-      game.tensionVel -= relax * dt;
+      game.tensionVel -= relax * TENSION_RELAX_MULT * dt;
       game.tensionVel = clamp(game.tensionVel, -1.4, 1.8);
       game.tensionVel *= (0.92 - reel.overload * 0.08);
       game.tension = clamp(game.tension + game.tensionVel * dt, 0, TENSION_MAX);
@@ -2174,6 +2208,12 @@ if ("serviceWorker" in navigator) {
         const rollback = dt * 0.02 * (zones.safeMin - game.tension) / zones.safeMin;
         game.progress = Math.max(0, game.progress - rollback);
       }
+
+      const idle01 = clamp((game.lastTap - 0.15) / 0.9, 0, 1);
+      const decayZone = getTensionZone(game.tension);
+      let decayRate = lerp(PROGRESS_DECAY_ACTIVE, PROGRESS_DECAY_IDLE, idle01);
+      if (decayZone === "DANGER") decayRate += PROGRESS_DECAY_DANGER_BONUS;
+      game.progress = clamp(game.progress - decayRate * game.need * dt, 0, game.need);
 
       reel.bobberDrift = 0;
       if (ai.state === "PULL") reel.bobberDrift = W * 0.015;
