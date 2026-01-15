@@ -197,6 +197,7 @@ if ("serviceWorker" in navigator) {
       this.fishTable = options.fishTable;
       this.confusionGroups = options.confusionGroups;
       this.rarityRank = options.rarityRank;
+      this.devMode = options.devMode;
       this.reset();
     }
 
@@ -206,8 +207,8 @@ if ("serviceWorker" in navigator) {
       this.rarity = "common";
       this.speciesId = null;
       this.maxProgress = 0;
-      this.weightStage = null;
-      this.speciesStage = null;
+      this.weightStage = -1;
+      this.speciesStage = -1;
       this.weightText = null;
       this.speciesText = null;
       this.startWidth = null;
@@ -215,6 +216,7 @@ if ("serviceWorker" in navigator) {
       this.candidates = null;
       this.weightRange = null;
       this.lastWeightRange = null;
+      this.wPrev = null;
     }
 
     startAttempt(fish) {
@@ -224,12 +226,13 @@ if ("serviceWorker" in navigator) {
       this.rarity = fish.rarity || "common";
       this.speciesId = fish.speciesId || null;
       this.maxProgress = 0;
-      this.weightStage = null;
-      this.speciesStage = null;
+      this.weightStage = -1;
+      this.speciesStage = -1;
       this.weightText = null;
       this.speciesText = null;
       this.weightRange = null;
       this.lastWeightRange = null;
+      this.wPrev = null;
       this.startWidth = clamp(4 + this.weightKg * 0.45, 4, 8);
       this.minWidth = clamp(1.0 + Math.sqrt(this.weightKg) * 0.08, 1.0, 1.6);
       this.candidates = this.pickSpeciesCandidates();
@@ -239,29 +242,26 @@ if ("serviceWorker" in navigator) {
       if (!this.active) return;
       this.maxProgress = Math.max(this.maxProgress, progress);
 
-      const nextWeightStage = this.maxProgress >= 0.3 ? Math.floor((this.maxProgress - 0.3) / 0.05) : null;
-      if (nextWeightStage !== this.weightStage) {
-        if (nextWeightStage === null) {
-          this.weightStage = null;
-          this.weightText = null;
-        } else if (this.weightStage === null || nextWeightStage > this.weightStage) {
-          let currentStage = this.weightStage ?? -1;
-          while (currentStage < nextWeightStage) {
-            currentStage += 1;
-            this.updateWeightRange();
-          }
-          this.weightStage = nextWeightStage;
-          this.weightText = this.weightRange ? this.formatWeightText(this.weightRange) : null;
+      const nextWeightStage = this.maxProgress >= 0.3 ? Math.floor((this.maxProgress - 0.3) / 0.05) : -1;
+      if (nextWeightStage > this.weightStage) {
+        let currentStage = this.weightStage;
+        while (currentStage < nextWeightStage) {
+          currentStage += 1;
+          const prevRange = this.weightRange;
+          this.updateWeightRange();
+          this.logWeightStage(currentStage, this.weightRange, prevRange);
         }
+        this.weightStage = nextWeightStage;
+        this.weightText = this.weightRange ? this.formatWeightText(this.weightRange) : null;
       }
 
-      let nextSpeciesStage = null;
+      let nextSpeciesStage = -1;
       if (this.maxProgress >= 0.8) {
-        nextSpeciesStage = "late";
+        nextSpeciesStage = 2;
       } else if (this.maxProgress >= 0.6) {
-        nextSpeciesStage = "mid";
+        nextSpeciesStage = 1;
       }
-      if (nextSpeciesStage !== this.speciesStage) {
+      if (nextSpeciesStage > this.speciesStage) {
         this.speciesStage = nextSpeciesStage;
         this.speciesText = this.buildSpeciesHint();
       }
@@ -277,10 +277,10 @@ if ("serviceWorker" in navigator) {
     buildSpeciesHint() {
       if (!this.speciesStage || !this.candidates) return null;
       const { primary, secondary, isRarePlus } = this.candidates;
-      if (this.speciesStage === "mid") {
+      if (this.speciesStage === 1) {
         return isRarePlus ? `Порода: ${primary}/${secondary}/???` : `Порода: ${primary}/${secondary}`;
       }
-      if (this.speciesStage === "late") {
+      if (this.speciesStage === 2) {
         return isRarePlus ? `Порода: ???/${primary}` : `Порода: ${primary}/${secondary}`;
       }
       return null;
@@ -314,6 +314,7 @@ if ("serviceWorker" in navigator) {
       const rounded = this.roundRange(low, high, W, prevRange);
       this.weightRange = rounded;
       this.lastWeightRange = rounded;
+      this.wPrev = rounded.width;
       return rounded;
     }
 
@@ -338,19 +339,28 @@ if ("serviceWorker" in navigator) {
       highOut = this.roundUp(highOut, highStep);
 
       lowOut = Math.max(0.1, lowOut);
+      if (highOut < lowOut) highOut = lowOut;
+
       if (lowOut > weight) lowOut = weight;
       if (highOut < weight) highOut = weight;
 
       if (prevRange) {
         lowOut = Math.max(lowOut, prevRange.low);
         highOut = Math.min(highOut, prevRange.high);
+        if (lowOut > weight) lowOut = weight;
+        if (highOut < weight) highOut = weight;
       }
-
-      if (lowOut > weight) lowOut = weight;
-      if (highOut < weight) highOut = weight;
 
       lowOut = Math.max(0.1, lowOut);
       if (highOut < lowOut) highOut = lowOut;
+
+      if (prevRange) {
+        lowOut = clamp(lowOut, prevRange.low, prevRange.high);
+        highOut = clamp(highOut, prevRange.low, prevRange.high);
+        if (lowOut > weight) lowOut = weight;
+        if (highOut < weight) highOut = weight;
+        if (highOut < lowOut) highOut = lowOut;
+      }
 
       return { low: lowOut, high: highOut, width: highOut - lowOut };
     }
@@ -384,6 +394,26 @@ if ("serviceWorker" in navigator) {
       const secondary = this.fishTable.find((entry) => entry.id === secondaryId)?.name || primary;
       const isRarePlus = (this.rarityRank[this.rarity] ?? 0) >= this.rarityRank.rare;
       return { primary, secondary, isRarePlus };
+    }
+
+    logWeightStage(stage, range, prevRange) {
+      if (!this.devMode || !range) return;
+      const prevWidth = prevRange ? prevRange.high - prevRange.low : null;
+      const widthOk = prevWidth === null ? true : range.width <= prevWidth + 1e-6;
+      const nestedOk = prevRange
+        ? range.low >= prevRange.low - 1e-6 && range.high <= prevRange.high + 1e-6
+        : true;
+      const containsW = range.low - 1e-6 <= this.weightKg && this.weightKg <= range.high + 1e-6;
+      console.log("[RevealSystem] stage update", {
+        stage,
+        L: Number(range.low.toFixed(3)),
+        H: Number(range.high.toFixed(3)),
+        width: Number(range.width.toFixed(3)),
+        W: Number(this.weightKg.toFixed(3)),
+        widthOk,
+        nestedOk,
+        containsW
+      });
     }
   }
 
@@ -752,13 +782,14 @@ if ("serviceWorker" in navigator) {
     legendary: 0.22
   };
 
+  const DEV_MODE = new URLSearchParams(window.location.search).has("dev");
+
   const revealSystem = new RevealSystem({
     fishTable: fishSpeciesTable,
     confusionGroups,
-    rarityRank
+    rarityRank,
+    devMode: DEV_MODE
   });
-
-  const DEV_MODE = new URLSearchParams(window.location.search).has("dev");
 
   function runRevealSimulation(attempts = 1000) {
     const mids = [];
