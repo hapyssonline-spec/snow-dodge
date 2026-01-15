@@ -2131,7 +2131,7 @@ if ("serviceWorker" in navigator) {
     }
   }
 
-  function scheduleRevealHintHide(delay = 320) {
+  function scheduleRevealHintHide(delay = 260) {
     if (!revealHint) return;
     if (revealHintHideTimer) window.clearTimeout(revealHintHideTimer);
     revealHintHideTimer = window.setTimeout(() => {
@@ -2345,7 +2345,7 @@ if ("serviceWorker" in navigator) {
     setMsg(`Поймал: ${game.catch.name} ${formatKg(game.catch.weightKg)}.`, 1.8);
     setDefaultSubtitle();
     revealSystem.reset();
-    scheduleRevealHintHide(320);
+    scheduleRevealHintHide(260);
 
     openCatchModal(game.catch);
     game.catch = null;
@@ -2717,7 +2717,7 @@ if ("serviceWorker" in navigator) {
         setMsg("Леска лопнула. Тап — забросить снова.", 1.6);
         setDefaultSubtitle();
         revealSystem.reset();
-        scheduleRevealHintHide(320);
+        scheduleRevealHintHide(260);
         return;
       }
       if (reel.slackRisk >= 1) {
@@ -2731,7 +2731,7 @@ if ("serviceWorker" in navigator) {
         setMsg("Слабина! Рыба сорвалась.", 1.6);
         setDefaultSubtitle();
         revealSystem.reset();
-        scheduleRevealHintHide(320);
+        scheduleRevealHintHide(260);
         return;
       }
 
