@@ -93,11 +93,8 @@ if ("serviceWorker" in navigator) {
   const tensionMarker = fightHud?.querySelector(".tensionMarker");
   const reelFill = fightHud?.querySelector(".reelFill");
   const reelPercent = fightHud?.querySelector(".reelPercent");
-  const revealHint = document.getElementById("revealHint");
-  const hintWeight = document.getElementById("hintWeight");
-  const hintSpecies = document.getElementById("hintSpecies");
-  const slipBadge = document.getElementById("slipBadge");
-  const slipText = slipBadge?.querySelector(".slipText");
+  const breakHint = document.getElementById("breakHint");
+  const fishHintText = document.getElementById("fishHintText");
 
   // ===== Helpers =====
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -136,10 +133,8 @@ if ("serviceWorker" in navigator) {
 
   let fightHudVisible = false;
   let fightHudHideTimer = null;
-  let revealHintVisible = false;
   let revealHintHideTimer = null;
-  let lastHintWeightText = null;
-  let lastHintSpeciesText = null;
+  let lastFishHintText = null;
 
   function setFightHudVisible(visible) {
     if (!fightHud) return;
@@ -177,13 +172,12 @@ if ("serviceWorker" in navigator) {
   }
 
   function setSlip(percent) {
-    if (!slipBadge || !slipText) return;
+    if (!breakHint) return;
     const pct = clamp(Math.round(percent), 0, 100);
-    slipText.textContent = `Срыв: ${pct}%`;
-    slipBadge.classList.remove("is-safe", "is-warn", "is-danger");
-    if (pct >= 80) slipBadge.classList.add("is-danger");
-    else if (pct >= 40) slipBadge.classList.add("is-warn");
-    else slipBadge.classList.add("is-safe");
+    const nextText = `Срыв: ${pct}%`;
+    if (breakHint.textContent !== nextText) {
+      breakHint.textContent = nextText;
+    }
   }
 
   function updateFightHud() {
@@ -2107,32 +2101,23 @@ if ("serviceWorker" in navigator) {
   }
 
   function setHintTexts(weightTextOrNull, speciesTextOrNull) {
-    if (!revealHint || !hintWeight || !hintSpecies) return;
+    if (!fishHintText) return;
     if (revealHintHideTimer) {
       window.clearTimeout(revealHintHideTimer);
       revealHintHideTimer = null;
     }
-    const nextWeight = weightTextOrNull || null;
-    const nextSpecies = speciesTextOrNull || null;
-    if (nextWeight !== lastHintWeightText) {
-      hintWeight.textContent = nextWeight || "";
-      lastHintWeightText = nextWeight;
-    }
-    if (nextSpecies !== lastHintSpeciesText) {
-      hintSpecies.textContent = nextSpecies || "";
-      lastHintSpeciesText = nextSpecies;
-    }
-    hintSpecies.classList.toggle("hidden", !nextSpecies);
-    const shouldShow = Boolean(nextWeight);
-    if (shouldShow !== revealHintVisible) {
-      revealHintVisible = shouldShow;
-      revealHint.classList.toggle("hidden", !shouldShow);
-      revealHint.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+    const nextWeight = weightTextOrNull || "";
+    const nextSpecies = speciesTextOrNull || "";
+    const combined = `${nextWeight} ${nextSpecies}`.trim();
+    if (combined !== lastFishHintText) {
+      fishHintText.textContent = combined;
+      fishHintText.setAttribute("aria-hidden", combined ? "false" : "true");
+      lastFishHintText = combined;
     }
   }
 
   function scheduleRevealHintHide(delay = 260) {
-    if (!revealHint) return;
+    if (!fishHintText) return;
     if (revealHintHideTimer) window.clearTimeout(revealHintHideTimer);
     revealHintHideTimer = window.setTimeout(() => {
       setHintTexts(null, null);
