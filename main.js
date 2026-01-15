@@ -164,8 +164,8 @@ if ("serviceWorker" in navigator) {
     if (!rodLayer) return null;
     const rect = rodLayer.getBoundingClientRect();
     return {
-      x: rect.right - rect.width * 0.16,
-      y: rect.top + rect.height * 0.28
+      x: rect.right - rect.width * 0.22,
+      y: rect.top + rect.height * 0.32
     };
   }
 
