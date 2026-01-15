@@ -87,6 +87,14 @@ if ("serviceWorker" in navigator) {
 
   const sceneFade = document.getElementById("sceneFade");
   const toast = document.getElementById("toast");
+  const bottomBar = document.getElementById("bottombar");
+  const fightHud = document.getElementById("fightHud");
+  const tensionFill = fightHud?.querySelector(".tensionFill");
+  const tensionMarker = fightHud?.querySelector(".tensionMarker");
+  const reelFill = fightHud?.querySelector(".reelFill");
+  const reelPercent = fightHud?.querySelector(".reelPercent");
+  const slipBadge = document.getElementById("slipBadge");
+  const slipText = slipBadge?.querySelector(".slipText");
 
   // ===== Helpers =====
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -122,6 +130,67 @@ if ("serviceWorker" in navigator) {
   const formatKg = (value) => `${value.toFixed(2)} кг`;
   const formatCoins = (value) => `${value} монет`;
   const formatPercent = (value) => `${Math.round(value)}%`;
+
+  let fightHudVisible = false;
+  let fightHudHideTimer = null;
+
+  function setFightHudVisible(visible) {
+    if (!fightHud) return;
+    if (fightHudVisible === visible) return;
+    fightHudVisible = visible;
+    fightHud.setAttribute("aria-hidden", visible ? "false" : "true");
+    if (bottomBar) bottomBar.classList.toggle("bottombar-fight", visible);
+    if (visible) {
+      if (fightHudHideTimer) window.clearTimeout(fightHudHideTimer);
+      fightHud.classList.remove("hidden");
+      requestAnimationFrame(() => {
+        fightHud.classList.add("is-visible");
+      });
+      return;
+    }
+    fightHud.classList.remove("is-visible");
+    if (fightHudHideTimer) window.clearTimeout(fightHudHideTimer);
+    fightHudHideTimer = window.setTimeout(() => {
+      if (!fightHudVisible) fightHud.classList.add("hidden");
+    }, 220);
+  }
+
+  function setTension(value) {
+    if (!tensionFill || !tensionMarker) return;
+    const pct = clamp(value, 0, 1) * 100;
+    tensionFill.style.width = `${pct}%`;
+    tensionMarker.style.left = `${pct}%`;
+  }
+
+  function setReelProgress(value) {
+    if (!reelFill || !reelPercent) return;
+    const pct = clamp(value, 0, 1) * 100;
+    reelFill.style.width = `${pct}%`;
+    reelPercent.textContent = `${Math.round(pct)}%`;
+  }
+
+  function setSlip(percent) {
+    if (!slipBadge || !slipText) return;
+    const pct = clamp(Math.round(percent), 0, 100);
+    slipText.textContent = `Срыв: ${pct}%`;
+    slipBadge.classList.remove("is-safe", "is-warn", "is-danger");
+    if (pct >= 80) slipBadge.classList.add("is-danger");
+    else if (pct >= 40) slipBadge.classList.add("is-warn");
+    else slipBadge.classList.add("is-safe");
+  }
+
+  function updateFightHud() {
+    const inFight = game.mode === "REELING";
+    setFightHudVisible(inFight);
+    if (!inFight) return;
+    const line = getLineStats();
+    const tensionNormalized = clamp(game.tension / line.breakThreshold, 0, 1);
+    const progressNormalized = clamp(game.progress / game.need, 0, 1);
+    const slipPercent = (game.reel?.slackRisk || 0) * 100;
+    setTension(tensionNormalized);
+    setReelProgress(progressNormalized);
+    setSlip(slipPercent);
+  }
 
   class RevealSystem {
     constructor(options) {
@@ -2611,11 +2680,6 @@ if ("serviceWorker" in navigator) {
       }
     }
 
-    // UI meters on canvas
-    if (game.mode === "REELING") {
-      drawMeters();
-    }
-
     // short center prompt
     drawPrompt();
   }
@@ -2864,6 +2928,7 @@ if ("serviceWorker" in navigator) {
     lastTime = t;
 
     update(dt);
+    updateFightHud();
     draw();
 
     requestAnimationFrame(loop);

@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 39 for new weight reveal narrowing logic.
-const CACHE_VERSION = 39;
+// CACHE_VERSION bumped to 40 for new Fight HUD UI.
+const CACHE_VERSION = 40;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
