@@ -141,11 +141,10 @@ if ("serviceWorker" in navigator) {
       this.speciesStage = null;
       this.weightText = null;
       this.speciesText = null;
-      this.lastWidth = null;
-      this.lastDisplayWidth = null;
       this.startWidth = null;
-      this.endWidth = null;
+      this.minWidth = null;
       this.candidates = null;
+      this.weightRange = null;
       this.lastWeightRange = null;
     }
 
@@ -160,12 +159,10 @@ if ("serviceWorker" in navigator) {
       this.speciesStage = null;
       this.weightText = null;
       this.speciesText = null;
-      this.lastWidth = null;
-      this.lastDisplayWidth = null;
+      this.weightRange = null;
       this.lastWeightRange = null;
-
       this.startWidth = clamp(4 + this.weightKg * 0.45, 4, 8);
-      this.endWidth = clamp(1.0 + Math.sqrt(this.weightKg) * 0.08, 1.0, 1.6);
+      this.minWidth = clamp(1.0 + Math.sqrt(this.weightKg) * 0.08, 1.0, 1.6);
       this.candidates = this.pickSpeciesCandidates();
     }
 
@@ -173,16 +170,19 @@ if ("serviceWorker" in navigator) {
       if (!this.active) return;
       this.maxProgress = Math.max(this.maxProgress, progress);
 
-      let nextWeightStage = null;
-      if (this.maxProgress >= 0.3) {
-        nextWeightStage = Math.floor((this.maxProgress - 0.3) / 0.05);
-      }
+      const nextWeightStage = this.maxProgress >= 0.3 ? Math.floor((this.maxProgress - 0.3) / 0.05) : null;
       if (nextWeightStage !== this.weightStage) {
-        this.weightStage = nextWeightStage;
-        if (this.weightStage !== null) {
-          this.weightText = this.buildWeightHint(this.weightStage);
-        } else {
+        if (nextWeightStage === null) {
+          this.weightStage = null;
           this.weightText = null;
+        } else if (this.weightStage === null || nextWeightStage > this.weightStage) {
+          let currentStage = this.weightStage ?? -1;
+          while (currentStage < nextWeightStage) {
+            currentStage += 1;
+            this.updateWeightRange();
+          }
+          this.weightStage = nextWeightStage;
+          this.weightText = this.weightRange ? this.formatWeightText(this.weightRange) : null;
         }
       }
 
@@ -217,51 +217,77 @@ if ("serviceWorker" in navigator) {
       return null;
     }
 
-    buildWeightHint(stage) {
-      let width = this.pickWidthForStage(stage);
-      let range = this.buildRangeForWidth(width);
-      let attempts = 0;
+    updateWeightRange() {
+      const W = this.weightKg;
+      const prevRange = this.weightRange;
+      let low = null;
+      let high = null;
 
-      while (this.lastDisplayWidth !== null && range.width > this.lastDisplayWidth && attempts < 6) {
-        width = Math.max(this.endWidth, width - 0.2);
-        range = this.buildRangeForWidth(width);
-        attempts += 1;
+      if (!prevRange) {
+        const width = this.pickStartWidth();
+        const lowMin = Math.max(0.1, W - width);
+        const lowMax = Math.max(lowMin, W);
+        low = rand(lowMin, lowMax);
+        high = low + width;
+      } else {
+        const prevWidth = prevRange.high - prevRange.low;
+        const width = this.pickNextWidth(prevWidth);
+        const lowMin = Math.max(prevRange.low, W - width);
+        const lowMax = Math.min(prevRange.high - width, W);
+        if (lowMin <= lowMax) {
+          low = rand(lowMin, lowMax);
+        } else {
+          low = clamp(W - width, prevRange.low, prevRange.high - width);
+        }
+        high = low + width;
       }
 
-      this.lastDisplayWidth = range.width;
-      this.lastWeightRange = range;
-      return `Вес: ${range.low.toFixed(1)}–${range.high.toFixed(1)} кг`;
+      const rounded = this.roundRange(low, high, W, prevRange);
+      this.weightRange = rounded;
+      this.lastWeightRange = rounded;
+      return rounded;
     }
 
-    pickWidthForStage(stage) {
-      const totalStages = 14;
-      const t = clamp(stage / totalStages, 0, 1);
-      const baseWidth = lerp(this.startWidth, this.endWidth, t);
-      const noisyWidth = clamp(baseWidth + rand(-0.2, 0.2), this.endWidth, this.startWidth);
-      const width = this.lastWidth !== null ? Math.min(noisyWidth, this.lastWidth) : noisyWidth;
-      this.lastWidth = width;
-      return width;
+    pickStartWidth() {
+      const noisy = clamp(this.startWidth + rand(-0.3, 0.3), 4, 8);
+      return noisy;
     }
 
-    buildRangeForWidth(width) {
-      const alpha = Math.random();
-      let low = this.weightKg - alpha * width;
-      let high = low + width;
+    pickNextWidth(prevWidth) {
+      const factor = rand(0.86, 0.93);
+      const width = Math.max(this.minWidth, prevWidth * factor);
+      return Math.min(width, prevWidth);
+    }
 
-      low += rand(-0.1, 0.1);
-      high += rand(-0.1, 0.1);
-
+    roundRange(low, high, weight, prevRange) {
+      let lowOut = low + rand(-0.1, 0.1);
+      let highOut = high + rand(-0.1, 0.1);
       const lowStep = Math.random() < 0.5 ? 0.2 : 0.3;
       const highStep = Math.random() < 0.5 ? 0.2 : 0.4;
-      low = this.roundDown(low, lowStep);
-      high = this.roundUp(high, highStep);
 
-      low = Math.max(0.1, low);
-      low = Math.min(low, this.weightKg);
-      high = Math.max(high, this.weightKg);
-      if (high < low) high = low;
+      lowOut = this.roundDown(lowOut, lowStep);
+      highOut = this.roundUp(highOut, highStep);
 
-      return { low, high, width: high - low };
+      lowOut = Math.max(0.1, lowOut);
+      if (lowOut > weight) lowOut = weight;
+      if (highOut < weight) highOut = weight;
+
+      if (prevRange) {
+        lowOut = Math.max(lowOut, prevRange.low);
+        highOut = Math.min(highOut, prevRange.high);
+      }
+
+      if (lowOut > weight) lowOut = weight;
+      if (highOut < weight) highOut = weight;
+
+      lowOut = Math.max(0.1, lowOut);
+      if (highOut < lowOut) highOut = lowOut;
+
+      return { low: lowOut, high: highOut, width: highOut - lowOut };
+    }
+
+    formatWeightText(range) {
+      return `Вес: ${range.low.toFixed(1)}–${range.high.toFixed(1)} кг`;
     }
 
     roundDown(value, step) {
