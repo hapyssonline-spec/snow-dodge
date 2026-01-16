@@ -169,6 +169,9 @@ if ("serviceWorker" in navigator) {
     const pct = clamp(value, 0, 1) * 100;
     reelFill.style.width = `${pct}%`;
     reelPercent.textContent = `${Math.round(pct)}%`;
+    const barWidth = reelFill.parentElement?.clientWidth ?? 0;
+    const fillWidth = Math.max(0, (barWidth - 4) * (pct / 100));
+    reelFill.classList.toggle("reelFill--head", fillWidth >= 12);
   }
 
   function setSlip(percent) {
