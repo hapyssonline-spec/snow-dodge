@@ -327,6 +327,15 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   z-index:6;
 }
 
+#trashOverlay{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:18px;
+  backdrop-filter: blur(10px);
+  background: rgba(6,12,20,.68);
+  z-index:6;
+}
+
 #catchOverlay{
   position:absolute;
   inset:0;
@@ -364,6 +373,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 
 #app[data-effects="reduced"] #overlay,
 #app[data-effects="reduced"] #invOverlay,
+#app[data-effects="reduced"] #trashOverlay,
 #app[data-effects="reduced"] #shopOverlay,
 #app[data-effects="reduced"] #progressOverlay{
   backdrop-filter: none;
@@ -494,6 +504,85 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   flex-direction:column;
   gap:12px;
   box-shadow: 0 16px 50px rgba(0,0,0,.35);
+}
+
+.trashCard{
+  width:min(520px, 100%);
+  max-height: calc(100% - 32px);
+  border-radius:18px;
+  border:1px solid var(--stroke);
+  background: rgba(16,31,48,.96);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-shadow: 0 16px 50px rgba(0,0,0,.35);
+}
+
+.trashHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.trashTitle{
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+
+.trashRewardStatus{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.trashGrid{
+  display:grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap:10px;
+}
+
+.trashCell{
+  border-radius:12px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.6);
+  padding:10px;
+  min-height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+}
+
+.trashCell.is-found{
+  color:var(--text);
+  background: rgba(123,211,255,.12);
+  border-color: rgba(123,211,255,.3);
+}
+
+.trashControls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:flex-end;
+}
+
+.rareBoostHud{
+  position:absolute;
+  top:72px;
+  right:14px;
+  padding:8px 12px;
+  border-radius:12px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.75);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.02em;
+  z-index:6;
 }
 
 .catchCard{
@@ -984,6 +1073,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 .badge-rare{background: rgba(255,209,102,.18); color:#ffd166;}
 .badge-epic{background: rgba(153,102,255,.18); color:#c2a6ff;}
 .badge-legendary{background: rgba(255,107,107,.18); color:#ff6b6b;}
+.badge-trash{background: rgba(166,185,218,.2); color:#a6b9da;}
 .badge-trophy{background: rgba(255,204,51,.2); color:#ffcc33;}
 
 .card{
