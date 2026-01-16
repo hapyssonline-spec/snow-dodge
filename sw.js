@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 57 for city scene hitboxes.
-const CACHE_VERSION = 57;
+// CACHE_VERSION bumped to 58 for touch scroll lock.
+const CACHE_VERSION = 58;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 

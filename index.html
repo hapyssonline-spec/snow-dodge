@@ -20,7 +20,7 @@
 </head>
 <body>
   <div id="app">
-    <header id="topbar">
+    <header id="topbar" class="hud">
       <div class="stat stat-compact">
         <span class="statIcon" aria-hidden="true">🪙</span>
         <span id="coins" class="value">0</span>
@@ -88,7 +88,7 @@
 
       <div id="rareBoostHud" class="rareBoostHud hidden">Редкий улов: 0/10</div>
 
-      <div id="overlay" class="hidden">
+      <div id="overlay" class="hidden modal">
         <div class="card">
           <div class="h1">Рыбалка</div>
           <div class="p" id="ovText">Тапни, чтобы начать.</div>
@@ -104,7 +104,7 @@
         </div>
       </div>
 
-      <div id="invOverlay" class="hidden">
+      <div id="invOverlay" class="hidden modal">
         <div class="invCard">
           <div class="invHeader">
             <div class="invTitle">Инвентарь</div>
@@ -122,11 +122,11 @@
           </div>
 
           <div id="invEmpty" class="invEmpty hidden">Инвентарь пуст. Поймай рыбу!</div>
-          <div id="invList" class="invList"></div>
+          <div id="invList" class="invList scrollable"></div>
         </div>
       </div>
 
-      <div id="trashOverlay" class="hidden">
+      <div id="trashOverlay" class="hidden modal">
         <div class="trashCard">
           <div class="trashHeader">
             <div class="trashTitle">Журнал находок</div>
@@ -162,7 +162,7 @@
         </div>
       </div>
 
-      <div id="catchOverlay" class="hidden">
+      <div id="catchOverlay" class="hidden modal">
         <div class="catchCard">
           <div class="catchHeader">
             <div id="catchTitle" class="catchTitle">Поймал рыбу!</div>
@@ -195,7 +195,7 @@
         </div>
       </div>
 
-      <div id="travelOverlay" class="hidden" aria-hidden="true">
+      <div id="travelOverlay" class="hidden modal" aria-hidden="true">
         <div class="travelWrap">
           <div class="travelHeader">
             <div class="travelTitle">Поездка в город</div>
@@ -216,11 +216,11 @@
         </div>
       </div>
 
-      <div id="cityHud" class="hidden">
+      <div id="cityHud" class="hidden hud">
         <button id="btnBackToLake" class="chipBtn">На рыбалку</button>
       </div>
 
-      <div id="shopOverlay" class="hidden">
+      <div id="shopOverlay" class="hidden modal">
         <div class="shopCard">
           <div class="shopHeader">
             <div id="shopTitle" class="shopTitle">Магазин</div>
@@ -233,7 +233,7 @@
             <div id="shopInventory" class="shopSection">
               <div class="shopSectionTitle">Рыба из инвентаря</div>
               <div id="shopInvEmpty" class="invEmpty hidden">Нет рыбы для продажи.</div>
-              <div id="shopInvList" class="invList"></div>
+              <div id="shopInvList" class="invList scrollable"></div>
             </div>
 
             <div id="shopOffer" class="shopSection hidden">
@@ -270,26 +270,26 @@
               <div class="shopGrid">
                 <div>
                   <div class="shopSubTitle">Приманки</div>
-                  <div id="baitList" class="shopList"></div>
+                  <div id="baitList" class="shopList scrollable"></div>
                 </div>
                 <div>
                   <div class="shopSubTitle">Удочки</div>
-                  <div id="rodList" class="shopList"></div>
+                  <div id="rodList" class="shopList scrollable"></div>
                 </div>
                 <div>
                   <div class="shopSubTitle">Лески</div>
-                  <div id="lineList" class="shopList"></div>
+                  <div id="lineList" class="shopList scrollable"></div>
                 </div>
               </div>
               <div class="shopSectionTitle">Задания</div>
-              <div id="questList" class="shopList"></div>
+              <div id="questList" class="shopList scrollable"></div>
               <button id="btnNewQuest" class="secondary">Взять задание</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div id="progressOverlay" class="hidden">
+      <div id="progressOverlay" class="hidden modal">
         <div class="progressCard">
           <div class="progressHeader">
             <div class="progressTitle">Прогресс</div>
@@ -317,7 +317,7 @@
       <div id="hintToast" class="hintToast hidden" aria-live="polite"></div>
     </main>
 
-    <footer id="bottombar">
+    <footer id="bottombar" class="bottom-bar hud">
       <button id="btnCity" class="chipBtn" aria-label="В город">В город</button>
       <button id="btnInventory" class="chipBtn" aria-label="Инвентарь">Инвентарь</button>
       <button id="btnJournal" class="chipBtn" aria-label="Журнал">Журнал</button>
@@ -330,7 +330,7 @@
     </footer>
   </div>
 
-  <!-- cache-bust: main.js v45 (city hitboxes) -->
-  <script src="main.js?v=45"></script>
+  <!-- cache-bust: main.js v46 (touch lock + scrollable lists) -->
+  <script src="main.js?v=46"></script>
 </body>
 </html>

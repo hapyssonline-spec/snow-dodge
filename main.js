@@ -5,8 +5,11 @@
     if (!inScene(e.target) || isUi(e.target)) return;
     e.preventDefault();
   };
+  const stopDrag = (e) => {
+    e.preventDefault();
+  };
   document.addEventListener("selectstart", kill, { passive: false });
-  document.addEventListener("dragstart", kill, { passive: false });
+  document.addEventListener("dragstart", stopDrag, { passive: false });
   document.addEventListener("contextmenu", kill, { passive: false });
   document.addEventListener("mousedown", kill, { passive: false });
 })();
@@ -2603,6 +2606,25 @@ if ("serviceWorker" in navigator) {
     msg: "",
     msgT: 0,
   };
+
+  const isInScrollable = (el) => el && el.closest && el.closest(".scrollable");
+  const isInGame = (el) => el && el.closest && el.closest("#game, #gameContainer, canvas");
+  const activeGameModes = new Set(["CASTING", "WAITING", "BITE", "HOOKED", "REELING"]);
+  const isGameplayActive = () => activeGameModes.has(game.mode);
+
+  document.addEventListener("touchmove", (event) => {
+    const target = event.target;
+    if (isInScrollable(target)) return;
+
+    if (isInGame(target)) {
+      if (isGameplayActive()) {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    event.preventDefault();
+  }, { passive: false });
 
   function setHintTexts(weightTextOrNull, speciesTextOrNull) {
     if (!fishHintText) return;
