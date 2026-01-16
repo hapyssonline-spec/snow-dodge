@@ -2499,6 +2499,7 @@ button:disabled{
   --hero-x: 32%;
   --hero-y: 66%;
   --hero-h: min(44vh, 420px);
+  --hero-rod-y-offset: 0px;
 
   /* Удочка — строго в руках героя */
   --rod-dx: 3%;
@@ -2555,7 +2556,7 @@ button:disabled{
 
 #heroLayer{
   left: var(--hero-x);
-  top:  var(--hero-y);
+  top:  calc(var(--hero-y) + var(--hero-rod-y-offset));
   height: var(--hero-h);
   width: auto;
   z-index: 20;
@@ -2563,7 +2564,7 @@ button:disabled{
 
 #rodLayer{
   left: calc(var(--hero-x) + var(--rod-dx-current));
-  top:  calc(var(--hero-y) + var(--rod-dy));
+  top:  calc(var(--hero-y) + var(--rod-dy) + var(--hero-rod-y-offset));
   height: var(--rod-h);
   width: auto;
   z-index: 30;
