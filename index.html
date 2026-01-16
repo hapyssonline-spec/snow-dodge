@@ -20,25 +20,29 @@
 </head>
 <body>
   <div id="app">
-    <header id="topbar" class="hud">
-      <button id="btnProfile" class="profileButton" aria-label="Профиль">
-        <span class="profileAvatar" aria-hidden="true">
-          <svg viewBox="0 0 48 48" role="presentation" focusable="false">
-            <circle cx="24" cy="18" r="8"></circle>
-            <path d="M10 38c2.2-8.5 9-12 14-12s11.8 3.5 14 12"></path>
-          </svg>
-        </span>
-        <span id="profileLevelBadge" class="profileLevelBadge">1</span>
-      </button>
+    <header id="topbar" class="hud topbar">
+      <div class="topbarSlot topbarSlot-left">
+        <button id="btnProfile" class="profileButton" aria-label="Профиль">
+          <span class="profileAvatar" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="presentation" focusable="false">
+              <circle cx="24" cy="18" r="8"></circle>
+              <path d="M10 38c2.2-8.5 9-12 14-12s11.8 3.5 14 12"></path>
+            </svg>
+          </span>
+          <span id="profileLevelBadge" class="profileLevelBadge">1</span>
+        </button>
+      </div>
 
-      <div class="center">
+      <div class="topbarSlot topbarSlot-center">
         <div class="title">ICE FISH</div>
         <div id="questReminder" class="questReminder hidden"></div>
       </div>
 
-      <div class="stat stat-compact right">
-        <span class="statIcon" aria-hidden="true">🪙</span>
-        <span id="coins" class="value">0</span>
+      <div class="topbarSlot topbarSlot-right">
+        <div class="stat stat-compact">
+          <span class="statIcon" aria-hidden="true">🪙</span>
+          <span id="coins" class="value">0</span>
+        </div>
       </div>
     </header>
 
@@ -220,85 +224,122 @@
 
       <div id="profileOverlay" class="hidden modal" aria-hidden="true">
         <div class="profileCard">
-          <div class="profileHeader">
-            <div class="profileTitle">Профиль</div>
-            <button id="btnProfileClose" class="chipBtn">Закрыть</button>
-          </div>
-          <div class="profileBody">
-            <section class="profileSection">
-              <div class="profileNameRow">
-                <div>
+          <div id="profileScreenMain" class="profileScreen">
+            <div class="profileHeader">
+              <div class="profileTitle">Профиль</div>
+              <button id="btnProfileClose" class="chipBtn">Закрыть</button>
+            </div>
+            <div class="profileBody scrollable">
+              <section class="profileSection">
+                <div class="profileNameBlock">
                   <div id="profileName" class="profileName">user1</div>
                   <div id="profileRenameHint" class="profileRenameHint"></div>
                 </div>
-                <button id="btnProfileRename" class="chipBtn small">Сменить ник</button>
-              </div>
-              <div id="profileRenameForm" class="profileRenameForm hidden">
-                <input id="profileRenameInput" class="textInput" type="text" maxlength="16" autocomplete="nickname" />
-                <div class="profileRenameActions">
-                  <button id="btnProfileRenameSave" class="chipBtn">Сохранить</button>
-                  <button id="btnProfileRenameCancel" class="chipBtn secondary">Отмена</button>
+                <button id="btnProfileRename" class="chipBtn">Сменить ник</button>
+                <div id="profileRenameForm" class="profileRenameForm hidden">
+                  <label class="formLabel" for="profileRenameInput">Новый ник</label>
+                  <input id="profileRenameInput" class="textInput" type="text" maxlength="16" autocomplete="nickname" />
+                  <div id="profileRenameCost" class="profileRenameHint"></div>
+                  <div class="profileRenameActions">
+                    <button id="btnProfileRenameSave" class="chipBtn">Продолжить</button>
+                    <button id="btnProfileRenameCancel" class="chipBtn secondary">Отмена</button>
+                  </div>
+                  <div id="profileRenameError" class="formHint"></div>
                 </div>
-                <div id="profileRenameError" class="formHint"></div>
-              </div>
-            </section>
+              </section>
 
-            <section class="profileSection">
-              <div class="sectionTitle">Уровень</div>
-              <div class="profileLevelRow">
-                <span>Уровень: <strong id="profileLevel">1</strong></span>
-              </div>
-              <div class="progressBar progressBar--slim" aria-hidden="true">
-                <div id="profileXpFill" class="progressBarFill"></div>
-              </div>
-              <div id="profileXpText" class="profileXpText">Опыт: 0 / 60</div>
-              <div id="profileXpRemain" class="profileXpRemain">До следующего: 60</div>
-            </section>
+              <section class="profileSection">
+                <div class="sectionTitle">Уровень</div>
+                <div class="profileLevelRow">
+                  <span>Уровень: <strong id="profileLevel">1</strong></span>
+                </div>
+                <div class="progressBar progressBar--slim" aria-hidden="true">
+                  <div id="profileXpFill" class="progressBarFill"></div>
+                </div>
+                <div id="profileXpText" class="profileXpText">Опыт: 0 / 60</div>
+                <div id="profileXpRemain" class="profileXpRemain">До следующего: 60</div>
+              </section>
 
-            <section class="profileSection">
-              <button id="btnProfileStatsToggle" class="sectionToggle" type="button">Статистика</button>
-              <div id="profileStats" class="profileStats hidden">
-                <div class="statRow"><span>Время в игре</span><span id="statPlayTime">00:00</span></div>
-                <div class="statRow"><span>Поймано рыб</span><span id="statFishCaught">0</span></div>
-                <div class="statRow"><span>Заработано золота</span><span id="statGoldEarned">0</span></div>
-                <div class="statRow"><span>Самая редкая</span><span id="statBestRarity">—</span></div>
-                <div class="statRow"><span>Максимальный вес (рекорд)</span><span id="statMaxWeight">0 кг</span></div>
-              </div>
-            </section>
+              <section class="profileSection">
+                <div class="sectionTitle">Быстрая статистика</div>
+                <div class="profileStats">
+                  <div class="statRow"><span>Поймано рыб</span><span id="statFishCaughtQuick">0</span></div>
+                  <div class="statRow"><span>Заработано золота</span><span id="statGoldEarnedQuick">0</span></div>
+                  <div class="statRow"><span>Самая редкая</span><span id="statBestRarityQuick">—</span></div>
+                  <div class="statRow"><span>Максимальный вес</span><span id="statMaxWeightQuick">0 кг</span></div>
+                </div>
+              </section>
 
-            <section class="profileSection">
-              <div class="sectionTitle">Снаряжение</div>
-              <div class="profileGearItem" data-gear="rod">
-                <div class="profileGearHeader">
+              <section class="profileSection">
+                <div class="sectionTitle">Полная статистика</div>
+                <button id="btnProfileStatsOpen" class="chipBtn">Открыть статистику</button>
+              </section>
+
+              <section class="profileSection">
+                <div class="sectionTitle">Снаряжение</div>
+                <div class="profileGearItem">
                   <div>
                     <div class="profileGearLabel">Удочка</div>
                     <div id="profileRodName" class="profileGearValue">—</div>
                   </div>
-                  <button class="chipBtn small profileGearToggle" type="button">Изменить</button>
+                  <button class="chipBtn profileGearToggle" data-gear="rod" type="button">Изменить</button>
                 </div>
-                <div id="profileRodList" class="profileGearList scrollable hidden"></div>
-              </div>
-              <div class="profileGearItem" data-gear="line">
-                <div class="profileGearHeader">
+                <div class="profileGearItem">
                   <div>
                     <div class="profileGearLabel">Леска</div>
                     <div id="profileLineName" class="profileGearValue">—</div>
                   </div>
-                  <button class="chipBtn small profileGearToggle" type="button">Изменить</button>
+                  <button class="chipBtn profileGearToggle" data-gear="line" type="button">Изменить</button>
                 </div>
-                <div id="profileLineList" class="profileGearList scrollable hidden"></div>
-              </div>
-              <div class="profileGearItem" data-gear="bait">
-                <div class="profileGearHeader">
+                <div class="profileGearItem">
                   <div>
                     <div class="profileGearLabel">Наживка</div>
                     <div id="profileBaitName" class="profileGearValue">—</div>
                   </div>
-                  <button class="chipBtn small profileGearToggle" type="button">Изменить</button>
+                  <button class="chipBtn profileGearToggle" data-gear="bait" type="button">Изменить</button>
                 </div>
-                <div id="profileBaitList" class="profileGearList scrollable hidden"></div>
+              </section>
+            </div>
+          </div>
+
+          <div id="profileScreenStats" class="profileScreen hidden">
+            <div class="profileHeader">
+              <div class="profileTitle">Статистика</div>
+              <button id="btnProfileStatsBack" class="chipBtn">Назад</button>
+            </div>
+            <div class="profileBody scrollable">
+              <div class="profileStats">
+                <div class="statRow"><span>Время в игре</span><span id="statPlayTime">00:00</span></div>
+                <div class="statRow"><span>Поймано рыб</span><span id="statFishCaught">0</span></div>
+                <div class="statRow"><span>Заработано золота</span><span id="statGoldEarned">0</span></div>
+                <div class="statRow"><span>Самая редкая</span><span id="statBestRarity">—</span></div>
+                <div class="statRow"><span>Максимальный вес</span><span id="statMaxWeight">0 кг</span></div>
               </div>
-            </section>
+            </div>
+          </div>
+
+          <div id="profileScreenGear" class="profileScreen hidden">
+            <div class="profileHeader">
+              <div id="profileGearTitle" class="profileTitle">Выбор</div>
+              <button id="btnProfileGearBack" class="chipBtn">Назад</button>
+            </div>
+            <div class="profileBody scrollable">
+              <div id="profileGearPickerList" class="profileGearPickerList"></div>
+            </div>
+          </div>
+
+          <div id="profileScreenConfirm" class="profileScreen hidden">
+            <div class="profileHeader">
+              <div class="profileTitle">Подтверждение</div>
+              <button id="btnProfileConfirmCancel" class="chipBtn">Отмена</button>
+            </div>
+            <div class="profileBody">
+              <div id="profileConfirmText" class="profileConfirmText"></div>
+              <div class="profileConfirmActions">
+                <button id="btnProfileConfirmBack" class="chipBtn secondary">Отмена</button>
+                <button id="btnProfileConfirmSave" class="chipBtn">Подтвердить</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -347,37 +388,61 @@
               <div id="shopInvList" class="shopList scrollable"></div>
             </div>
 
-            <div id="trophyQuestSection" class="shopSection hidden">
-              <div class="shopSectionTitle">Выбери задание</div>
-              <div class="questDifficulty">
-                <button class="difficultyBtn" data-difficulty="easy">Лёгкое</button>
-                <button class="difficultyBtn" data-difficulty="medium">Среднее</button>
-                <button class="difficultyBtn" data-difficulty="hard">Сложное</button>
-              </div>
-              <div class="questCard">
-                <div class="questCardTitle">Условия</div>
-                <div class="questRow"><span>Порода</span><span id="questPreviewSpecies">—</span></div>
-                <div class="questRow"><span>Вес</span><span id="questPreviewWeight">—</span></div>
-                <div class="questRow"><span>Награда</span><span id="questPreviewReward">—</span></div>
-                <div class="questActions">
-                  <button id="btnQuestAccept" class="invBtn">Взять</button>
+            <div id="trophySection" class="shopSection hidden">
+              <div class="shopSectionHeader">
+                <div class="shopSectionTitle">Трофейная</div>
+                <div class="trophyTabs" role="tablist" aria-label="Разделы трофейной">
+                  <button class="trophyTabBtn is-active" data-trophy-tab="quests" role="tab" aria-selected="true">Задания</button>
+                  <button class="trophyTabBtn" data-trophy-tab="records" role="tab" aria-selected="false">Рекорды</button>
                 </div>
               </div>
-              <div class="questRefresh">
-                <button id="btnQuestRefresh" class="invBtn secondary">Обновить задания</button>
-                <div id="questRefreshStatus" class="questRefreshStatus" aria-live="polite"></div>
-              </div>
-            </div>
+              <div class="trophyPanel is-active" data-trophy-panel="quests">
+                <div id="trophyQuestSection">
+                  <div class="shopSubTitle">Выбери сложность</div>
+                  <div class="questDifficulty">
+                    <button class="difficultyBtn" data-difficulty="easy">Лёгкое</button>
+                    <button class="difficultyBtn" data-difficulty="medium">Среднее</button>
+                    <button class="difficultyBtn" data-difficulty="hard">Сложное</button>
+                  </div>
+                  <div class="questCard">
+                    <div class="questCardTitle">Условия</div>
+                    <div class="questRow"><span>Порода</span><span id="questPreviewSpecies">—</span></div>
+                    <div class="questRow"><span>Вес</span><span id="questPreviewWeight">—</span></div>
+                    <div class="questRow"><span>Награда</span><span id="questPreviewReward">—</span></div>
+                    <div class="questActions">
+                      <button id="btnQuestAccept" class="invBtn">Взять</button>
+                    </div>
+                  </div>
+                  <div class="questRefresh">
+                    <button id="btnQuestRefresh" class="invBtn secondary">Обновить задания</button>
+                    <div id="questRefreshStatus" class="questRefreshStatus" aria-live="polite"></div>
+                  </div>
+                </div>
 
-            <div id="trophyActiveSection" class="shopSection hidden">
-              <div class="shopSectionTitle">Активное задание</div>
-              <div class="questCard">
-                <div class="questRow"><span>Порода</span><span id="activeQuestSpecies">—</span></div>
-                <div class="questRow"><span>Вес</span><span id="activeQuestWeight">—</span></div>
-                <div class="questRow"><span>Награда</span><span id="activeQuestReward">—</span></div>
-                <div class="questStatus" id="activeQuestStatus">В процессе</div>
-                <div class="questActions">
-                  <button id="btnQuestClaim" class="invBtn">Забрать награду</button>
+                <div id="trophyActiveSection" class="hidden">
+                  <div class="shopSubTitle">Активное задание</div>
+                  <div class="questCard">
+                    <div class="questRow"><span>Порода</span><span id="activeQuestSpecies">—</span></div>
+                    <div class="questRow"><span>Вес</span><span id="activeQuestWeight">—</span></div>
+                    <div class="questRow"><span>Награда</span><span id="activeQuestReward">—</span></div>
+                    <div class="questStatus" id="activeQuestStatus">В процессе</div>
+                    <div class="questActions">
+                      <button id="btnQuestClaim" class="invBtn">Забрать награду</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="trophyPanel" data-trophy-panel="records">
+                <div class="leaderboardTabs" role="tablist" aria-label="Таблица рекордов">
+                  <button class="leaderboardTabBtn is-active" data-leaderboard-tab="max_weight" role="tab" aria-selected="true">Вес</button>
+                  <button class="leaderboardTabBtn" data-leaderboard-tab="best_rarity" role="tab" aria-selected="false">Редкость</button>
+                  <button class="leaderboardTabBtn" data-leaderboard-tab="gold_earned" role="tab" aria-selected="false">Золото</button>
+                  <button class="leaderboardTabBtn" data-leaderboard-tab="level" role="tab" aria-selected="false">Уровень</button>
+                </div>
+                <div class="leaderboardPanel">
+                  <div id="leaderboardYourRecord" class="leaderboardYourRecord">Твой рекорд: —</div>
+                  <div id="leaderboardLocalList" class="leaderboardList scrollable"></div>
+                  <div class="leaderboardWorldStub">Мировые: скоро (после релиза в Яндекс Игры).</div>
                 </div>
               </div>
             </div>
@@ -401,26 +466,6 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="leaderboardOverlay" class="hidden modal" aria-hidden="true">
-        <div class="leaderboardCard">
-          <div class="leaderboardHeader">
-            <div class="leaderboardTitle">Лидерборды</div>
-            <button id="btnLeaderboardClose" class="chipBtn">Закрыть</button>
-          </div>
-          <div class="leaderboardTabs" role="tablist" aria-label="Таблица рекордов">
-            <button class="leaderboardTabBtn is-active" data-leaderboard-tab="max_weight" role="tab" aria-selected="true">Вес</button>
-            <button class="leaderboardTabBtn" data-leaderboard-tab="best_rarity" role="tab" aria-selected="false">Редкость</button>
-            <button class="leaderboardTabBtn" data-leaderboard-tab="gold_earned" role="tab" aria-selected="false">Золото</button>
-            <button class="leaderboardTabBtn" data-leaderboard-tab="level" role="tab" aria-selected="false">Уровень</button>
-          </div>
-          <div class="leaderboardPanel">
-            <div id="leaderboardYourRecord" class="leaderboardYourRecord">Твой рекорд: —</div>
-            <div id="leaderboardLocalList" class="leaderboardList scrollable"></div>
-            <div class="leaderboardWorldStub">Мировые: скоро (после релиза в Яндекс Игры).</div>
           </div>
         </div>
       </div>
@@ -453,7 +498,7 @@
       <div id="hintToast" class="hintToast hidden" aria-live="polite"></div>
     </main>
 
-    <footer id="bottombar" class="bottom-bar hud">
+    <footer id="bottombar" class="bottom-bar hud bottombar">
       <button id="btnCity" class="chipBtn" aria-label="В город">В город</button>
       <button id="btnInventory" class="chipBtn" aria-label="Инвентарь">Инвентарь</button>
       <button id="btnJournal" class="chipBtn" aria-label="Журнал">Журнал</button>
@@ -474,7 +519,7 @@
     </div>
   </div>
 
-  <!-- cache-bust: main.js v49 (profile + leaderboards + gear updates) -->
-  <script src="main.js?v=49"></script>
+  <!-- cache-bust: main.js v50 (profile, trophy, quests refresh) -->
+  <script src="main.js?v=50"></script>
 </body>
 </html>
