@@ -14,9 +14,9 @@
 
   <!-- Иконки (можешь оставить свои текущие icon-*.png в репозитории) -->
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
-  <link rel="manifest" href="manifest.json?v=29" />
+  <link rel="manifest" href="manifest.json?v=30" />
 
-  <link rel="stylesheet" href="style.css?v=30" />
+  <link rel="stylesheet" href="style.css?v=31" />
 </head>
 <body>
   <div id="app">
@@ -129,13 +129,13 @@
             <div class="catchStory" id="catchStory"></div>
           </div>
           <div class="catchPrices">
-            <div class="catchPriceRow">
-              <span class="muted">Полная цена</span>
-              <span id="catchFullPrice" class="strike">0</span>
+            <div class="catchPriceRow subtle">
+              <span class="priceLabel">Полная цена</span>
+              <span id="catchFullPrice" class="strike priceValue">0</span>
             </div>
             <div class="catchPriceRow highlight">
-              <span>Продать сразу</span>
-              <span id="catchDiscountPrice">0</span>
+              <span class="priceLabel">Продать сразу</span>
+              <span id="catchDiscountPrice" class="priceValue">0</span>
             </div>
             <div class="catchDiscount">-30% за срочную продажу</div>
           </div>
@@ -144,7 +144,7 @@
             Сделать трофеем
           </label>
           <div class="row">
-            <button id="btnCatchKeep">В инвентарь</button>
+            <button id="btnCatchKeep" class="secondary">В инвентарь</button>
             <button id="btnCatchSellNow" class="danger">Продать сразу</button>
           </div>
         </div>
@@ -270,7 +270,7 @@
     </footer>
   </div>
 
-  <!-- cache-bust: main.js v39 (ui polish + hint system) -->
-  <script src="main.js?v=39"></script>
+  <!-- cache-bust: main.js v40 (visual polish v1) -->
+  <script src="main.js?v=40"></script>
 </body>
 </html>

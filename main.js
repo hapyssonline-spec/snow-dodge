@@ -21,6 +21,7 @@ if ("serviceWorker" in navigator) {
   "use strict";
 
   // ===== DOM =====
+  const app = document.getElementById("app");
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: true });
   const lakeScene = document.getElementById("lakeScene");
@@ -107,6 +108,48 @@ if ("serviceWorker" in navigator) {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + Math.random() * (b - a);
+  const CAUGHT_SPECIES_KEY = "caughtSpeciesSet";
+
+  let reducedEffects = false;
+  const effectsLevel = {
+    reduced: false,
+    reason: ""
+  };
+
+  function applyReducedEffects(enabled, reason = "") {
+    reducedEffects = enabled;
+    effectsLevel.reduced = enabled;
+    effectsLevel.reason = reason;
+    if (app) {
+      app.dataset.effects = enabled ? "reduced" : "full";
+    }
+  }
+
+  const motionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  if (motionQuery?.matches) {
+    applyReducedEffects(true, "prefers-reduced-motion");
+  } else {
+    applyReducedEffects(false, "default");
+  }
+  motionQuery?.addEventListener?.("change", (event) => {
+    applyReducedEffects(event.matches, "prefers-reduced-motion");
+  });
+
+  function readCaughtSpecies() {
+    try {
+      const raw = localStorage.getItem(CAUGHT_SPECIES_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function writeCaughtSpecies(set) {
+    try {
+      localStorage.setItem(CAUGHT_SPECIES_KEY, JSON.stringify(Array.from(set)));
+    } catch {}
+  }
 
   function getTensionZone(tension) {
     const zones = game.reel?.zones;
@@ -576,6 +619,10 @@ if ("serviceWorker" in navigator) {
     if (!lakeScene) return;
     if (biteTimer) window.clearTimeout(biteTimer);
     setLakeState("bite");
+    if (!reducedEffects) {
+      rippleBoostUntil = scene.t + 0.8;
+      spawnRipple(1.3);
+    }
     biteTimer = window.setTimeout(() => {
       if (game.mode === "BITE") {
         setLakeState("fishing");
@@ -596,6 +643,29 @@ if ("serviceWorker" in navigator) {
         setLakeState("idle");
       }
     }, 200);
+  }
+
+  function spawnRipple(strength = 1) {
+    if (reducedEffects || !bobber.inWater) return;
+    ripples.push({
+      x: bobber.x,
+      y: bobber.y + 6,
+      r: 8,
+      alpha: 0.28 * strength,
+      maxR: 26 + 14 * strength,
+      speed: 18 + 8 * strength
+    });
+  }
+
+  function updateRipples(dt) {
+    for (let i = ripples.length - 1; i >= 0; i -= 1) {
+      const ripple = ripples[i];
+      ripple.r += ripple.speed * dt;
+      ripple.alpha -= dt * 0.25;
+      if (ripple.r >= ripple.maxR || ripple.alpha <= 0.01) {
+        ripples.splice(i, 1);
+      }
+    }
   }
 
   function triangular(min, mode, max) {
@@ -2167,6 +2237,10 @@ if ("serviceWorker" in navigator) {
     wave: 0,
   };
 
+  const ripples = [];
+  let nextRippleAt = 0;
+  let rippleBoostUntil = 0;
+
   const travel = {
     duration: 20,
     t: 0,
@@ -2294,9 +2368,35 @@ if ("serviceWorker" in navigator) {
     if (ovText) ovText.textContent = text;
   }
 
+  let catchOverlayVisible = false;
+  let catchOverlayHideTimer = null;
+
+  function setCatchOverlayVisible(visible) {
+    if (!catchOverlay) return;
+    if (catchOverlayVisible === visible) return;
+    catchOverlayVisible = visible;
+    if (catchOverlayHideTimer) window.clearTimeout(catchOverlayHideTimer);
+    if (visible) {
+      catchOverlay.classList.remove("hidden");
+      catchOverlay.classList.remove("is-hiding");
+      requestAnimationFrame(() => {
+        catchOverlay.classList.add("is-visible");
+      });
+      return;
+    }
+    catchOverlay.classList.remove("is-visible");
+    catchOverlay.classList.add("is-hiding");
+    catchOverlayHideTimer = window.setTimeout(() => {
+      if (!catchOverlayVisible) {
+        catchOverlay.classList.add("hidden");
+        catchOverlay.classList.remove("is-hiding");
+      }
+    }, 220);
+  }
+
   function setScene(sceneId) {
     currentScene = sceneId;
-    catchOverlay?.classList.toggle("hidden", sceneId !== SCENE_CATCH_MODAL);
+    setCatchOverlayVisible(sceneId === SCENE_CATCH_MODAL);
     travelHud?.classList.toggle("hidden", sceneId !== SCENE_TRAVEL);
     cityHud?.classList.toggle("hidden", sceneId !== SCENE_CITY);
     shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId));
@@ -2397,6 +2497,9 @@ if ("serviceWorker" in navigator) {
     scheduleBite();
     setFishing(true);
     setMsg("Ждём поклёвку…", 1.0);
+    if (!reducedEffects) {
+      nextRippleAt = scene.t + rand(1.4, 2.6);
+    }
   }
 
   function enterBite() {
@@ -2458,7 +2561,25 @@ if ("serviceWorker" in navigator) {
       catchRarity.className = `badge badge-${catchData.rarity}`;
     }
     if (catchWeight) catchWeight.textContent = formatKg(catchData.weightKg);
-    if (catchStory) catchStory.textContent = catchData.story;
+    if (catchStory) {
+      const story = (catchData.story || "").trim();
+      const caughtSpecies = readCaughtSpecies();
+      const speciesKey = catchData.speciesId || catchData.name;
+      const isFirst = story && !caughtSpecies.has(speciesKey);
+      let nextStory = "";
+      if (story) {
+        if (isFirst) {
+          caughtSpecies.add(speciesKey);
+          writeCaughtSpecies(caughtSpecies);
+          nextStory = story;
+        } else {
+          const limit = 68;
+          nextStory = story.length > limit ? `${story.slice(0, limit).trim()}…` : story;
+        }
+      }
+      catchStory.textContent = nextStory;
+      catchStory.classList.toggle("hidden", !nextStory);
+    }
     if (catchFullPrice) catchFullPrice.textContent = formatCoins(catchData.sellValue);
     const discounted = Math.round(catchData.sellValue * 0.7);
     if (catchDiscountPrice) catchDiscountPrice.textContent = formatCoins(discounted);
@@ -2639,6 +2760,8 @@ if ("serviceWorker" in navigator) {
 
   // ===== Update loop =====
   let lastTime = 0;
+  let lowFpsFrames = 0;
+  const LOW_FPS_THRESHOLD = 44;
 
   function update(dt) {
     scene.t += dt;
@@ -2681,6 +2804,7 @@ if ("serviceWorker" in navigator) {
           enterWaiting();
         }
       } else if (bobber.inWater) {
+        const motionScale = reducedEffects ? 0.35 : 1;
         let amp = (game.mode === "BITE") ? 4.6 : (game.mode === "REELING" ? 2.2 : 1.4);
         let waveSpeed = 1.4 + game.fishPower * 0.7;
         let jiggle = 0;
@@ -2700,18 +2824,35 @@ if ("serviceWorker" in navigator) {
             amp = 3.0;
             waveSpeed = 1.8 + game.fishPower * 1.0;
           }
-          if (game.reel.telegraphPulse > 0) {
+          if (game.reel.telegraphPulse > 0 && !reducedEffects) {
             jiggle = Math.sin(game.t * 45) * 2.8 * (game.reel.telegraphPulse / TELEGRAPH_PULSE);
           }
         }
 
-        bobber.wave += dt * waveSpeed;
-        bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * amp + jiggle;
+        bobber.wave += dt * waveSpeed * (reducedEffects ? 0.6 : 1);
+        bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * amp * motionScale + jiggle;
         if (game.mode !== "REELING") {
-          bobber.x += Math.sin(bobber.wave * 1.2) * 0.25;
+          bobber.x += Math.sin(bobber.wave * 1.2) * 0.25 * motionScale;
         }
       }
       placeBobberAt(bobber.x, bobber.y);
+    }
+
+    if (bobber.inWater && ["WAITING", "BITE"].includes(game.mode)) {
+      if (!reducedEffects && scene.t >= nextRippleAt) {
+        const boosted = game.mode === "BITE" || scene.t < rippleBoostUntil;
+        const interval = boosted ? rand(0.6, 1.1) : rand(2.6, 4.0);
+        spawnRipple(boosted ? 1.2 : 1);
+        nextRippleAt = scene.t + interval;
+      }
+    }
+    if (!bobber.inWater && ripples.length) {
+      ripples.length = 0;
+    }
+    if (!reducedEffects) {
+      updateRipples(dt);
+    } else if (ripples.length) {
+      ripples.length = 0;
     }
 
     // state transitions
@@ -2934,6 +3075,20 @@ if ("serviceWorker" in navigator) {
   function drawLake() {
     ctx.clearRect(0, 0, W, H);
 
+    drawWaterSheen();
+
+    if (!reducedEffects && ripples.length) {
+      ctx.save();
+      ctx.lineWidth = 1;
+      for (const ripple of ripples) {
+        ctx.strokeStyle = `rgba(205, 228, 255, ${ripple.alpha})`;
+        ctx.beginPath();
+        ctx.arc(ripple.x, ripple.y, ripple.r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     if (bobber.visible) {
       const rodTip = getRodTipPoint();
       if (rodTip) {
@@ -2949,6 +3104,29 @@ if ("serviceWorker" in navigator) {
       }
     }
 
+  }
+
+  function drawWaterSheen() {
+    if (reducedEffects || !scene.lakeY) return;
+    const baseY = scene.lakeY + 12;
+    const t = scene.t;
+    ctx.save();
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i += 1) {
+      const y = baseY + i * 18 + Math.sin(t * 0.6 + i) * 2;
+      const grad = ctx.createLinearGradient(0, y, W, y);
+      grad.addColorStop(0, "rgba(180,210,235,0)");
+      grad.addColorStop(0.25, "rgba(180,210,235,0.18)");
+      grad.addColorStop(0.5, "rgba(180,210,235,0.26)");
+      grad.addColorStop(0.75, "rgba(180,210,235,0.18)");
+      grad.addColorStop(1, "rgba(180,210,235,0)");
+      ctx.strokeStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function drawTravel() {
@@ -3161,6 +3339,18 @@ if ("serviceWorker" in navigator) {
     if (!lastTime) lastTime = t;
     const dt = Math.min(0.033, (t - lastTime) / 1000);
     lastTime = t;
+
+    if (!reducedEffects) {
+      const fps = dt > 0 ? 1 / dt : 60;
+      if (fps < LOW_FPS_THRESHOLD) {
+        lowFpsFrames += 1;
+      } else {
+        lowFpsFrames = Math.max(0, lowFpsFrames - 1);
+      }
+      if (lowFpsFrames > 30) {
+        applyReducedEffects(true, "low-fps");
+      }
+    }
 
     update(dt);
     updateFightHud();
