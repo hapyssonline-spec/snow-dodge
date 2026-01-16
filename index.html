@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
   <link rel="manifest" href="manifest.json?v=28" />
 
-  <link rel="stylesheet" href="style.css?v=28" />
+  <link rel="stylesheet" href="style.css?v=29" />
 </head>
 <body>
   <div id="app">
@@ -29,6 +29,15 @@
       <div class="center">
         <div class="title">ICE FISH</div>
         <div id="subtitle" class="subtitle">Тап — заброс. Поклёвка → свайп вверх. Тапы — выматывать.</div>
+      </div>
+
+      <div class="stat xp">
+        <div class="label">УРОВЕНЬ</div>
+        <div class="value"><span id="playerLevel">1</span></div>
+        <div class="xpBar" aria-hidden="true">
+          <div id="xpBarFill" class="xpBarFill"></div>
+        </div>
+        <div id="xpText" class="xpText">XP 0/60</div>
       </div>
 
       <div class="stat right">
@@ -233,6 +242,7 @@
 
       <div id="sceneFade" class="sceneFade hidden"></div>
       <div id="toast" class="toast hidden"></div>
+      <div id="xpToast" class="xpToast hidden"></div>
     </main>
 
     <footer id="bottombar">
@@ -243,7 +253,7 @@
     </footer>
   </div>
 
-  <!-- cache-bust: main.js v37 (tension marker orientation update) -->
-  <script src="main.js?v=37"></script>
+  <!-- cache-bust: main.js v38 (xp progression + ui) -->
+  <script src="main.js?v=38"></script>
 </body>
 </html>

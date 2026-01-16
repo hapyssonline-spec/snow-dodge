@@ -41,6 +41,31 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 .center{flex:1; text-align:center}
 .title{font-weight:900; letter-spacing:.10em}
 .subtitle{font-size:12px; color:var(--muted); margin-top:4px; line-height:1.2}
+.stat.xp{
+  min-width:92px;
+  text-align:center;
+}
+.stat.xp .value{
+  font-size:18px;
+}
+.xpBar{
+  margin-top:4px;
+  height:4px;
+  border-radius:999px;
+  background: rgba(166,185,218,.2);
+  overflow:hidden;
+}
+.xpBarFill{
+  height:100%;
+  width:0%;
+  background: linear-gradient(90deg, #7bd3ff, #66e6a0);
+  transition: width .2s ease;
+}
+.xpText{
+  margin-top:4px;
+  font-size:10px;
+  color:var(--muted);
+}
 
 #stage{position:relative; flex:1; display:flex; overflow:hidden;}
 #sceneRoot{
@@ -627,6 +652,36 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 
 .toast.show{
   opacity:1;
+}
+
+.xpToast{
+  position:absolute;
+  top:72px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:8px 12px;
+  border-radius:12px;
+  border:1px solid var(--stroke);
+  background: rgba(16,31,48,.92);
+  font-weight:800;
+  font-size:12px;
+  opacity:0;
+  transition: opacity .2s ease;
+  z-index:7;
+  text-align:center;
+  pointer-events:none;
+}
+
+.xpToast.show{
+  opacity:1;
+}
+
+.xpToastLine{
+  display:block;
+}
+
+.xpToastLine + .xpToastLine{
+  margin-top:2px;
 }
 
 .sceneFade{
