@@ -1215,6 +1215,17 @@ img, a{
   z-index:6;
 }
 
+.questReminder{
+  margin-top:4px;
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:.02em;
+}
+
+.questReminder.hidden{
+  display:none;
+}
+
 .shopCard{
   width:min(900px, 100%);
   max-height: calc(100% - 32px);
@@ -1266,6 +1277,13 @@ img, a{
   overflow:hidden;
 }
 
+.shopSectionHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
 .shopSectionTitle{
   font-size:14px;
   font-weight:800;
@@ -1315,6 +1333,73 @@ img, a{
   padding-right:4px;
 }
 
+.questDifficulty{
+  display:flex;
+  gap:8px;
+}
+
+.difficultyBtn{
+  flex:1;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.8);
+  color:var(--text);
+  font-weight:800;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.difficultyBtn.is-active{
+  background: rgba(100,140,255,.18);
+  border-color: rgba(120,160,255,.4);
+  box-shadow: 0 8px 18px rgba(70,120,200,.2);
+}
+
+.difficultyBtn:active{
+  transform: scale(.98);
+}
+
+.questCard{
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  padding:12px;
+  background: rgba(15,26,36,.7);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  font-size:12px;
+}
+
+.questCardTitle{
+  font-weight:800;
+  color:var(--muted);
+}
+
+.questRow{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.questRow span:last-child{
+  font-weight:800;
+}
+
+.questStatus{
+  font-weight:800;
+  color:var(--muted);
+}
+
+.questStatus.is-complete{
+  color:#9fd5ff;
+}
+
+.questActions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
 .shopItem{
   border:1px solid var(--stroke);
   border-radius:12px;
@@ -1355,6 +1440,18 @@ img, a{
   opacity:0;
   transition: opacity .2s ease;
   z-index:7;
+}
+
+.toastTitle{
+  font-size:12px;
+  font-weight:900;
+}
+
+.toastSub{
+  font-size:11px;
+  font-weight:700;
+  color:var(--muted);
+  margin-top:2px;
 }
 
 .toast.show{
@@ -1511,6 +1608,12 @@ img, a{
   color:var(--text);
   font-weight:800;
   font-size:12px;
+}
+
+.invBtn.primary{
+  background: rgba(100,140,255,.2);
+  border-color: rgba(120,160,255,.45);
+  box-shadow: 0 10px 20px rgba(70,120,200,.2);
 }
 
 .invBtn.secondary{
