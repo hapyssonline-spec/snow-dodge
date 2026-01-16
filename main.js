@@ -93,6 +93,7 @@ if ("serviceWorker" in navigator) {
   const cityHitboxes = Array.from(document.querySelectorAll(".city-hitbox"));
   const cityTooltip = document.getElementById("cityTooltip");
   const questReminder = document.getElementById("questReminder");
+  const rotateOverlay = document.getElementById("rotateOverlay");
 
   const shopOverlay = document.getElementById("shopOverlay");
   const shopTitle = document.getElementById("shopTitle");
@@ -110,12 +111,15 @@ if ("serviceWorker" in navigator) {
   const questPreviewReward = document.getElementById("questPreviewReward");
   const btnQuestAccept = document.getElementById("btnQuestAccept");
   const btnQuestRefresh = document.getElementById("btnQuestRefresh");
+  const questRefreshStatus = document.getElementById("questRefreshStatus");
   const activeQuestSpecies = document.getElementById("activeQuestSpecies");
   const activeQuestWeight = document.getElementById("activeQuestWeight");
   const activeQuestReward = document.getElementById("activeQuestReward");
   const activeQuestStatus = document.getElementById("activeQuestStatus");
   const btnQuestClaim = document.getElementById("btnQuestClaim");
   const gearShopSection = document.getElementById("gearShopSection");
+  const gearTabButtons = Array.from(document.querySelectorAll(".gearTabBtn"));
+  const gearTabPanels = Array.from(document.querySelectorAll(".gearTabPanel"));
   const baitList = document.getElementById("baitList");
   const rodList = document.getElementById("rodList");
   const lineList = document.getElementById("lineList");
@@ -210,6 +214,16 @@ if ("serviceWorker" in navigator) {
 
   const formatKg = (value) => `${value.toFixed(2)} кг`;
   const formatCoins = (value) => `${value} монет`;
+  const formatDuration = (ms) => {
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
+    if (hours > 0) {
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  };
   const formatDayKey = (value) => {
     const date = value ? new Date(value) : new Date();
     return date.toISOString().slice(0, 10);
@@ -540,6 +554,37 @@ if ("serviceWorker" in navigator) {
       timer = window.setTimeout(() => fn(...args), delay);
     };
   };
+
+  let orientationLocked = false;
+  let orientationPauseStarted = null;
+  let pendingOrientationPause = 0;
+  const orientationQuery = window.matchMedia?.("(orientation: landscape)");
+
+  function isLandscapeOrientation() {
+    if (orientationQuery) return orientationQuery.matches;
+    return window.innerWidth > window.innerHeight;
+  }
+
+  function setOrientationLock(locked) {
+    orientationLocked = locked;
+    if (rotateOverlay) rotateOverlay.classList.toggle("hidden", !locked);
+    if (app) app.classList.toggle("orientation-locked", locked);
+    if (locked) {
+      if (orientationPauseStarted === null) {
+        orientationPauseStarted = Date.now();
+      }
+    } else if (orientationPauseStarted !== null) {
+      pendingOrientationPause += Date.now() - orientationPauseStarted;
+      orientationPauseStarted = null;
+    }
+    if (!locked) {
+      handleResize();
+    }
+  }
+
+  function updateOrientationLock() {
+    setOrientationLock(isLandscapeOrientation());
+  }
 
   function applyLakeRig() {
     if (!lakeScene) return;
@@ -956,7 +1001,14 @@ if ("serviceWorker" in navigator) {
     }
   };
 
-  const QUEST_REFRESH_COOLDOWN = 10000;
+  const QUEST_DIFFICULTY_KEYS = ["easy", "medium", "hard"];
+  const QUEST_PREVIEW_REFRESH_STEPS = [10_000, 60_000, 600_000, 3_600_000];
+  const QUEST_PREVIEW_MAX_STEP = 4;
+  const QUEST_COMPLETION_COOLDOWNS = {
+    easy: 10 * 60 * 1000,
+    medium: 30 * 60 * 1000,
+    hard: 60 * 60 * 1000
+  };
 
   const confusionGroups = [
     ["roach", "crucian", "bream"],
@@ -1310,15 +1362,46 @@ if ("serviceWorker" in navigator) {
     questReminder.classList.remove("hidden");
   }
 
+  function ensureQuestPreviews() {
+    QUEST_DIFFICULTY_KEYS.forEach((key) => {
+      if (!questPreviews[key]) {
+        questPreviews[key] = generateQuest(key);
+      }
+    });
+  }
+
   function updateQuestPreviewUI() {
-    if (!questPreview) return;
-    if (questPreviewSpecies) questPreviewSpecies.textContent = questPreview.speciesName;
-    if (questPreviewWeight) questPreviewWeight.textContent = `${formatKg(questPreview.minWeightKg)}–${formatKg(questPreview.maxWeightKg)}`;
-    if (questPreviewReward) questPreviewReward.textContent = `${formatCoins(questPreview.rewardCoins)} + ${questPreview.rewardXp} XP`;
+    const difficultyKey = selectedQuestDifficulty;
+    const preview = questPreviews[difficultyKey];
+    const availableAt = questCooldowns[`${difficultyKey}AvailableAt`] || 0;
+    const now = Date.now();
+    const isAvailable = now >= availableAt;
+    if (!preview && isAvailable) {
+      questPreviews[difficultyKey] = generateQuest(difficultyKey);
+    }
+    const currentPreview = questPreviews[difficultyKey];
+    if (!isAvailable) {
+      if (questPreviewSpecies) questPreviewSpecies.textContent = "Недоступно";
+      if (questPreviewWeight) questPreviewWeight.textContent = `Доступно через: ${formatDuration(availableAt - now)}`;
+      if (questPreviewReward) questPreviewReward.textContent = "—";
+      if (btnQuestAccept) btnQuestAccept.disabled = true;
+      return;
+    }
+    if (!currentPreview) {
+      if (questPreviewSpecies) questPreviewSpecies.textContent = "—";
+      if (questPreviewWeight) questPreviewWeight.textContent = "—";
+      if (questPreviewReward) questPreviewReward.textContent = "—";
+      if (btnQuestAccept) btnQuestAccept.disabled = true;
+      return;
+    }
+    if (questPreviewSpecies) questPreviewSpecies.textContent = currentPreview.speciesName;
+    if (questPreviewWeight) questPreviewWeight.textContent = `${formatKg(currentPreview.minWeightKg)}–${formatKg(currentPreview.maxWeightKg)}`;
+    if (questPreviewReward) questPreviewReward.textContent = `${formatCoins(currentPreview.rewardCoins)} + ${currentPreview.rewardXp} XP`;
+    if (btnQuestAccept) btnQuestAccept.disabled = false;
   }
 
   function setQuestPreview(difficultyKey) {
-    questPreview = generateQuest(difficultyKey);
+    questPreviews[difficultyKey] = generateQuest(difficultyKey);
     updateQuestPreviewUI();
     updateQuestDifficultyButtons();
   }
@@ -1326,7 +1409,9 @@ if ("serviceWorker" in navigator) {
   function updateQuestDifficultyButtons() {
     if (!difficultyButtons.length) return;
     difficultyButtons.forEach((btn) => {
-      btn.classList.toggle("is-active", btn.dataset.difficulty === selectedQuestDifficulty);
+      const isActive = btn.dataset.difficulty === selectedQuestDifficulty;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
     });
   }
 
@@ -1347,28 +1432,40 @@ if ("serviceWorker" in navigator) {
     } else {
       trophyActiveSection.classList.add("hidden");
       trophyQuestSection.classList.remove("hidden");
-      if (btnQuestRefresh && !btnQuestRefresh.disabled) btnQuestRefresh.textContent = "Обновить";
-      if (!questPreview || questPreview.difficulty !== selectedQuestDifficulty) {
-        setQuestPreview(selectedQuestDifficulty);
-      } else {
-        updateQuestPreviewUI();
+      if (!questPreviews[selectedQuestDifficulty]) {
+        questPreviews[selectedQuestDifficulty] = generateQuest(selectedQuestDifficulty);
+      }
+      updateQuestDifficultyButtons();
+      updateQuestTimers();
+      if (!questRefreshTicker && questRefreshStatus) {
+        questRefreshTicker = window.setInterval(updateQuestTimers, 500);
       }
     }
   }
 
-  function setQuestRefreshCooldown() {
-    if (!btnQuestRefresh) return;
-    btnQuestRefresh.disabled = true;
-    const startedAt = Date.now();
-    const timer = window.setInterval(() => {
-      const elapsed = Date.now() - startedAt;
-      const remain = Math.max(0, Math.ceil((QUEST_REFRESH_COOLDOWN - elapsed) / 1000));
-      btnQuestRefresh.textContent = remain > 0 ? `Обновить (${remain}с)` : "Обновить";
-      if (remain <= 0) {
-        btnQuestRefresh.disabled = false;
-        window.clearInterval(timer);
-      }
-    }, 250);
+  function getPreviewRefreshDuration(stepIndex) {
+    if (stepIndex >= QUEST_PREVIEW_REFRESH_STEPS.length) {
+      return QUEST_PREVIEW_REFRESH_STEPS[QUEST_PREVIEW_REFRESH_STEPS.length - 1];
+    }
+    return QUEST_PREVIEW_REFRESH_STEPS[stepIndex];
+  }
+
+  function updateQuestTimers() {
+    updateQuestPreviewUI();
+    updateQuestRefreshUI();
+  }
+
+  function updateQuestRefreshUI() {
+    if (!btnQuestRefresh || !questRefreshStatus) return;
+    const now = Date.now();
+    const remaining = previewRefresh.nextAllowedAt - now;
+    if (remaining > 0) {
+      btnQuestRefresh.disabled = true;
+      questRefreshStatus.textContent = `Можно через: ${formatDuration(remaining)}`;
+      return;
+    }
+    btnQuestRefresh.disabled = false;
+    questRefreshStatus.textContent = "";
   }
 
   function checkQuestCompletion(catchData) {
@@ -1664,10 +1761,14 @@ if ("serviceWorker" in navigator) {
   }, 100);
   window.addEventListener("resize", handleResize);
   window.addEventListener("orientationchange", handleResize);
+  window.addEventListener("resize", debounce(updateOrientationLock, 80));
+  window.addEventListener("orientationchange", updateOrientationLock);
+  orientationQuery?.addEventListener?.("change", updateOrientationLock);
+  updateOrientationLock();
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
-  const STORAGE_VERSION = 6;
+  const STORAGE_VERSION = 7;
 
   const stats = {
     coins: 0,
@@ -1690,9 +1791,12 @@ if ("serviceWorker" in navigator) {
   let inventory = [];
   let inventorySort = "WEIGHT_DESC";
   let activeQuest = null;
-  let questPreview = null;
+  let questPreviews = { easy: null, medium: null, hard: null };
+  let questCooldowns = { easyAvailableAt: 0, mediumAvailableAt: 0, hardAvailableAt: 0 };
+  let previewRefresh = { stepIndex: 0, nextAllowedAt: 0 };
   let selectedQuestDifficulty = "easy";
-  let lastQuestRefreshAt = 0;
+  let questRefreshTicker = null;
+  let selectedGearTab = "bait";
   let currentScene = SCENE_LAKE;
   let pendingCatch = null;
   let foundTrash = {};
@@ -1795,9 +1899,30 @@ if ("serviceWorker" in navigator) {
         dailyRareBoostCharges = Number(obj.dailyRareBoostCharges ?? 0);
         lastChargeResetDate = obj.lastChargeResetDate || null;
       }
+      if (obj.storageVersion >= 7) {
+        if (obj.questPreview && typeof obj.questPreview === "object") {
+          QUEST_DIFFICULTY_KEYS.forEach((key) => {
+            questPreviews[key] = sanitizeQuest(obj.questPreview[key]);
+          });
+        }
+        if (obj.questCooldowns && typeof obj.questCooldowns === "object") {
+          questCooldowns = {
+            easyAvailableAt: Number(obj.questCooldowns.easyAvailableAt || 0),
+            mediumAvailableAt: Number(obj.questCooldowns.mediumAvailableAt || 0),
+            hardAvailableAt: Number(obj.questCooldowns.hardAvailableAt || 0)
+          };
+        }
+        if (obj.previewRefresh && typeof obj.previewRefresh === "object") {
+          previewRefresh = {
+            stepIndex: Math.min(Math.max(0, Number(obj.previewRefresh.stepIndex || 0)), QUEST_PREVIEW_MAX_STEP),
+            nextAllowedAt: Math.max(0, Number(obj.previewRefresh.nextAllowedAt || 0))
+          };
+        }
+      }
       stats.coins = player.coins;
       refreshDailyCharges();
       updateMuteButton();
+      ensureQuestPreviews();
     } catch {}
   }
 
@@ -1823,7 +1948,10 @@ if ("serviceWorker" in navigator) {
           lineTier: player.lineTier,
           ...progression.save()
         },
-        trophyQuest: activeQuest
+        trophyQuest: activeQuest,
+        questPreview: questPreviews,
+        questCooldowns,
+        previewRefresh
       }));
     } catch {}
   }
@@ -1847,7 +1975,9 @@ if ("serviceWorker" in navigator) {
     dailyRareBoostCharges = 0;
     lastChargeResetDate = null;
     activeQuest = null;
-    questPreview = null;
+    questPreviews = { easy: null, medium: null, hard: null };
+    questCooldowns = { easyAvailableAt: 0, mediumAvailableAt: 0, hardAvailableAt: 0 };
+    previewRefresh = { stepIndex: 0, nextAllowedAt: 0 };
     save();
     updateHUD();
     renderInventory();
@@ -2139,35 +2269,55 @@ if ("serviceWorker" in navigator) {
     showToast(`Продано: +${total} монет`);
   });
 
+  gearTabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.gearTab;
+      if (!tab) return;
+      selectedGearTab = tab;
+      updateGearTabs();
+    });
+  });
+
   difficultyButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const difficulty = btn.dataset.difficulty || "easy";
       if (!QUEST_DIFFICULTIES[difficulty]) return;
       selectedQuestDifficulty = difficulty;
-      setQuestPreview(selectedQuestDifficulty);
-      renderTrophyQuest();
+      updateQuestDifficultyButtons();
+      updateQuestPreviewUI();
     });
   });
 
   btnQuestRefresh?.addEventListener("click", () => {
     const now = Date.now();
-    if (now - lastQuestRefreshAt < QUEST_REFRESH_COOLDOWN) {
-      const waitLeft = Math.ceil((QUEST_REFRESH_COOLDOWN - (now - lastQuestRefreshAt)) / 1000);
-      showToast(`Обновление через ${waitLeft}с.`);
+    if (now < previewRefresh.nextAllowedAt) {
+      updateQuestRefreshUI();
       return;
     }
-    lastQuestRefreshAt = now;
-    setQuestPreview(selectedQuestDifficulty);
-    setQuestRefreshCooldown();
+    QUEST_DIFFICULTY_KEYS.forEach((difficulty) => {
+      const availableAt = questCooldowns[`${difficulty}AvailableAt`] || 0;
+      if (now >= availableAt) {
+        questPreviews[difficulty] = generateQuest(difficulty);
+      }
+    });
+    const duration = getPreviewRefreshDuration(previewRefresh.stepIndex);
+    previewRefresh.nextAllowedAt = now + duration;
+    previewRefresh.stepIndex = Math.min(previewRefresh.stepIndex + 1, QUEST_PREVIEW_MAX_STEP);
+    save();
+    updateQuestPreviewUI();
+    updateQuestRefreshUI();
   });
 
   btnQuestAccept?.addEventListener("click", () => {
-    if (!questPreview) return;
+    const preview = questPreviews[selectedQuestDifficulty];
+    if (!preview) return;
+    const availableAt = questCooldowns[`${selectedQuestDifficulty}AvailableAt`] || 0;
+    if (Date.now() < availableAt) return;
     activeQuest = {
-      ...questPreview,
+      ...preview,
       status: "active"
     };
-    questPreview = null;
+    questPreviews[selectedQuestDifficulty] = generateQuest(selectedQuestDifficulty);
     save();
     updateQuestReminder();
     renderTrophyQuest();
@@ -2176,8 +2326,11 @@ if ("serviceWorker" in navigator) {
   btnQuestClaim?.addEventListener("click", () => {
     if (!activeQuest || activeQuest.status !== "completed") return;
     awardQuestRewards(activeQuest);
+    if (activeQuest.difficulty && QUEST_COMPLETION_COOLDOWNS[activeQuest.difficulty]) {
+      const lockMs = QUEST_COMPLETION_COOLDOWNS[activeQuest.difficulty];
+      questCooldowns[`${activeQuest.difficulty}AvailableAt`] = Date.now() + lockMs;
+    }
     activeQuest = null;
-    questPreview = null;
     save();
     renderTrophyQuest();
     updateQuestReminder();
@@ -2444,9 +2597,21 @@ if ("serviceWorker" in navigator) {
     showToast(`Продано: +${item.sellValue} монет`);
   }
 
+  function updateGearTabs() {
+    gearTabButtons.forEach((btn) => {
+      const isActive = btn.dataset.gearTab === selectedGearTab;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+    gearTabPanels.forEach((panel) => {
+      panel.classList.toggle("is-active", panel.dataset.gearPanel === selectedGearTab);
+    });
+  }
+
   function renderGearShop() {
     if (!gearShopSection) return;
     gearShopSection.classList.remove("hidden");
+    updateGearTabs();
 
     if (baitList) {
       baitList.innerHTML = "";
@@ -2665,6 +2830,10 @@ if ("serviceWorker" in navigator) {
   const isGameplayActive = () => activeGameModes.has(game.mode);
 
   document.addEventListener("touchmove", (event) => {
+    if (orientationLocked) {
+      event.preventDefault();
+      return;
+    }
     const target = event.target;
     if (isInScrollable(target)) return;
 
@@ -3181,6 +3350,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function onDown(e) {
+    if (orientationLocked) return;
     e.preventDefault();
     pointerDown = true;
     swipeDone = false;
@@ -3270,6 +3440,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function onMove(e) {
+    if (orientationLocked) return;
     if (!pointerDown) return;
     e.preventDefault();
     const p = getXY(e);
@@ -3289,6 +3460,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function onUp(e) {
+    if (orientationLocked) return;
     e.preventDefault();
     if (pointerDown && game.mode === "BITE" && !swipeDone) {
       const p = typeof e.clientX === "number" ? getXY(e) : { x: lastX, y: lastY };
@@ -3315,6 +3487,14 @@ if ("serviceWorker" in navigator) {
   const LOW_FPS_THRESHOLD = 44;
 
   function update(dt) {
+    if (orientationLocked) return;
+    if (pendingOrientationPause > 0) {
+      if (travel.state !== "idle") {
+        travel.startTime += pendingOrientationPause;
+        travel.endTime += pendingOrientationPause;
+      }
+      pendingOrientationPause = 0;
+    }
     scene.t += dt;
     game.t += dt;
     game.lastTap += dt;
