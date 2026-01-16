@@ -1220,6 +1220,12 @@ img, a{
   font-size:11px;
   color:var(--muted);
   letter-spacing:.02em;
+  max-width:min(70vw, 320px);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  margin-left:auto;
+  margin-right:auto;
 }
 
 .questReminder.hidden{
@@ -1264,6 +1270,8 @@ img, a{
   flex-direction:column;
   gap:12px;
   overflow:hidden;
+  flex:1;
+  min-height:0;
 }
 
 .shopSection{
@@ -1275,6 +1283,8 @@ img, a{
   flex-direction:column;
   gap:10px;
   overflow:hidden;
+  flex:1;
+  min-height:0;
 }
 
 .shopSectionHeader{
@@ -1329,8 +1339,59 @@ img, a{
   display:flex;
   flex-direction:column;
   gap:8px;
-  max-height:260px;
   padding-right:4px;
+  flex:1;
+  min-height:0;
+}
+
+.gearTabs{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:8px;
+}
+
+.gearTabBtn{
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.8);
+  color:var(--text);
+  font-weight:800;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.gearTabBtn.is-active{
+  background: rgba(100,140,255,.18);
+  border-color: rgba(120,160,255,.4);
+  box-shadow: 0 8px 18px rgba(70,120,200,.2);
+}
+
+.gearTabBtn:active{
+  transform: scale(.98);
+}
+
+.gearTabPanels{
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+}
+
+.gearTabPanel{
+  display:none;
+  flex:1;
+  min-height:0;
+}
+
+.gearTabPanel.is-active{
+  display:flex;
+  flex-direction:column;
+}
+
+.gearTabPanel .shopList{
+  flex:1;
+  min-height:0;
+  max-height:none;
 }
 
 .questDifficulty{
@@ -1398,6 +1459,19 @@ img, a{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
+}
+
+.questRefresh{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:flex-start;
+}
+
+.questRefreshStatus{
+  font-size:12px;
+  color:var(--muted);
+  min-height:16px;
 }
 
 .shopItem{
@@ -1764,6 +1838,75 @@ html, body, #sceneRoot, #lakeScene, #lakeScene * , #bgLayer, #bgLayer * , #game 
 button:disabled{
   opacity:0.55;
   cursor:not-allowed;
+}
+
+.rotateOverlay{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background: rgba(6,12,20,.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  text-align:center;
+  pointer-events:auto;
+}
+
+.rotateCard{
+  max-width:320px;
+  border-radius:20px;
+  border:1px solid rgba(140,170,200,.35);
+  background: rgba(12,22,34,.92);
+  padding:20px 18px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+
+.rotateIcon{
+  width:64px;
+  height:64px;
+  margin:0 auto;
+  border-radius:18px;
+  border:2px solid rgba(123,211,255,.65);
+  position:relative;
+}
+
+.rotateIcon::before{
+  content:"";
+  position:absolute;
+  inset:10px;
+  border-radius:10px;
+  border:2px solid rgba(123,211,255,.65);
+  transform: rotate(90deg);
+}
+
+.rotateIcon::after{
+  content:"";
+  position:absolute;
+  right:-6px;
+  top:50%;
+  width:0;
+  height:0;
+  border-left:10px solid rgba(123,211,255,.75);
+  border-top:6px solid transparent;
+  border-bottom:6px solid transparent;
+  transform: translateY(-50%);
+}
+
+.rotateTitle{
+  font-size:16px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+
+.rotateHint{
+  font-size:12px;
+  color:var(--muted);
 }
 
 :focus {

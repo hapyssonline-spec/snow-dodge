@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 59 for quest + shop refresh.
-const CACHE_VERSION = 59;
+// CACHE_VERSION bumped to 60 for orientation lock + shop tabs + quests.
+const CACHE_VERSION = 60;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
