@@ -42,6 +42,7 @@ if ("serviceWorker" in navigator) {
   const btnMute = document.getElementById("btnMute");
   const btnProgress = document.getElementById("btnProgress");
   const btnInventory = document.getElementById("btnInventory");
+  const btnJournal = document.getElementById("btnJournal");
   const btnCity = document.getElementById("btnCity");
 
   const invOverlay = document.getElementById("invOverlay");
@@ -50,7 +51,15 @@ if ("serviceWorker" in navigator) {
   const invList = document.getElementById("invList");
   const invEmpty = document.getElementById("invEmpty");
 
+  const trashOverlay = document.getElementById("trashOverlay");
+  const btnTrashClose = document.getElementById("btnTrashClose");
+  const trashGrid = document.getElementById("trashGrid");
+  const trashRewardStatus = document.getElementById("trashRewardStatus");
+  const btnTrashFill = document.getElementById("btnTrashFill");
+  const btnResetCharges = document.getElementById("btnResetCharges");
+
   const catchOverlay = document.getElementById("catchOverlay");
+  const catchTitle = document.getElementById("catchTitle");
   const catchName = document.getElementById("catchName");
   const catchRarity = document.getElementById("catchRarity");
   const catchWeight = document.getElementById("catchWeight");
@@ -103,6 +112,7 @@ if ("serviceWorker" in navigator) {
   const reelPercent = fightHud?.querySelector(".reelPercent");
   const breakHint = document.getElementById("breakHint");
   const fishHintText = document.getElementById("fishHintText");
+  const rareBoostHud = document.getElementById("rareBoostHud");
 
   // ===== Helpers =====
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -179,6 +189,10 @@ if ("serviceWorker" in navigator) {
   const formatKg = (value) => `${value.toFixed(2)} кг`;
   const formatCoins = (value) => `${value} монет`;
   const formatPercent = (value) => `${Math.round(value)}%`;
+  const formatDayKey = (value) => {
+    const date = value ? new Date(value) : new Date();
+    return date.toISOString().slice(0, 10);
+  };
 
   let fightHudVisible = false;
   let fightHudHideTimer = null;
@@ -878,7 +892,8 @@ if ("serviceWorker" in navigator) {
     uncommon: "необычная",
     rare: "редкая",
     epic: "эпическая",
-    legendary: "легендарная"
+    legendary: "легендарная",
+    trash: "мусор"
   };
 
   const rarityRank = {
@@ -886,7 +901,8 @@ if ("serviceWorker" in navigator) {
     uncommon: 1,
     rare: 2,
     epic: 3,
-    legendary: 4
+    legendary: 4,
+    trash: 0
   };
 
   const rarityPower = {
@@ -897,7 +913,12 @@ if ("serviceWorker" in navigator) {
     legendary: 0.22
   };
 
-  const DEV_MODE = new URLSearchParams(window.location.search).has("dev");
+  const queryParams = new URLSearchParams(window.location.search);
+  const DEV_MODE = queryParams.has("dev");
+  const DEV_TRASH_TEST = window.__DEV_TRASH_TEST__ === true
+    || queryParams.get("dev") === "1"
+    || queryParams.get("trashTest") === "1";
+  const RARE_BOOST_MULT = DEV_TRASH_TEST ? 5.0 : 1.8;
 
   const revealSystem = new RevealSystem({
     fishTable: fishSpeciesTable,
@@ -1047,7 +1068,41 @@ if ("serviceWorker" in navigator) {
     { id: 3, name: "Леска 3X", price: 540, repReq: 75, breakThreshold: 1.22, maxKg: 18, tensionMult: 0.86 }
   ];
 
-  function rollFish() {
+  const trashItems = [
+    { id: "rusty_can", name: "Ржавая банка", weight: 1.0 },
+    { id: "old_boot", name: "Старый ботинок", weight: 1.0 },
+    { id: "broken_barrel", name: "Разбитая бочка", weight: 0.9 },
+    { id: "torn_net", name: "Рваная сеть", weight: 0.9 },
+    { id: "broken_reel", name: "Сломанная катушка", weight: 0.8 },
+    { id: "bent_hook", name: "Погнутый крючок", weight: 0.8 },
+    { id: "floating_plank", name: "Плавающая доска", weight: 0.9 },
+    { id: "sealed_crate", name: "Запечатанный ящик", weight: 0.6 },
+    { id: "old_extinguisher", name: "Старый огнетушитель", weight: 0.7 },
+    { id: "rusty_key", name: "Ржавый ключ", weight: 0.2, weightDev: 1.0 }
+  ];
+
+  function getTrashChance() {
+    return DEV_TRASH_TEST ? rand(0.7, 0.85) : rand(0.2, 0.25);
+  }
+
+  function getTrashWeight(item) {
+    if (DEV_TRASH_TEST && Number.isFinite(item.weightDev)) return item.weightDev;
+    return item.weight ?? 1;
+  }
+
+  function pickTrashItem(foundTrashMap) {
+    const missing = trashItems.filter((item) => !foundTrashMap[item.id]);
+    const pool = DEV_TRASH_TEST && missing.length ? missing : trashItems;
+    const total = pool.reduce((sum, item) => sum + getTrashWeight(item), 0);
+    let r = Math.random() * total;
+    for (const item of pool) {
+      r -= getTrashWeight(item);
+      if (r <= 0) return item;
+    }
+    return pool[0];
+  }
+
+  function rollFish(rareBoostActive = false) {
     const bait = baitItems.find((item) => item.id === player.activeBaitId);
     const rollTable = fishSpeciesTable.map((fish) => {
       const rodAllowed = fish.minRodTier <= player.rodTier;
@@ -1055,6 +1110,9 @@ if ("serviceWorker" in navigator) {
       let mult = 1.0;
       if (bait) {
         mult = bait.boost.includes(fish.id) ? 2.0 : 0.8;
+      }
+      if (rareBoostActive && (rarityRank[fish.rarity] ?? 0) >= rarityRank.rare) {
+        mult *= RARE_BOOST_MULT;
       }
       return { fish, chance: fish.chance * mult };
     });
@@ -1075,8 +1133,8 @@ if ("serviceWorker" in navigator) {
     return bait ? `${bait.name} (${count})` : "без приманки";
   }
 
-  function buildCatch() {
-    const species = rollFish();
+  function buildFishCatch(rareBoostActive = false) {
+    const species = rollFish(rareBoostActive);
     const rawWeight = triangular(species.minKg, species.modeKg, species.maxKg);
     const weightKg = Math.round(clamp(rawWeight, species.minKg, species.maxKg) * 100) / 100;
     const sellValue = Math.round(weightKg * species.pricePerKg);
@@ -1084,6 +1142,7 @@ if ("serviceWorker" in navigator) {
     const power = clamp(0.32 + weightRatio * 0.48 + (rarityPower[species.rarity] || 0), 0.25, 0.9);
 
     return {
+      catchType: "fish",
       speciesId: species.id,
       name: species.name,
       rarity: species.rarity,
@@ -1094,6 +1153,32 @@ if ("serviceWorker" in navigator) {
       story: species.story,
       power
     };
+  }
+
+  function buildTrashCatch() {
+    const item = pickTrashItem(foundTrash);
+    const weightKg = Math.round(rand(0.2, 1.6) * 100) / 100;
+    const power = clamp(0.24 + weightKg * 0.06, 0.22, 0.45);
+    return {
+      catchType: "trash",
+      trashId: item.id,
+      name: item.name,
+      rarity: "trash",
+      rarityLabel: rarityLabels.trash,
+      weightKg,
+      pricePerKg: 0,
+      sellValue: 0,
+      story: "",
+      power
+    };
+  }
+
+  function buildCatch() {
+    const trashChance = getTrashChance();
+    if (Math.random() < trashChance) {
+      return buildTrashCatch();
+    }
+    return buildFishCatch(game.rareBoostActive);
   }
 
   const fishStateRanges = {
@@ -1314,7 +1399,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
-  const STORAGE_VERSION = 4;
+  const STORAGE_VERSION = 5;
 
   const stats = {
     coins: 0,
@@ -1355,6 +1440,10 @@ if ("serviceWorker" in navigator) {
   let pendingCatch = null;
   let selectedShopItemId = null;
   let negotiatedPrice = null;
+  let foundTrash = {};
+  let collectorRodUnlocked = false;
+  let dailyRareBoostCharges = 0;
+  let lastChargeResetDate = null;
 
   const progression = {
     xpRequired(level) {
@@ -1448,7 +1537,14 @@ if ("serviceWorker" in navigator) {
         player.coins = stats.coins;
         progression.load();
       }
+      if (obj.storageVersion >= 5) {
+        foundTrash = (obj.foundTrash && typeof obj.foundTrash === "object") ? obj.foundTrash : {};
+        collectorRodUnlocked = !!obj.collectorRodUnlocked;
+        dailyRareBoostCharges = Number(obj.dailyRareBoostCharges ?? 0);
+        lastChargeResetDate = obj.lastChargeResetDate || null;
+      }
       stats.coins = player.coins;
+      refreshDailyCharges();
       updateMuteButton();
     } catch {}
   }
@@ -1463,6 +1559,10 @@ if ("serviceWorker" in navigator) {
         bestCoin: stats.bestCoin,
         muted,
         inventory,
+        foundTrash,
+        collectorRodUnlocked,
+        dailyRareBoostCharges,
+        lastChargeResetDate,
         player: {
           coins: player.coins,
           activeBaitId: player.activeBaitId,
@@ -1499,10 +1599,15 @@ if ("serviceWorker" in navigator) {
     reps.fishShop = 30;
     reps.trophy = 30;
     reps.gearShop = 30;
+    foundTrash = {};
+    collectorRodUnlocked = false;
+    dailyRareBoostCharges = 0;
+    lastChargeResetDate = null;
     activeQuests = [];
     save();
     updateHUD();
     renderInventory();
+    renderTrashJournal();
   }
 
   btnReset?.addEventListener("click", () => {
@@ -1519,6 +1624,98 @@ if ("serviceWorker" in navigator) {
       const xpPct = player.playerXPToNext > 0 ? clamp(player.playerXP / player.playerXPToNext, 0, 1) * 100 : 0;
       xpBarFill.style.width = `${xpPct}%`;
     }
+    updateRareBoostHud();
+    updateTrashRewardStatus();
+  }
+
+  function getFoundTrashCount() {
+    return Object.keys(foundTrash).length;
+  }
+
+  function updateRareBoostHud() {
+    if (!rareBoostHud) return;
+    if (!collectorRodUnlocked || currentScene !== SCENE_LAKE) {
+      rareBoostHud.classList.add("hidden");
+      return;
+    }
+    const text = `Редкий улов: ${dailyRareBoostCharges}/10`;
+    rareBoostHud.textContent = DEV_TRASH_TEST ? `${text} TEST` : text;
+    rareBoostHud.classList.remove("hidden");
+  }
+
+  function updateTrashRewardStatus() {
+    if (!trashRewardStatus) return;
+    if (collectorRodUnlocked) {
+      trashRewardStatus.textContent = "Награда: Удочка «Собиратель» получена.";
+      return;
+    }
+    trashRewardStatus.textContent = `Найдено: ${getFoundTrashCount()}/${trashItems.length}. Награда: Удочка «Собиратель».`;
+  }
+
+  function refreshDailyCharges() {
+    const today = formatDayKey();
+    if (lastChargeResetDate !== today) {
+      lastChargeResetDate = today;
+      dailyRareBoostCharges = collectorRodUnlocked ? 10 : 0;
+    }
+  }
+
+  function spendRareBoostCharge() {
+    refreshDailyCharges();
+    if (!collectorRodUnlocked) return false;
+    if (dailyRareBoostCharges <= 0) return false;
+    dailyRareBoostCharges -= 1;
+    return true;
+  }
+
+  function resetRareBoostCharges() {
+    dailyRareBoostCharges = collectorRodUnlocked ? 10 : 0;
+    lastChargeResetDate = formatDayKey();
+    updateHUD();
+    save();
+  }
+
+  function renderTrashJournal() {
+    if (!trashGrid) return;
+    trashGrid.innerHTML = "";
+    trashItems.forEach((item) => {
+      const found = !!foundTrash[item.id];
+      const cell = document.createElement("div");
+      cell.className = `trashCell ${found ? "is-found" : "is-missing"}`;
+      const name = document.createElement("div");
+      name.className = "trashName";
+      name.textContent = found ? item.name : "???";
+      cell.append(name);
+      trashGrid.append(cell);
+    });
+    updateTrashRewardStatus();
+  }
+
+  function unlockCollectorRod() {
+    if (collectorRodUnlocked) return;
+    collectorRodUnlocked = true;
+    dailyRareBoostCharges = 10;
+    lastChargeResetDate = formatDayKey();
+    showToast("Награда получена: Удочка \"Собиратель\".");
+  }
+
+  function awardTrashCatch(catchData) {
+    if (!catchData) return;
+    const alreadyFound = !!foundTrash[catchData.trashId];
+    if (!alreadyFound) {
+      foundTrash[catchData.trashId] = true;
+      showToast(`Найдено: ${catchData.name}.`);
+    } else {
+      const bonus = DEV_TRASH_TEST ? 25 : 6;
+      player.coins += bonus;
+      showToast(`Повтор: ${catchData.name}. +${bonus} монет.`);
+    }
+    if (getFoundTrashCount() >= trashItems.length) {
+      unlockCollectorRod();
+    }
+    updateHUD();
+    renderTrashJournal();
+    save();
   }
 
   function openInventory() {
@@ -1531,13 +1728,68 @@ if ("serviceWorker" in navigator) {
     invOverlay?.classList.add("hidden");
   }
 
+  function openTrashJournal() {
+    trashOverlay?.classList.remove("hidden");
+    renderTrashJournal();
+  }
+
+  function closeTrashJournal() {
+    trashOverlay?.classList.add("hidden");
+  }
+
   btnInventory?.addEventListener("click", () => {
     if (currentScene !== SCENE_LAKE) return;
     openInventory();
   });
 
+  btnJournal?.addEventListener("click", () => {
+    if (currentScene !== SCENE_LAKE) return;
+    openTrashJournal();
+  });
+
   btnInvClose?.addEventListener("click", () => {
     closeInventory();
+  });
+
+  btnTrashClose?.addEventListener("click", () => {
+    closeTrashJournal();
+  });
+
+  if (btnTrashFill) {
+    btnTrashFill.classList.toggle("hidden", !DEV_TRASH_TEST);
+    btnTrashFill.addEventListener("click", () => {
+      if (!DEV_TRASH_TEST) return;
+      foundTrash = Object.fromEntries(trashItems.map((item) => [item.id, true]));
+      unlockCollectorRod();
+      renderTrashJournal();
+      updateHUD();
+      save();
+    });
+  }
+
+  if (btnResetCharges) {
+    btnResetCharges.classList.toggle("hidden", !DEV_TRASH_TEST);
+    btnResetCharges.addEventListener("click", () => {
+      if (!DEV_TRASH_TEST) return;
+      resetRareBoostCharges();
+      showToast("TEST: заряды сброшены.");
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (!DEV_TRASH_TEST) return;
+    if (event.code === "KeyR") {
+      resetRareBoostCharges();
+      showToast("TEST: заряды сброшены.");
+    }
+    if (event.code === "KeyF") {
+      foundTrash = Object.fromEntries(trashItems.map((item) => [item.id, true]));
+      unlockCollectorRod();
+      renderTrashJournal();
+      updateHUD();
+      save();
+      showToast("TEST: журнал заполнен.");
+    }
   });
 
   function openProgress() {
@@ -2294,6 +2546,7 @@ if ("serviceWorker" in navigator) {
     rarity: "обычная",
     reward: 0,
     catch: null,
+    rareBoostActive: false,
     // reel mechanics
     progress: 0,
     need: 1.0,
@@ -2402,8 +2655,11 @@ if ("serviceWorker" in navigator) {
     shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId));
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    btnJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnProgress?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    if (rareBoostHud) rareBoostHud.classList.toggle("hidden", sceneId !== SCENE_LAKE || !collectorRodUnlocked);
     if (sceneId !== SCENE_LAKE && invOverlay) invOverlay.classList.add("hidden");
+    if (sceneId !== SCENE_LAKE && trashOverlay) trashOverlay.classList.add("hidden");
     if (sceneId !== SCENE_LAKE && progressOverlay) progressOverlay.classList.add("hidden");
   }
 
@@ -2429,6 +2685,8 @@ if ("serviceWorker" in navigator) {
     bobber.inWater = false;
     setFishing(false);
     revealSystem.reset();
+    refreshDailyCharges();
+    game.rareBoostActive = false;
     setHintTexts(null, null);
     setScene(SCENE_LAKE);
     idleHintShown = false;
@@ -2470,6 +2728,9 @@ if ("serviceWorker" in navigator) {
     game.mode = "CASTING";
     game.t = 0;
     idleHintShown = true;
+    game.rareBoostActive = spendRareBoostCharge();
+    updateHUD();
+    save();
     animateCastToHole();
 
     bobber.visible = true;
@@ -2519,7 +2780,12 @@ if ("serviceWorker" in navigator) {
     game.rarity = catchData.rarityLabel;
     game.fishPower = catchData.power;
     game.reward = catchData.sellValue;
-    revealSystem.startAttempt(catchData);
+    if (catchData.catchType === "fish") {
+      revealSystem.startAttempt(catchData);
+    } else {
+      revealSystem.reset();
+      setHintTexts(null, null);
+    }
     const line = getLineStats();
 
     // reel mechanics
@@ -2554,7 +2820,9 @@ if ("serviceWorker" in navigator) {
 
   function openCatchModal(catchData) {
     if (!catchData) return;
+    const isTrash = catchData.catchType === "trash";
     pendingCatch = catchData;
+    if (catchTitle) catchTitle.textContent = isTrash ? "Находка!" : "Поймал рыбу!";
     if (catchName) catchName.textContent = catchData.name;
     if (catchRarity) {
       catchRarity.textContent = catchData.rarityLabel;
@@ -2584,7 +2852,7 @@ if ("serviceWorker" in navigator) {
     const discounted = Math.round(catchData.sellValue * 0.7);
     if (catchDiscountPrice) catchDiscountPrice.textContent = formatCoins(discounted);
     if (catchTrophyWrap) {
-      catchTrophyWrap.classList.toggle("hidden", !catchData.weightKg || catchData.weightKg < 5.0);
+      catchTrophyWrap.classList.toggle("hidden", isTrash || !catchData.weightKg || catchData.weightKg < 5.0);
     }
     if (catchTrophyToggle) catchTrophyToggle.checked = false;
     transitionTo(SCENE_CATCH_MODAL);
@@ -2592,6 +2860,18 @@ if ("serviceWorker" in navigator) {
 
   function land() {
     if (!game.catch) return;
+
+    if (game.catch.catchType === "trash") {
+      game.mode = "LANDED";
+      game.t = 0;
+      beep(660, 0.08, 0.06);
+      setMsg(`Нашёл: ${game.catch.name}.`, 1.8);
+      revealSystem.reset();
+      scheduleRevealHintHide(260);
+      awardTrashCatch(game.catch);
+      game.catch = null;
+      return;
+    }
 
     stats.fish += 1;
     const xpResult = progression.awardXP({
@@ -3391,6 +3671,7 @@ if ("serviceWorker" in navigator) {
     setVhVar();
     resize();
     renderInventory();
+    renderTrashJournal();
     setScene(SCENE_LAKE);
     setLakeState("idle");
     registerSW();
