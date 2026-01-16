@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 66 for hero/rod lake offset safe padding.
-const CACHE_VERSION = 66;
+// CACHE_VERSION bumped to 67 for hero/rod bridge alignment.
+const CACHE_VERSION = 67;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
