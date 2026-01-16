@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 56 for travel arc visuals.
-const CACHE_VERSION = 56;
+// CACHE_VERSION bumped to 57 for city scene hitboxes.
+const CACHE_VERSION = 57;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
@@ -13,6 +13,7 @@ const ASSETS = [
   "./manifest.json",
   "./bg_lake_landscape.png",
   "./bg_lake_portrait.png",
+  "./city.PNG",
   "./bobber.png",
   "./hero.png",
   "./rod.png",

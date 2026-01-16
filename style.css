@@ -88,6 +88,106 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   background: transparent;
 }
 
+#cityScene{
+  position:fixed;
+  inset:0;
+  z-index:2;
+  background: url("./city.PNG") center bottom / cover no-repeat;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.25s ease;
+}
+
+#cityTooltip{
+  position:absolute;
+  padding:6px 10px;
+  border-radius:10px;
+  background: rgba(10,18,28,.82);
+  color: #e9f2ff;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.02em;
+  opacity:0;
+  transform: translate(-50%, -12px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events:none;
+  white-space:nowrap;
+}
+
+#cityTooltip.is-visible{
+  opacity:1;
+  transform: translate(-50%, -20px);
+}
+
+.city-hitbox{
+  position:absolute;
+  border-radius:12px;
+  border:none;
+  background: rgba(255,255,255,0);
+  opacity:1;
+  pointer-events:auto;
+  cursor:pointer;
+  overflow:hidden;
+  transition: background 0.16s ease;
+}
+
+.city-hitbox::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: radial-gradient(circle at center, rgba(180,220,255,.35), rgba(180,220,255,0));
+  opacity:0;
+  transform: scale(0.75);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.city-hitbox:hover{
+  background: rgba(255,255,255,0.06);
+}
+
+.city-hitbox:focus-visible{
+  outline:2px solid rgba(123,211,255,.6);
+  outline-offset:2px;
+}
+
+.city-hitbox.is-pressed::after{
+  opacity:0.65;
+  transform: scale(1);
+}
+
+.city-hitbox[data-scene="fish"]{
+  left:6%;
+  top:41%;
+  width:26%;
+  height:22%;
+}
+
+.city-hitbox[data-scene="gear"]{
+  left:37%;
+  top:36%;
+  width:26%;
+  height:27%;
+}
+
+.city-hitbox[data-scene="trophy"]{
+  left:67%;
+  top:41%;
+  width:26%;
+  height:22%;
+}
+
+#app[data-scene="city"] #cityScene{
+  opacity:1;
+  pointer-events:none;
+}
+
+#app[data-scene="city"] #bgLayer,
+#app[data-scene="city"] #lakeScene,
+#app[data-scene="city"] #game{
+  opacity:0;
+  pointer-events:none;
+}
+
 #bottombar{
   display:flex; align-items:center; justify-content:space-between; gap:10px;
   padding:10px 12px;
