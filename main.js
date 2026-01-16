@@ -76,8 +76,12 @@ if ("serviceWorker" in navigator) {
   const btnCatchKeep = document.getElementById("btnCatchKeep");
   const btnCatchSellNow = document.getElementById("btnCatchSellNow");
 
-  const travelHud = document.getElementById("travelHud");
+  const travelOverlay = document.getElementById("travelOverlay");
   const travelTimer = document.getElementById("travelTimer");
+  const travelStatus = document.getElementById("travelStatus");
+  const travelPathBase = document.getElementById("travelPathBase");
+  const travelPathProgress = document.getElementById("travelPathProgress");
+  const travelMarker = document.getElementById("travelMarker");
 
   const cityHud = document.getElementById("cityHud");
   const btnBackToLake = document.getElementById("btnBackToLake");
@@ -755,7 +759,6 @@ if ("serviceWorker" in navigator) {
 
   const SCENE_LAKE = "SCENE_LAKE";
   const SCENE_CATCH_MODAL = "SCENE_CATCH_MODAL";
-  const SCENE_TRAVEL = "SCENE_TRAVEL";
   const SCENE_CITY = "SCENE_CITY";
   const SCENE_BUILDING_FISHSHOP = "SCENE_BUILDING_FISHSHOP";
   const SCENE_BUILDING_TROPHY = "SCENE_BUILDING_TROPHY";
@@ -1847,8 +1850,7 @@ if ("serviceWorker" in navigator) {
 
   btnCity?.addEventListener("click", () => {
     if (currentScene !== SCENE_LAKE) return;
-    travel.t = 0;
-    transitionTo(SCENE_TRAVEL);
+    startTravelToCity();
   });
 
   btnBackToLake?.addEventListener("click", () => {
@@ -2523,9 +2525,16 @@ if ("serviceWorker" in navigator) {
   let rippleBoostUntil = 0;
 
   const travel = {
-    duration: 20,
-    t: 0,
+    state: "idle",
+    startTime: 0,
+    endTime: 0,
+    durationSec: 18,
+    progress: 0,
+    arrivalHandled: false,
+    toastTimer: null
   };
+
+  let travelPathLength = 0;
 
   const cityBuildings = [];
 
@@ -2650,6 +2659,95 @@ if ("serviceWorker" in navigator) {
     if (ovText) ovText.textContent = text;
   }
 
+  function setTravelOverlayVisible(visible) {
+    if (!travelOverlay) return;
+    travelOverlay.classList.toggle("hidden", !visible);
+    travelOverlay.setAttribute("aria-hidden", visible ? "false" : "true");
+  }
+
+  function setTravelStatus(text, durationMs = 700) {
+    if (!travelStatus) return;
+    if (travel.toastTimer) window.clearTimeout(travel.toastTimer);
+    travelStatus.textContent = text;
+    travelStatus.classList.add("is-visible");
+    travel.toastTimer = window.setTimeout(() => {
+      travelStatus.classList.remove("is-visible");
+    }, durationMs);
+  }
+
+  function setTravelUiLocked(locked) {
+    if (!app) return;
+    const controls = app.querySelectorAll("button, select, input, textarea");
+    controls.forEach((control) => {
+      if (locked) {
+        if (!control.disabled) {
+          control.disabled = true;
+          control.dataset.travelLocked = "true";
+        }
+      } else if (control.dataset.travelLocked === "true") {
+        control.disabled = false;
+        delete control.dataset.travelLocked;
+      }
+    });
+    app.classList.toggle("travel-lock", locked);
+  }
+
+  function updateTravelUi() {
+    if (travel.state === "idle") return;
+    const now = Date.now();
+    const durationMs = travel.durationSec * 1000;
+    travel.progress = clamp((now - travel.startTime) / durationMs, 0, 1);
+    const remainingMs = Math.max(0, travel.endTime - now);
+    const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+    if (travelTimer) {
+      const m = Math.floor(remainingSec / 60).toString().padStart(2, "0");
+      const s = Math.floor(remainingSec % 60).toString().padStart(2, "0");
+      travelTimer.textContent = `${m}:${s}`;
+    }
+    if (travelPathBase && travelPathProgress && travelMarker) {
+      if (!travelPathLength) {
+        travelPathLength = travelPathBase.getTotalLength();
+      }
+      const progressLength = travelPathLength * travel.progress;
+      travelPathProgress.style.strokeDasharray = `${progressLength} ${travelPathLength}`;
+      const point = travelPathBase.getPointAtLength(progressLength);
+      travelMarker.setAttribute("cx", point.x);
+      travelMarker.setAttribute("cy", point.y);
+    }
+  }
+
+  function finishTravelToCity() {
+    if (travel.arrivalHandled) return;
+    travel.arrivalHandled = true;
+    setTravelStatus("Вы прибыли в город", 600);
+    window.setTimeout(() => {
+      initCitySession();
+      showToast("Продавцы обновили запасы золота.");
+      transitionTo(SCENE_CITY);
+      setTravelOverlayVisible(false);
+      setTravelUiLocked(false);
+      travel.state = "idle";
+      travel.startTime = 0;
+      travel.endTime = 0;
+      travel.progress = 0;
+      travel.arrivalHandled = false;
+    }, 600);
+  }
+
+  function startTravelToCity() {
+    if (travel.state !== "idle") return;
+    const now = Date.now();
+    travel.state = "toCity";
+    travel.startTime = now;
+    travel.endTime = now + travel.durationSec * 1000;
+    travel.progress = 0;
+    travel.arrivalHandled = false;
+    setTravelOverlayVisible(true);
+    setTravelUiLocked(true);
+    setTravelStatus("Отправляемся…", 750);
+    updateTravelUi();
+  }
+
   let catchOverlayVisible = false;
   let catchOverlayHideTimer = null;
 
@@ -2679,7 +2777,6 @@ if ("serviceWorker" in navigator) {
   function setScene(sceneId) {
     currentScene = sceneId;
     setCatchOverlayVisible(sceneId === SCENE_CATCH_MODAL);
-    travelHud?.classList.toggle("hidden", sceneId !== SCENE_TRAVEL);
     cityHud?.classList.toggle("hidden", sceneId !== SCENE_CITY);
     shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId));
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
@@ -3081,18 +3178,10 @@ if ("serviceWorker" in navigator) {
     game.lastTap += dt;
     if (game.msgT > 0) game.msgT -= dt;
 
-    if (currentScene === SCENE_TRAVEL) {
-      travel.t += dt;
-      const remaining = Math.max(0, travel.duration - travel.t);
-      if (travelTimer) {
-        const m = Math.floor(remaining / 60).toString().padStart(2, "0");
-        const s = Math.floor(remaining % 60).toString().padStart(2, "0");
-        travelTimer.textContent = `До города: ${m}:${s}`;
-      }
-      if (travel.t >= travel.duration) {
-        initCitySession();
-        showToast("Продавцы обновили запасы золота.");
-        transitionTo(SCENE_CITY);
+    if (travel.state !== "idle") {
+      updateTravelUi();
+      if (Date.now() >= travel.endTime) {
+        finishTravelToCity();
       }
       return;
     }
@@ -3373,10 +3462,6 @@ if ("serviceWorker" in navigator) {
 
   // ===== Drawing =====
   function draw() {
-    if (currentScene === SCENE_TRAVEL) {
-      drawTravel();
-      return;
-    }
     if (currentScene === SCENE_CITY || currentScene === SCENE_BUILDING_FISHSHOP || currentScene === SCENE_BUILDING_TROPHY || currentScene === SCENE_BUILDING_GEARSHOP) {
       drawCity();
       return;
@@ -3439,53 +3524,6 @@ if ("serviceWorker" in navigator) {
       ctx.stroke();
     }
     ctx.restore();
-  }
-
-  function drawTravel() {
-    ctx.fillStyle = "#0b1621";
-    ctx.fillRect(0, 0, W, H);
-
-    const mapTop = H * 0.2;
-    const mapBottom = H * 0.75;
-    const mapLeft = W * 0.12;
-    const mapRight = W * 0.88;
-
-    ctx.fillStyle = "#0f2232";
-    roundRect(mapLeft, mapTop, mapRight - mapLeft, mapBottom - mapTop, 18);
-    ctx.fill();
-
-    ctx.strokeStyle = "#5a7899";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(mapLeft + 20, mapBottom - 40);
-    ctx.quadraticCurveTo(W * 0.5, mapTop + 30, mapRight - 20, mapBottom - 50);
-    ctx.stroke();
-
-    const lakeX = mapLeft + 30;
-    const lakeY = mapBottom - 60;
-    ctx.fillStyle = "#1d3c58";
-    ctx.beginPath();
-    ctx.arc(lakeX, lakeY, 22, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#9ad1ff";
-    ctx.font = "700 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
-    ctx.fillText("Озеро", lakeX - 20, lakeY - 30);
-
-    const cityX = mapRight - 30;
-    const cityY = mapBottom - 70;
-    ctx.fillStyle = "#3a5f7a";
-    roundRect(cityX - 18, cityY - 18, 36, 36, 8);
-    ctx.fill();
-    ctx.fillStyle = "#9ad1ff";
-    ctx.fillText("Город", cityX - 20, cityY - 30);
-
-    const progress = clamp(travel.t / travel.duration, 0, 1);
-    const pathX = lerp(mapLeft + 20, mapRight - 20, progress);
-    const pathY = lerp(mapBottom - 40, mapBottom - 50, progress);
-    ctx.fillStyle = "#ffd166";
-    ctx.beginPath();
-    ctx.arc(pathX, pathY, 8, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   function drawCity() {
