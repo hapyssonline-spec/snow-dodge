@@ -60,46 +60,84 @@ img, a{
 }
 #app{
   height:calc(var(--vh, 1vh) * 100);
-  display:flex;
-  flex-direction:column;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  width:100%;
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+}
+
+#gameLayer,
+#uiLayer,
+#modalLayer{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+#gameLayer{
+  z-index:0;
+}
+
+#uiLayer{
+  z-index:10;
+  pointer-events:none;
+}
+
+#uiLayer .hud button,
+#uiLayer .hud .chipBtn,
+#uiLayer .hud .iconBtn,
+#uiLayer .hud .profileButton{
+  pointer-events:auto;
+}
+
+#modalLayer{
+  z-index:100;
+  pointer-events:none;
+}
+
+#modalLayer.is-active{
+  pointer-events:auto;
 }
 
 #topbar{
-  display:flex;
+  display:grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items:center;
-  justify-content:space-between;
-  padding:8px 12px;
+  padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
   background: linear-gradient(180deg, rgba(16,31,48,.85), rgba(16,31,48,.5));
   border-bottom: 1px solid var(--stroke);
   gap:10px;
-  position:relative;
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
   z-index:5;
   transition: opacity 0.2s ease;
+  pointer-events:none;
 }
 
 .topbarSlot{
   display:flex;
   align-items:center;
   justify-content:center;
-  min-width:92px;
-  width:92px;
+  min-width:0;
 }
 
 .topbarSlot-center{
-  flex:1;
-  width:auto;
-  min-width:0;
+  justify-self:center;
   flex-direction:column;
   text-align:center;
 }
 
 .topbarSlot-left{
-  justify-content:flex-start;
+  justify-self:start;
+  pointer-events:auto;
 }
 
 .topbarSlot-right{
-  justify-content:flex-end;
+  justify-self:end;
+  pointer-events:none;
 }
 .profileButton{
   width:44px;
@@ -168,9 +206,9 @@ img, a{
 .center{flex:1; text-align:center}
 .title{font-weight:900; letter-spacing:.14em; font-size:16px}
 
-#stage{position:relative; flex:1; display:flex; overflow:hidden;}
+#stage{position:absolute; inset:0; display:flex; overflow:hidden;}
 #sceneRoot{
-  position:fixed;
+  position:absolute;
   inset:0;
   width:100vw;
   height:100vh;
@@ -178,7 +216,7 @@ img, a{
   z-index:0;
 }
 #bgLayer{
-  position:fixed;
+  position:absolute;
   inset:0;
   z-index:0;
   pointer-events:none;
@@ -191,7 +229,7 @@ img, a{
   object-fit:cover;
 }
 #game{
-  position:fixed;
+  position:absolute;
   inset:0;
   z-index:1;
   width:100%;
@@ -203,12 +241,13 @@ img, a{
 }
 
 #cityScene{
-  position:fixed;
+  position:absolute;
   inset:0;
   z-index:2;
   background: url("./city.PNG") center bottom / cover no-repeat;
   opacity:0;
   pointer-events:none;
+  display:none;
   transition: opacity 0.25s ease;
 }
 
@@ -292,7 +331,8 @@ img, a{
 
 #app[data-scene="city"] #cityScene{
   opacity:1;
-  pointer-events:none;
+  pointer-events:auto;
+  display:block;
 }
 
 #app[data-scene="city"] #bgLayer,
@@ -304,12 +344,27 @@ img, a{
 
 #bottombar{
   display:flex; align-items:center; justify-content:space-between; gap:10px;
-  padding:10px 12px;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--stroke);
   background: linear-gradient(0deg, rgba(16,31,48,.95), rgba(16,31,48,.70));
-  position:relative;
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
   z-index:5;
   transition: opacity 0.2s ease;
+  pointer-events:none;
+}
+
+#bottombar .chipBtn{
+  flex:1 1 0;
+  min-width:0;
+  pointer-events:auto;
+}
+
+#bottombar .iconBtn{
+  flex:0 0 auto;
+  pointer-events:auto;
 }
 .bottombar-fight{
   opacity:0.25;
@@ -323,6 +378,7 @@ img, a{
   color: var(--text);
   font-weight:800;
   white-space:nowrap;
+  touch-action: manipulation;
 }
 .iconBtn{
   width:44px;
@@ -597,7 +653,6 @@ img, a{
 #app[data-effects="reduced"] #invOverlay,
 #app[data-effects="reduced"] #trashOverlay,
 #app[data-effects="reduced"] #shopOverlay,
-#app[data-effects="reduced"] #progressOverlay,
 #app[data-effects="reduced"] #profileOverlay,
 #app[data-effects="reduced"] #profileSetupOverlay,
 #app[data-effects="reduced"] #leaderboardOverlay{
@@ -620,6 +675,18 @@ img, a{
 
 #profileSetupOverlay{
   z-index:9;
+}
+
+#leaderboardOverlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  backdrop-filter: blur(10px);
+  background: rgba(6,12,20,.72);
+  z-index:7;
 }
 
 .profileCard{
@@ -652,6 +719,27 @@ img, a{
   font-weight:900;
 }
 
+.modalCard{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+
+.modalHeader{
+  flex:0 0 auto;
+}
+
+.modalBody{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  touch-action: pan-y;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
 .profileScreen{
   display:flex;
   flex-direction:column;
@@ -666,9 +754,6 @@ img, a{
   gap:16px;
   flex:1;
   min-height:0;
-  overflow:auto;
-  -webkit-overflow-scrolling:touch;
-  touch-action: pan-y;
 }
 
 .profileSection{
@@ -754,6 +839,46 @@ img, a{
   align-items:center;
   justify-content:space-between;
   gap:12px;
+}
+
+.profileSetupSuggested{
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  padding:12px;
+  background: rgba(11,18,28,.65);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  text-align:center;
+}
+
+.profileSetupLabel{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+
+.profileSetupName{
+  font-size:20px;
+  font-weight:900;
+}
+
+.profileSetupCustom{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.profileQuickActions{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:8px;
+}
+
+.profileQuickActions .chipBtn{
+  width:100%;
 }
 
 .profileGearLabel{
@@ -928,15 +1053,47 @@ img, a{
 }
 
 .trophyPanel{
-  display:none;
+  display:flex;
   flex:1;
   min-height:0;
   flex-direction:column;
   gap:12px;
 }
 
-.trophyPanel.is-active{
+.trophyHub{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+
+.trophyHubBtn{
+  padding:14px 12px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.75);
+  color:var(--text);
+  font-weight:800;
+  text-align:center;
+}
+
+.trophyHubBtn.secondary{
+  background: rgba(12,20,30,.7);
+  color:var(--muted);
+}
+
+.trophyQuestHeader{
   display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.leaderboardBody{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  flex:1;
+  min-height:0;
 }
 
 .leaderboardRow{
@@ -970,6 +1127,13 @@ img, a{
   color:var(--muted);
 }
 
+.leaderboardSectionLabel{
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+  letter-spacing:.02em;
+}
+
 #app[data-effects="reduced"] #trashOverlay{
   transition: none;
 }
@@ -996,70 +1160,10 @@ img, a{
   z-index:6;
 }
 
-#progressOverlay{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:18px;
-  background: rgba(6,12,20,.5);
-  backdrop-filter: blur(8px);
-  z-index:6;
-}
-.progressCard{
-  width:min(420px, 92vw);
-  border-radius:18px;
-  border:1px solid var(--stroke);
-  background: rgba(16,31,48,.96);
-  padding:16px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  box-shadow: 0 16px 50px rgba(0,0,0,.35);
-}
-.progressHeader{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-}
-.progressTitle{
-  font-size:16px;
-  font-weight:900;
-  letter-spacing:.06em;
-}
-.progressStats{
-  display:grid;
-  grid-template-columns:repeat(2, minmax(0, 1fr));
-  gap:10px;
-}
-.progressStat{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  padding:10px 12px;
-  border-radius:12px;
-  background: rgba(11,18,28,.6);
-  border:1px solid rgba(166,185,218,.12);
-}
-.progressBar{
-  height:6px;
-  border-radius:999px;
-  background: rgba(166,185,218,.2);
-  overflow:hidden;
-}
-.progressBarFill{
-  height:100%;
-  width:0%;
-  background: linear-gradient(90deg, #7bd3ff, #66e6a0);
-  transition: width .2s ease;
-}
-
 .hintToast{
   position:absolute;
   left:50%;
-  bottom:96px;
+  bottom:calc(96px + env(safe-area-inset-bottom));
   transform:translateX(-50%) translateY(6px);
   padding:8px 12px;
   border-radius:12px;
@@ -1658,8 +1762,8 @@ img, a{
 }
 
 #cityHud{
-  position:absolute;
-  bottom:16px;
+  position:fixed;
+  bottom:calc(16px + env(safe-area-inset-bottom));
   left:50%;
   transform:translateX(-50%);
   z-index:6;

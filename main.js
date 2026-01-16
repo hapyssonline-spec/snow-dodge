@@ -25,6 +25,9 @@ if ("serviceWorker" in navigator) {
 
   // ===== DOM =====
   const app = document.getElementById("app");
+  const gameLayer = document.getElementById("gameLayer");
+  const uiLayer = document.getElementById("uiLayer");
+  const modalLayer = document.getElementById("modalLayer");
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: true });
   const lakeScene = document.getElementById("lakeScene");
@@ -33,9 +36,6 @@ if ("serviceWorker" in navigator) {
 
   const coinsEl = document.getElementById("coins");
   const profileLevelBadge = document.getElementById("profileLevelBadge");
-  const playerLevelEl = document.getElementById("playerLevel");
-  const xpTextEl = document.getElementById("xpText");
-  const xpBarFill = document.getElementById("xpBarFill");
   const hintToast = document.getElementById("hintToast");
 
   const overlay = document.getElementById("overlay");
@@ -43,7 +43,7 @@ if ("serviceWorker" in navigator) {
   const btnPlay = document.getElementById("btnPlay");
   const btnReset = document.getElementById("btnReset");
   const btnMute = document.getElementById("btnMute");
-  const btnProgress = document.getElementById("btnProgress");
+  const btnStar = document.getElementById("btnStar");
   const btnProfile = document.getElementById("btnProfile");
   const btnInventory = document.getElementById("btnInventory");
   const btnJournal = document.getElementById("btnJournal");
@@ -124,8 +124,8 @@ if ("serviceWorker" in navigator) {
   const baitList = document.getElementById("baitList");
   const rodList = document.getElementById("rodList");
   const lineList = document.getElementById("lineList");
-  const progressOverlay = document.getElementById("progressOverlay");
-  const btnProgressClose = document.getElementById("btnProgressClose");
+  const leaderboardOverlay = document.getElementById("leaderboardOverlay");
+  const btnLeaderboardClose = document.getElementById("btnLeaderboardClose");
 
   const profileOverlay = document.getElementById("profileOverlay");
   const btnProfileClose = document.getElementById("btnProfileClose");
@@ -142,6 +142,7 @@ if ("serviceWorker" in navigator) {
   const profileXpText = document.getElementById("profileXpText");
   const profileXpRemain = document.getElementById("profileXpRemain");
   const btnProfileStatsOpen = document.getElementById("btnProfileStatsOpen");
+  const btnProfileLeaderboardsOpen = document.getElementById("btnProfileLeaderboardsOpen");
   const btnProfileStatsBack = document.getElementById("btnProfileStatsBack");
   const profileScreenMain = document.getElementById("profileScreenMain");
   const profileScreenStats = document.getElementById("profileScreenStats");
@@ -152,10 +153,6 @@ if ("serviceWorker" in navigator) {
   const statGoldEarned = document.getElementById("statGoldEarned");
   const statBestRarity = document.getElementById("statBestRarity");
   const statMaxWeight = document.getElementById("statMaxWeight");
-  const statFishCaughtQuick = document.getElementById("statFishCaughtQuick");
-  const statGoldEarnedQuick = document.getElementById("statGoldEarnedQuick");
-  const statBestRarityQuick = document.getElementById("statBestRarityQuick");
-  const statMaxWeightQuick = document.getElementById("statMaxWeightQuick");
   const profileRenameCost = document.getElementById("profileRenameCost");
   const profileConfirmText = document.getElementById("profileConfirmText");
   const btnProfileConfirmCancel = document.getElementById("btnProfileConfirmCancel");
@@ -170,17 +167,23 @@ if ("serviceWorker" in navigator) {
   const profileGearToggles = Array.from(document.querySelectorAll(".profileGearToggle"));
 
   const profileSetupOverlay = document.getElementById("profileSetupOverlay");
+  const profileSetupSuggested = document.getElementById("profileSetupSuggested");
   const profileSetupInput = document.getElementById("profileSetupInput");
   const profileSetupError = document.getElementById("profileSetupError");
+  const profileSetupCustomPanel = document.getElementById("profileSetupCustomPanel");
+  const btnProfileSetupAccept = document.getElementById("btnProfileSetupAccept");
+  const btnProfileSetupCustom = document.getElementById("btnProfileSetupCustom");
   const btnProfileSetupSave = document.getElementById("btnProfileSetupSave");
-  const btnProfileSetupGenerate = document.getElementById("btnProfileSetupGenerate");
 
   const leaderboardTabButtons = Array.from(document.querySelectorAll(".leaderboardTabBtn"));
   const leaderboardYourRecord = document.getElementById("leaderboardYourRecord");
   const leaderboardLocalList = document.getElementById("leaderboardLocalList");
   const trophySection = document.getElementById("trophySection");
-  const trophyTabButtons = Array.from(document.querySelectorAll(".trophyTabBtn"));
-  const trophyPanels = Array.from(document.querySelectorAll(".trophyPanel"));
+  const trophyHub = document.getElementById("trophyHub");
+  const trophyQuestPanel = document.getElementById("trophyQuestPanel");
+  const btnTrophyQuests = document.getElementById("btnTrophyQuests");
+  const btnTrophyRecords = document.getElementById("btnTrophyRecords");
+  const btnTrophyBack = document.getElementById("btnTrophyBack");
 
   const sceneFade = document.getElementById("sceneFade");
   const toast = document.getElementById("toast");
@@ -195,6 +198,45 @@ if ("serviceWorker" in navigator) {
   const breakHint = document.getElementById("breakHint");
   const fishHintText = document.getElementById("fishHintText");
   const rareBoostHud = document.getElementById("rareBoostHud");
+
+  // Fix for accidental scene -> shop routing: isolate UI/game layers and stop UI click bubbling.
+  const stopUiEvent = (event) => {
+    if (!event) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  };
+
+  const guardUiClick = (event) => {
+    if (event?.target?.closest?.("button")) {
+      stopUiEvent(event);
+    }
+  };
+
+  uiLayer?.addEventListener("pointerdown", guardUiClick);
+  uiLayer?.addEventListener("click", guardUiClick);
+  modalLayer?.addEventListener("pointerdown", guardUiClick);
+  modalLayer?.addEventListener("click", guardUiClick);
+
+  const blockingOverlays = [
+    overlay,
+    invOverlay,
+    trashOverlay,
+    catchOverlay,
+    profileSetupOverlay,
+    profileOverlay,
+    travelOverlay,
+    shopOverlay,
+    leaderboardOverlay,
+    rotateOverlay,
+    sceneFade
+  ];
+
+  function updateModalLayerState() {
+    if (!modalLayer) return;
+    const hasBlocking = blockingOverlays.some((el) => el && !el.classList.contains("hidden"));
+    modalLayer.classList.toggle("is-active", hasBlocking);
+  }
 
   // ===== Helpers =====
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -627,8 +669,11 @@ if ("serviceWorker" in navigator) {
   const orientationQuery = window.matchMedia?.("(orientation: landscape)");
 
   function isLandscapeOrientation() {
+    if (window.innerWidth && window.innerHeight) {
+      return window.innerWidth > window.innerHeight;
+    }
     if (orientationQuery) return orientationQuery.matches;
-    return window.innerWidth > window.innerHeight;
+    return false;
   }
 
   function setOrientationLock(locked) {
@@ -643,8 +688,9 @@ if ("serviceWorker" in navigator) {
       pendingOrientationPause += Date.now() - orientationPauseStarted;
       orientationPauseStarted = null;
     }
+    updateModalLayerState();
     if (!locked) {
-      handleResize();
+      layout();
     }
   }
 
@@ -1829,14 +1875,28 @@ if ("serviceWorker" in navigator) {
 
     layoutCity();
   }
-  const handleResize = debounce(() => {
+  // Layer interactivity is controlled here to keep game taps on the scene only.
+  function updateLayerVisibility() {
+    if (gameLayer) {
+      gameLayer.style.pointerEvents = orientationLocked ? "none" : "auto";
+    }
+    if (uiLayer) {
+      uiLayer.style.pointerEvents = orientationLocked ? "none" : "";
+    }
+    updateModalLayerState();
+  }
+
+  const layout = () => {
     setVhVar();
     resize();
     applyLakeRig();
     if (!bobber.visible) {
       syncBobberToRodTip();
     }
-  }, 100);
+    updateLayerVisibility();
+  };
+
+  const handleResize = debounce(layout, 100);
   window.addEventListener("resize", handleResize);
   window.addEventListener("orientationchange", handleResize);
   window.addEventListener("resize", debounce(updateOrientationLock, 80));
@@ -1846,7 +1906,30 @@ if ("serviceWorker" in navigator) {
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
-  const STORAGE_VERSION = 8;
+  const STORAGE_VERSION = 9;
+  const NICK_REGISTRY_KEY = "icefish_nick_registry";
+
+  function loadNickRegistry() {
+    try {
+      const raw = localStorage.getItem(NICK_REGISTRY_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function saveNickRegistry() {
+    try {
+      localStorage.setItem(NICK_REGISTRY_KEY, JSON.stringify(nickRegistry));
+    } catch {}
+  }
+
+  function normalizeNicknameKey(value) {
+    return (value || "").trim().toLowerCase();
+  }
+
+  let nickRegistry = loadNickRegistry();
 
   const stats = {
     coins: 0,
@@ -2031,6 +2114,23 @@ if ("serviceWorker" in navigator) {
       });
       return names;
     }
+
+    renamePlayer(oldName, newName) {
+      const oldKey = normalizeNicknameKey(oldName);
+      const newKey = normalizeNicknameKey(newName);
+      if (!oldKey || !newKey) return;
+      leaderboardBoardIds.forEach((id) => {
+        const list = this.boards[id] || [];
+        let changed = false;
+        list.forEach((entry) => {
+          if (entry?.name && normalizeNicknameKey(entry.name) === oldKey) {
+            entry.name = newName;
+            changed = true;
+          }
+        });
+        if (changed) this.boards[id] = list;
+      });
+    }
   }
 
   const leaderboardProvider = new LocalLeaderboardProvider();
@@ -2053,15 +2153,16 @@ if ("serviceWorker" in navigator) {
       muted = !!obj.muted;
       if (obj.profile && typeof obj.profile === "object") {
         const canRename = obj.profile.canRename !== false;
-        const freeRenameUsed = obj.profile.freeRenameUsed !== undefined
-          ? !!obj.profile.freeRenameUsed
-          : !canRename;
+        const renameFreeUsed = obj.profile.renameFreeUsed !== undefined
+          ? !!obj.profile.renameFreeUsed
+          : (obj.profile.freeRenameUsed !== undefined ? !!obj.profile.freeRenameUsed : !canRename);
+        const storedName = obj.profile.nickname || obj.profile.name || "";
         profile = {
-          name: obj.profile.name || "",
-          freeRenameUsed,
+          nickname: storedName,
+          renameFreeUsed,
           createdAt: obj.profile.createdAt || Date.now()
         };
-        if (!profile.name) {
+        if (!profile.nickname) {
           profile = null;
         }
       }
@@ -2133,6 +2234,9 @@ if ("serviceWorker" in navigator) {
         }
       }
       stats.coins = player.coins;
+      if (profile?.nickname) {
+        registerNickname(profile.nickname);
+      }
       refreshDailyCharges();
       updateMuteButton();
       ensureQuestPreviews();
@@ -2160,7 +2264,13 @@ if ("serviceWorker" in navigator) {
         collectorRodUnlocked,
         dailyRareBoostCharges,
         lastChargeResetDate,
-        profile,
+        profile: profile
+          ? {
+            nickname: profile.nickname,
+            renameFreeUsed: profile.renameFreeUsed,
+            createdAt: profile.createdAt
+          }
+          : null,
         leaderboards: leaderboardProvider.save(),
         player: {
           coins: player.coins,
@@ -2254,12 +2364,6 @@ if ("serviceWorker" in navigator) {
   function updateHUD() {
     if (coinsEl) coinsEl.textContent = String(player.coins);
     if (profileLevelBadge) profileLevelBadge.textContent = String(player.playerLevel);
-    if (playerLevelEl) playerLevelEl.textContent = String(player.playerLevel);
-    if (xpTextEl) xpTextEl.textContent = `${player.playerXP}/${player.playerXPToNext}`;
-    if (xpBarFill) {
-      const xpPct = player.playerXPToNext > 0 ? clamp(player.playerXP / player.playerXPToNext, 0, 1) * 100 : 0;
-      xpBarFill.style.width = `${xpPct}%`;
-    }
     updateRareBoostHud();
     updateTrashRewardStatus();
     updateQuestReminder();
@@ -2273,20 +2377,17 @@ if ("serviceWorker" in navigator) {
   }
 
   function updateProfileStatsUI() {
-    if (profileName) profileName.textContent = profile?.name || "—";
+    if (profileName) profileName.textContent = profile?.nickname || "—";
     if (profileRenameHint) {
-      profileRenameHint.textContent = profile
-        ? (profile.freeRenameUsed ? "Повторная смена: 10000 золота" : "Смена ника: 1 раз бесплатно")
-        : "";
+      profileRenameHint.textContent = profile ? "Смена: 1 раз бесплатно, далее 10000" : "";
     }
     if (profileRenameCost) {
       profileRenameCost.textContent = profile
-        ? (profile.freeRenameUsed ? "Стоимость: 10000 золота" : "Бесплатная смена")
+        ? (profile.renameFreeUsed ? "Стоимость: 10000 золота" : "Бесплатная смена")
         : "";
     }
     if (btnProfileRename) {
-      const canRename = !!profile && (!profile.freeRenameUsed || player.coins >= 10000);
-      btnProfileRename.disabled = !canRename;
+      btnProfileRename.disabled = !profile;
     }
     if (profileLevel) profileLevel.textContent = String(player.playerLevel);
     if (profileXpFill) {
@@ -2305,21 +2406,11 @@ if ("serviceWorker" in navigator) {
     if (statFishCaught) statFishCaught.textContent = String(stats.totalFishCaught);
     if (statGoldEarned) statGoldEarned.textContent = formatCoins(stats.totalGoldEarned);
     if (statMaxWeight) statMaxWeight.textContent = formatWeightFromGrams(stats.maxFishWeightG);
-    if (statFishCaughtQuick) statFishCaughtQuick.textContent = String(stats.totalFishCaught);
-    if (statGoldEarnedQuick) statGoldEarnedQuick.textContent = formatCoins(stats.totalGoldEarned);
-    if (statMaxWeightQuick) statMaxWeightQuick.textContent = formatWeightFromGrams(stats.maxFishWeightG);
     if (statBestRarity) {
       if (stats.bestRarityName) {
         statBestRarity.textContent = stats.bestRarityName;
       } else {
         statBestRarity.textContent = "—";
-      }
-    }
-    if (statBestRarityQuick) {
-      if (stats.bestRarityName) {
-        statBestRarityQuick.textContent = stats.bestRarityName;
-      } else {
-        statBestRarityQuick.textContent = "—";
       }
     }
     if (profileRodName) profileRodName.textContent = getRodStats().name;
@@ -2354,47 +2445,59 @@ if ("serviceWorker" in navigator) {
   }
 
   function updateLeaderboardsFromStats() {
-    if (!profile?.name) return;
+    if (!profile?.nickname) return;
     const now = Date.now();
-    leaderboardProvider.submit("max_weight", { name: profile.name, score: stats.maxFishWeightG, updatedAt: now });
+    leaderboardProvider.submit("max_weight", { name: profile.nickname, score: stats.maxFishWeightG, updatedAt: now });
     leaderboardProvider.submit("best_rarity", {
-      name: profile.name,
+      name: profile.nickname,
       score: stats.bestRarityTier,
       tieBreak: stats.bestRarityFishWeightG,
       updatedAt: now
     });
-    leaderboardProvider.submit("gold_earned", { name: profile.name, score: stats.totalGoldEarned, updatedAt: now });
-    leaderboardProvider.submit("level", { name: profile.name, score: player.playerLevel, tieBreak: player.playerXPTotal, updatedAt: now });
+    leaderboardProvider.submit("gold_earned", { name: profile.nickname, score: stats.totalGoldEarned, updatedAt: now });
+    leaderboardProvider.submit("level", { name: profile.nickname, score: player.playerLevel, tieBreak: player.playerXPTotal, updatedAt: now });
   }
 
   function normalizeNickname(value) {
-    return (value || "").trim();
+    return normalizeNicknameKey(value);
   }
 
   function isNicknameValid(name) {
-    return /^[A-Za-z0-9_]{3,16}$/.test(name);
+    return /^[A-Za-z0-9_]{3,12}$/.test(name);
   }
 
-  function isNicknameTaken(name) {
+  function isNicknameTaken(name, options = {}) {
+    const { allowCurrent = true } = options;
+    const key = normalizeNicknameKey(name);
+    if (!key) return false;
+    if (allowCurrent && profile?.nickname && normalizeNicknameKey(profile.nickname) === key) return false;
+    if (nickRegistry[key]) return true;
     const taken = leaderboardProvider.getAllNames();
-    if (profile?.name && profile.name === name) return false;
-    return taken.has(name);
+    for (const entry of taken) {
+      if (normalizeNicknameKey(entry) === key) return true;
+    }
+    return false;
+  }
+
+  function registerNickname(name) {
+    const key = normalizeNicknameKey(name);
+    if (!key) return;
+    nickRegistry[key] = true;
+    saveNickRegistry();
   }
 
   function getRenameCost() {
     if (!profile) return 0;
-    return profile.freeRenameUsed ? 10000 : 0;
+    return profile.renameFreeUsed ? 10000 : 0;
   }
 
   function canRenameProfile() {
-    if (!profile) return false;
-    return !profile.freeRenameUsed || player.coins >= 10000;
+    return !!profile;
   }
 
   function getNextAvailableUserName(startIndex = 1) {
-    const taken = leaderboardProvider.getAllNames();
     let idx = Math.max(1, startIndex);
-    while (taken.has(`user${idx}`)) idx += 1;
+    while (isNicknameTaken(`user${idx}`, { allowCurrent: false })) idx += 1;
     return { name: `user${idx}`, nextIndex: idx + 1 };
   }
 
@@ -2516,10 +2619,12 @@ if ("serviceWorker" in navigator) {
     invOverlay?.classList.remove("hidden");
     if (invSort) invSort.value = inventorySort;
     renderInventory();
+    updateModalLayerState();
   }
 
   function closeInventory() {
     invOverlay?.classList.add("hidden");
+    updateModalLayerState();
   }
 
   function openTrashJournal() {
@@ -2529,6 +2634,7 @@ if ("serviceWorker" in navigator) {
       trashOverlay.classList.add("is-visible");
     });
     renderTrashJournal();
+    updateModalLayerState();
   }
 
   function closeTrashJournal() {
@@ -2536,6 +2642,7 @@ if ("serviceWorker" in navigator) {
     trashOverlay.classList.remove("is-visible");
     window.setTimeout(() => {
       trashOverlay.classList.add("hidden");
+      updateModalLayerState();
     }, 250);
   }
 
@@ -2594,14 +2701,6 @@ if ("serviceWorker" in navigator) {
     }
   });
 
-  function openProgress() {
-    openProfile();
-  }
-
-  function closeProgress() {
-    closeProfile();
-  }
-
   function showProfileScreen(screen) {
     const screens = {
       main: profileScreenMain,
@@ -2623,6 +2722,7 @@ if ("serviceWorker" in navigator) {
     profileRenameForm?.classList.add("hidden");
     setProfileError(profileRenameError, "");
     updateProfileStatsUI();
+    updateModalLayerState();
   }
 
   function closeProfile() {
@@ -2632,27 +2732,30 @@ if ("serviceWorker" in navigator) {
     setProfileError(profileRenameError, "");
     pendingRename = null;
     activeProfileGear = null;
+    updateModalLayerState();
   }
 
   function openProfileSetup() {
     if (!profileSetupOverlay) return;
     profileSetupOverlay.classList.remove("hidden");
     profileSetupOverlay.setAttribute("aria-hidden", "false");
-    if (profileSetupInput) {
-      const next = getNextAvailableUserName(suggestedUserIndex);
-      profileSetupInput.value = next.name;
-      suggestedUserIndex = next.nextIndex;
-    }
+    const next = getNextAvailableUserName(suggestedUserIndex);
+    if (profileSetupSuggested) profileSetupSuggested.textContent = next.name;
+    suggestedUserIndex = next.nextIndex;
+    if (profileSetupCustomPanel) profileSetupCustomPanel.classList.add("hidden");
+    if (profileSetupInput) profileSetupInput.value = "";
     setProfileError(profileSetupError, "");
+    updateModalLayerState();
   }
 
   function closeProfileSetup() {
     profileSetupOverlay?.classList.add("hidden");
     profileSetupOverlay?.setAttribute("aria-hidden", "true");
+    updateModalLayerState();
   }
 
   let activeLeaderboardTab = "max_weight";
-  let activeTrophyTab = "quests";
+  let activeTrophyView = "hub";
 
   function formatLeaderboardScore(boardId, entry) {
     if (!entry) return "—";
@@ -2695,22 +2798,22 @@ if ("serviceWorker" in navigator) {
       });
     }
     let yourText = "Твой рекорд: —";
-    if (profile?.name) {
+    if (profile?.nickname) {
       switch (activeLeaderboardTab) {
         case "max_weight":
-          yourText = `Твой рекорд: ${profile.name} — ${formatWeightFromGrams(stats.maxFishWeightG)}`;
+          yourText = `Твой рекорд: ${profile.nickname} — ${formatWeightFromGrams(stats.maxFishWeightG)}`;
           break;
         case "best_rarity": {
           const label = stats.bestRarityLabel || getRarityLabelByTier(stats.bestRarityTier);
           const name = stats.bestRarityName ? `${stats.bestRarityName} (${label})` : "—";
-          yourText = `Твой рекорд: ${profile.name} — ${name}`;
+          yourText = `Твой рекорд: ${profile.nickname} — ${name}`;
           break;
         }
         case "gold_earned":
-          yourText = `Твой рекорд: ${profile.name} — ${formatCoins(stats.totalGoldEarned)}`;
+          yourText = `Твой рекорд: ${profile.nickname} — ${formatCoins(stats.totalGoldEarned)}`;
           break;
         case "level":
-          yourText = `Твой рекорд: ${profile.name} — ур. ${player.playerLevel}`;
+          yourText = `Твой рекорд: ${profile.nickname} — ур. ${player.playerLevel}`;
           break;
         default:
           break;
@@ -2719,28 +2822,33 @@ if ("serviceWorker" in navigator) {
     leaderboardYourRecord.textContent = yourText;
   }
 
-  function updateTrophyTabs() {
-    trophyTabButtons.forEach((btn) => {
-      const isActive = btn.dataset.trophyTab === activeTrophyTab;
-      btn.classList.toggle("is-active", isActive);
-      btn.setAttribute("aria-selected", isActive ? "true" : "false");
-    });
-    trophyPanels.forEach((panel) => {
-      panel.classList.toggle("is-active", panel.dataset.trophyPanel === activeTrophyTab);
-    });
-    if (activeTrophyTab === "records") {
-      updateLeaderboardsFromStats();
-      renderLeaderboard();
+  function setTrophyView(view) {
+    activeTrophyView = view;
+    if (trophyHub) trophyHub.classList.toggle("hidden", view !== "hub");
+    if (trophyQuestPanel) trophyQuestPanel.classList.toggle("hidden", view !== "quests");
+    if (view === "quests") {
+      renderTrophyQuest();
     }
   }
 
-  btnProgress?.addEventListener("click", () => {
-    if (currentScene !== SCENE_LAKE) return;
-    openProgress();
-  });
+  function openLeaderboard() {
+    if (!leaderboardOverlay) return;
+    leaderboardOverlay.classList.remove("hidden");
+    leaderboardOverlay.setAttribute("aria-hidden", "false");
+    updateLeaderboardsFromStats();
+    renderLeaderboard();
+    updateModalLayerState();
+  }
 
-  btnProgressClose?.addEventListener("click", () => {
-    closeProgress();
+  function closeLeaderboard() {
+    leaderboardOverlay?.classList.add("hidden");
+    leaderboardOverlay?.setAttribute("aria-hidden", "true");
+    updateModalLayerState();
+  }
+
+  btnStar?.addEventListener("click", () => {
+    if (currentScene !== SCENE_LAKE) return;
+    showToast("Скоро.");
   });
 
   btnProfile?.addEventListener("click", () => {
@@ -2757,12 +2865,21 @@ if ("serviceWorker" in navigator) {
     updateProfileStatsUI();
   });
 
+  btnProfileLeaderboardsOpen?.addEventListener("click", () => {
+    closeProfile();
+    openLeaderboard();
+  });
+
   btnProfileStatsBack?.addEventListener("click", () => {
     showProfileScreen("main");
   });
 
   btnProfileGearBack?.addEventListener("click", () => {
     showProfileScreen("main");
+  });
+
+  btnLeaderboardClose?.addEventListener("click", () => {
+    closeLeaderboard();
   });
 
   profileGearToggles.forEach((toggle) => {
@@ -2783,7 +2900,7 @@ if ("serviceWorker" in navigator) {
     if (!canRenameProfile()) return;
     profileRenameForm?.classList.toggle("hidden");
     if (profileRenameInput) {
-      profileRenameInput.value = profile?.name || "";
+      profileRenameInput.value = profile?.nickname || "";
       profileRenameInput.focus();
     }
   });
@@ -2799,10 +2916,10 @@ if ("serviceWorker" in navigator) {
     if (!canRenameProfile()) return;
     const proposed = normalizeNickname(profileRenameInput.value);
     if (!isNicknameValid(proposed)) {
-      setProfileError(profileRenameError, "Ник: 3–16 символов, латиница/цифры/_.");
+      setProfileError(profileRenameError, "Ник: 3–12 символов, латиница/цифры/_.");
       return;
     }
-    if (proposed === profile.name) {
+    if (normalizeNicknameKey(proposed) === normalizeNicknameKey(profile.nickname)) {
       setProfileError(profileRenameError, "Это текущий ник.");
       return;
     }
@@ -2811,7 +2928,7 @@ if ("serviceWorker" in navigator) {
       setProfileError(profileRenameError, `Ник занят. Попробуй ${suggestion}.`);
       return;
     }
-    pendingRename = { name: proposed, cost: getRenameCost() };
+    pendingRename = { name: proposed, cost: getRenameCost(), previous: profile.nickname };
     if (profileConfirmText) {
       profileConfirmText.textContent = `Вы точно хотите сменить имя на ${pendingRename.name}?`;
     }
@@ -2839,8 +2956,12 @@ if ("serviceWorker" in navigator) {
     if (cost > 0) {
       player.coins -= cost;
     }
-    profile.name = pendingRename.name;
-    profile.freeRenameUsed = true;
+    if (pendingRename.previous) {
+      leaderboardProvider.renamePlayer(pendingRename.previous, pendingRename.name);
+    }
+    profile.nickname = pendingRename.name;
+    profile.renameFreeUsed = true;
+    registerNickname(pendingRename.name);
     pendingRename = null;
     setProfileError(profileRenameError, "");
     profileRenameForm?.classList.add("hidden");
@@ -2851,36 +2972,58 @@ if ("serviceWorker" in navigator) {
     showProfileScreen("main");
   });
 
-  btnProfileSetupSave?.addEventListener("click", () => {
-    if (!profileSetupInput) return;
-    const proposed = normalizeNickname(profileSetupInput.value);
-    if (!isNicknameValid(proposed)) {
-      setProfileError(profileSetupError, "Ник: 3–16 символов, латиница/цифры/_.");
-      return;
-    }
-    if (isNicknameTaken(proposed)) {
-      const suggestion = getNextAvailableUserName(1).name;
-      setProfileError(profileSetupError, `Ник занят. Попробуй ${suggestion}.`);
-      return;
-    }
+  function applyProfileNickname(name) {
     profile = {
-      name: proposed,
-      freeRenameUsed: false,
+      nickname: name,
+      renameFreeUsed: false,
       createdAt: Date.now()
     };
+    registerNickname(name);
     setProfileError(profileSetupError, "");
     closeProfileSetup();
     updateProfileStatsUI();
     updateLeaderboardsFromStats();
     save();
+  }
+
+  btnProfileSetupAccept?.addEventListener("click", () => {
+    const proposed = normalizeNickname(profileSetupSuggested?.textContent || "");
+    if (!isNicknameValid(proposed)) {
+      setProfileError(profileSetupError, "Ник: 3–12 символов, латиница/цифры/_.");
+      return;
+    }
+    if (isNicknameTaken(proposed, { allowCurrent: false })) {
+      const suggestion = getNextAvailableUserName(1).name;
+      setProfileError(profileSetupError, `Ник занят. Попробуй ${suggestion}.`);
+      return;
+    }
+    applyProfileNickname(proposed);
   });
 
-  btnProfileSetupGenerate?.addEventListener("click", () => {
-    if (!profileSetupInput) return;
-    const next = getNextAvailableUserName(suggestedUserIndex);
-    profileSetupInput.value = next.name;
-    suggestedUserIndex = next.nextIndex;
+  btnProfileSetupCustom?.addEventListener("click", () => {
+    if (profileSetupCustomPanel) {
+      profileSetupCustomPanel.classList.remove("hidden");
+    }
+    if (profileSetupInput) {
+      profileSetupInput.value = "";
+      profileSetupInput.focus();
+    }
     setProfileError(profileSetupError, "");
+  });
+
+  btnProfileSetupSave?.addEventListener("click", () => {
+    if (!profileSetupInput) return;
+    const proposed = normalizeNickname(profileSetupInput.value);
+    if (!isNicknameValid(proposed)) {
+      setProfileError(profileSetupError, "Ник: 3–12 символов, латиница/цифры/_.");
+      return;
+    }
+    if (isNicknameTaken(proposed, { allowCurrent: false })) {
+      const suggestion = getNextAvailableUserName(1).name;
+      setProfileError(profileSetupError, `Ник занят. Попробуй ${suggestion}.`);
+      return;
+    }
+    applyProfileNickname(proposed);
   });
 
   leaderboardTabButtons.forEach((btn) => {
@@ -2897,13 +3040,16 @@ if ("serviceWorker" in navigator) {
     });
   });
 
-  trophyTabButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const tab = btn.dataset.trophyTab;
-      if (!tab) return;
-      activeTrophyTab = tab;
-      updateTrophyTabs();
-    });
+  btnTrophyQuests?.addEventListener("click", () => {
+    setTrophyView("quests");
+  });
+
+  btnTrophyRecords?.addEventListener("click", () => {
+    openLeaderboard();
+  });
+
+  btnTrophyBack?.addEventListener("click", () => {
+    setTrophyView("hub");
   });
 
   invSort?.addEventListener("change", () => {
@@ -3219,7 +3365,7 @@ if ("serviceWorker" in navigator) {
       if (shopTitle) shopTitle.textContent = "Трофейная";
       if (trophySection) trophySection.classList.remove("hidden");
       renderTrophyQuest();
-      updateTrophyTabs();
+      setTrophyView("hub");
     } else if (sceneId === SCENE_BUILDING_GEARSHOP) {
       if (shopTitle) shopTitle.textContent = "Всё для рыбалки";
       if (shopStats) shopStats.classList.remove("hidden");
@@ -3230,7 +3376,7 @@ if ("serviceWorker" in navigator) {
   function renderShopStats() {
     if (!shopStats) return;
     shopStats.innerHTML = `
-      <span>Активная приманка: ${getActiveBaitLabel()}</span>
+      <span>Наживка: ${getActiveBaitLabel()}</span>
       <span>Удочка: ${getRodStats().name}</span>
       <span>Леска: ${getLineStats().name}</span>
     `;
@@ -3414,9 +3560,7 @@ if ("serviceWorker" in navigator) {
 
   function renderGearShop() {
     if (!gearShopSection) return;
-    if (currentScene === SCENE_BUILDING_GEARSHOP) {
-      gearShopSection.classList.remove("hidden");
-    }
+    gearShopSection.classList.remove("hidden");
     updateGearTabs();
 
     if (baitList) {
@@ -3631,7 +3775,7 @@ if ("serviceWorker" in navigator) {
     });
     cityBuildings.push({
       id: SCENE_BUILDING_TROPHY,
-      label: "Трофеи",
+      label: "Трофейная",
       x: startX + houseW + gap,
       y: baseY - houseH - 10,
       w: houseW,
@@ -3672,7 +3816,7 @@ if ("serviceWorker" in navigator) {
     msgT: 0,
   };
 
-  const isInScrollable = (el) => el && el.closest && el.closest(".scrollable");
+  const isInScrollable = (el) => el && el.closest && el.closest(".scrollable, .modalBody");
   const isInGame = (el) => el && el.closest && el.closest("#game, #gameContainer, canvas");
   const activeGameModes = new Set(["CASTING", "WAITING", "BITE", "HOOKED", "REELING"]);
   const isGameplayActive = () => activeGameModes.has(game.mode);
@@ -3783,9 +3927,14 @@ if ("serviceWorker" in navigator) {
       trophy: SCENE_BUILDING_TROPHY
     };
     cityHitboxes.forEach((hitbox) => {
-      hitbox.addEventListener("pointerdown", () => {
+      hitbox.addEventListener("pointerdown", (event) => {
+        if (currentScene !== SCENE_CITY) return;
+        stopUiEvent(event);
         hitbox.classList.add("is-pressed");
         clearCityTooltipTimers();
+        if (navigator.vibrate) {
+          navigator.vibrate(12);
+        }
         cityTooltipTimer = window.setTimeout(() => {
           showCityTooltip(hitbox);
         }, 320);
@@ -3798,7 +3947,9 @@ if ("serviceWorker" in navigator) {
       hitbox.addEventListener("pointerup", clearPress);
       hitbox.addEventListener("pointerleave", clearPress);
       hitbox.addEventListener("pointercancel", clearPress);
-      hitbox.addEventListener("click", () => {
+      hitbox.addEventListener("click", (event) => {
+        if (currentScene !== SCENE_CITY) return;
+        stopUiEvent(event);
         const sceneId = sceneMap[hitbox.dataset.scene];
         if (sceneId) openShop(sceneId);
       });
@@ -3807,9 +3958,11 @@ if ("serviceWorker" in navigator) {
 
   function showOverlay() {
     overlay?.classList.remove("hidden");
+    updateModalLayerState();
   }
   function hideOverlay() {
     overlay?.classList.add("hidden");
+    updateModalLayerState();
   }
   function setOverlayText(text) {
     if (ovText) ovText.textContent = text;
@@ -3819,6 +3972,7 @@ if ("serviceWorker" in navigator) {
     if (!travelOverlay) return;
     travelOverlay.classList.toggle("hidden", !visible);
     travelOverlay.setAttribute("aria-hidden", visible ? "false" : "true");
+    updateModalLayerState();
   }
 
   function setTravelStatus(text, durationMs = 700) {
@@ -3920,6 +4074,7 @@ if ("serviceWorker" in navigator) {
       requestAnimationFrame(() => {
         catchOverlay.classList.add("is-visible");
       });
+      updateModalLayerState();
       return;
     }
     catchOverlay.classList.remove("is-visible");
@@ -3928,6 +4083,7 @@ if ("serviceWorker" in navigator) {
       if (!catchOverlayVisible) {
         catchOverlay.classList.add("hidden");
         catchOverlay.classList.remove("is-hiding");
+        updateModalLayerState();
       }
     }, 220);
   }
@@ -3936,6 +4092,10 @@ if ("serviceWorker" in navigator) {
     currentScene = sceneId;
     const isCityScene = [SCENE_CITY, SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId);
     if (app) app.dataset.scene = isCityScene ? "city" : "lake";
+    if (cityScene) {
+      cityScene.setAttribute("aria-hidden", isCityScene ? "false" : "true");
+      cityScene.style.pointerEvents = sceneId === SCENE_CITY ? "auto" : "none";
+    }
     clearCityTooltipTimers();
     clearCityTooltip();
     setCatchOverlayVisible(sceneId === SCENE_CATCH_MODAL);
@@ -3944,14 +4104,15 @@ if ("serviceWorker" in navigator) {
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
-    btnProgress?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    btnStar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     if (rareBoostHud) rareBoostHud.classList.toggle("hidden", sceneId !== SCENE_LAKE || !collectorRodUnlocked);
     if (sceneId !== SCENE_LAKE && invOverlay) invOverlay.classList.add("hidden");
     if (sceneId !== SCENE_LAKE && trashOverlay) {
       trashOverlay.classList.add("hidden");
       trashOverlay.classList.remove("is-visible");
     }
-    if (sceneId !== SCENE_LAKE && progressOverlay) progressOverlay.classList.add("hidden");
+    updateModalLayerState();
+    updateLayerVisibility();
   }
 
   function transitionTo(sceneId) {
@@ -3961,10 +4122,14 @@ if ("serviceWorker" in navigator) {
     }
     sceneFade.classList.remove("hidden");
     sceneFade.classList.add("active");
+    updateModalLayerState();
     setTimeout(() => {
       setScene(sceneId);
       sceneFade.classList.remove("active");
-      setTimeout(() => sceneFade.classList.add("hidden"), 320);
+      setTimeout(() => {
+        sceneFade.classList.add("hidden");
+        updateModalLayerState();
+      }, 320);
     }, 220);
   }
 
@@ -4916,8 +5081,7 @@ if ("serviceWorker" in navigator) {
     updateLeaderboardsFromStats();
     updateProfileStatsUI();
     initCityHitboxes();
-    setVhVar();
-    resize();
+    layout();
     renderInventory();
     renderTrashJournal();
     setScene(SCENE_LAKE);
