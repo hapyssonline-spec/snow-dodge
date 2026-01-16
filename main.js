@@ -1879,7 +1879,8 @@ if ("serviceWorker" in navigator) {
 
   // ===== DPI / Resize =====
   let W = 0, H = 0, DPR = 1;
-  const HERO_ROD_Y_OFFSET_FACTOR = 0.9;
+  const HERO_ROD_Y_OFFSET_FACTOR = 0.65;
+  const HERO_ROD_SAFE_PADDING = 12;
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -1918,9 +1919,13 @@ if ("serviceWorker" in navigator) {
       getComputedStyle(lakeScene).getPropertyValue("--hero-rod-y-offset")
     ) || 0;
     const baseCenterY = heroRect.top + heroRect.height / 2 - currentOffset;
+    const baseTopY = baseCenterY - heroRect.height / 2;
     const desiredOffset = Math.round(heroRect.height * HERO_ROD_Y_OFFSET_FACTOR);
-    const maxOffset = Math.max(0, Math.floor(H - heroRect.height / 2 - baseCenterY));
-    const nextOffset = clamp(desiredOffset, 0, maxOffset);
+    const bottomHudHeight = bottomBar ? bottomBar.getBoundingClientRect().height : 0;
+    const safeBottomY = H - bottomHudHeight - HERO_ROD_SAFE_PADDING;
+    const maxOffsetViewport = Math.max(0, Math.floor(H - heroRect.height / 2 - baseCenterY));
+    const maxOffsetHud = Math.max(0, Math.floor(safeBottomY - heroRect.height - baseTopY));
+    const nextOffset = clamp(desiredOffset, 0, Math.min(maxOffsetViewport, maxOffsetHud));
     lakeScene.style.setProperty("--hero-rod-y-offset", `${nextOffset}px`);
   }
   // Layer interactivity is controlled here to keep game taps on the scene only.
