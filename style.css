@@ -332,8 +332,16 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   display:flex; align-items:center; justify-content:center;
   padding:18px;
   backdrop-filter: blur(10px);
-  background: rgba(6,12,20,.68);
+  background: rgba(6,12,20,.74);
   z-index:6;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.25s ease;
+}
+
+#trashOverlay.is-visible{
+  opacity:1;
+  pointer-events:auto;
 }
 
 #catchOverlay{
@@ -378,6 +386,10 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 #app[data-effects="reduced"] #progressOverlay{
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+#app[data-effects="reduced"] #trashOverlay{
+  transition: none;
 }
 
 #app[data-effects="reduced"] #catchOverlay,
@@ -510,13 +522,13 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   width:min(520px, 100%);
   max-height: calc(100% - 32px);
   border-radius:18px;
-  border:1px solid var(--stroke);
-  background: rgba(16,31,48,.96);
+  border:1px solid rgba(130,162,198,.22);
+  background: rgba(14,26,40,.98);
   padding:16px;
   display:flex;
   flex-direction:column;
   gap:12px;
-  box-shadow: 0 16px 50px rgba(0,0,0,.35);
+  box-shadow: 0 18px 55px rgba(0,0,0,.4);
 }
 
 .trashHeader{
@@ -535,20 +547,80 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 .trashRewardStatus{
   font-size:13px;
   color:var(--muted);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.trashRewardLine{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:6px;
+  line-height:1.3;
+}
+
+.trashRewardLine--complete{
+  display:none;
+}
+
+.trashRewardStatus.is-complete .trashRewardLine--progress{
+  display:none;
+}
+
+.trashRewardStatus.is-complete .trashRewardLine--complete{
+  display:flex;
+}
+
+.trashRewardCount{
+  color:#c9d8f2;
+  font-weight:700;
+}
+
+.trashRewardRod{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:#d7e6ff;
+}
+
+.trashRewardIcon{
+  width:14px;
+  height:14px;
+  opacity:0.75;
+  filter: saturate(0.8);
+}
+
+.trashRewardRodName{
+  font-weight:600;
+}
+
+.trashProgress{
+  height:3px;
+  border-radius:999px;
+  background: rgba(146,176,208,.18);
+  overflow:hidden;
+}
+
+.trashProgressFill{
+  height:100%;
+  width:0%;
+  border-radius:999px;
+  background: linear-gradient(90deg, rgba(126,196,255,.65), rgba(109,170,230,.85));
 }
 
 .trashGrid{
   display:grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap:10px;
+  gap:12px;
 }
 
 .trashCell{
   border-radius:12px;
-  border:1px solid var(--stroke);
-  background: rgba(15,26,36,.6);
+  border:1px solid rgba(120,145,170,.22);
+  background: rgba(12,22,32,.7);
   padding:10px;
-  min-height:64px;
+  min-height:72px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -556,12 +628,125 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   font-size:12px;
   font-weight:700;
   color:var(--muted);
+  position:relative;
+  overflow:hidden;
 }
 
 .trashCell.is-found{
   color:var(--text);
-  background: rgba(123,211,255,.12);
-  border-color: rgba(123,211,255,.3);
+  background: rgba(18,34,48,.72);
+  border-color: rgba(146,176,208,.26);
+  box-shadow: inset 0 0 0 1px rgba(120,150,180,.08);
+}
+
+.trashCell.is-missing{
+  color:rgba(206,220,240,.6);
+}
+
+.trashCell.is-missing::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.05), transparent 45%),
+    radial-gradient(circle at 20% 20%, rgba(130,160,190,.08), transparent 50%);
+  opacity:0.6;
+  pointer-events:none;
+}
+
+.trashCell.is-special.is-missing::after{
+  opacity:0.8;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.06), transparent 45%),
+    radial-gradient(circle at 70% 30%, rgba(150,180,210,.12), transparent 55%),
+    radial-gradient(circle at 30% 70%, rgba(120,150,180,.08), transparent 60%);
+}
+
+.trashName{
+  position:relative;
+  z-index:2;
+  text-align:center;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+
+.trashCell.is-missing .trashName{
+  font-size:11px;
+  opacity:0.6;
+  letter-spacing:0.02em;
+}
+
+.trashSilhouette{
+  position:absolute;
+  inset:8px;
+  border-radius:10px;
+  opacity:0.35;
+  filter: blur(1.6px);
+  background: rgba(110,130,150,.18);
+  z-index:1;
+}
+
+.trashSilhouette--rusty_can{
+  background:
+    radial-gradient(circle at 45% 45%, rgba(145,165,190,.35), transparent 60%),
+    linear-gradient(120deg, rgba(120,140,165,.28), transparent 70%);
+}
+
+.trashSilhouette--old_boot{
+  background:
+    radial-gradient(circle at 40% 60%, rgba(140,160,185,.32), transparent 58%),
+    linear-gradient(150deg, rgba(110,130,150,.25), transparent 70%);
+}
+
+.trashSilhouette--broken_barrel{
+  background:
+    radial-gradient(circle at 50% 50%, rgba(150,170,195,.32), transparent 55%),
+    linear-gradient(90deg, rgba(120,140,165,.2), transparent 60%);
+}
+
+.trashSilhouette--torn_net{
+  background:
+    repeating-linear-gradient(45deg, rgba(140,160,185,.18) 0 6px, transparent 6px 12px),
+    radial-gradient(circle at 60% 40%, rgba(120,140,165,.22), transparent 55%);
+}
+
+.trashSilhouette--broken_reel{
+  background:
+    radial-gradient(circle at 45% 50%, rgba(150,170,200,.3), transparent 48%),
+    radial-gradient(circle at 55% 45%, rgba(110,130,155,.22), transparent 55%);
+}
+
+.trashSilhouette--bent_hook{
+  background:
+    radial-gradient(circle at 55% 50%, rgba(140,160,190,.28), transparent 50%),
+    linear-gradient(170deg, rgba(110,130,155,.22), transparent 65%);
+}
+
+.trashSilhouette--floating_plank{
+  background:
+    linear-gradient(160deg, rgba(140,160,185,.25), transparent 70%),
+    linear-gradient(20deg, rgba(110,130,150,.2), transparent 75%);
+}
+
+.trashSilhouette--sealed_crate{
+  background:
+    linear-gradient(90deg, rgba(130,150,175,.28), transparent 65%),
+    linear-gradient(0deg, rgba(110,130,150,.2), transparent 70%);
+}
+
+.trashSilhouette--old_extinguisher{
+  background:
+    radial-gradient(circle at 50% 40%, rgba(150,170,195,.32), transparent 55%),
+    linear-gradient(180deg, rgba(120,140,165,.22), transparent 65%);
+}
+
+.trashSilhouette--rusty_key{
+  background:
+    radial-gradient(circle at 60% 45%, rgba(160,180,205,.34), transparent 50%),
+    linear-gradient(120deg, rgba(120,140,165,.22), transparent 70%);
 }
 
 .trashControls{

@@ -125,7 +125,28 @@
             <div class="trashTitle">Журнал находок</div>
             <button id="btnTrashClose" class="chipBtn">Закрыть</button>
           </div>
-          <div id="trashRewardStatus" class="trashRewardStatus">Найдено: 0/10. Награда: Удочка «Собиратель».</div>
+          <div id="trashRewardStatus" class="trashRewardStatus">
+            <div class="trashRewardLine trashRewardLine--progress" id="trashRewardLineProgress">
+              <span class="trashRewardLabel">Найдено:</span>
+              <span id="trashFoundCount" class="trashRewardCount">0</span>
+              <span id="trashFoundTotal" class="trashRewardTotal">/10.</span>
+              <span class="trashRewardLabel">Награда:</span>
+              <span class="trashRewardRod">
+                <img class="trashRewardIcon" src="./rod.png?v=28" alt="" aria-hidden="true">
+                <span class="trashRewardRodName">Удочка «Собиратель».</span>
+              </span>
+            </div>
+            <div class="trashRewardLine trashRewardLine--complete" id="trashRewardLineComplete">
+              <span class="trashRewardLabel">Награда:</span>
+              <span class="trashRewardRod">
+                <img class="trashRewardIcon" src="./rod.png?v=28" alt="" aria-hidden="true">
+                <span class="trashRewardRodName">Удочка «Собиратель» получена.</span>
+              </span>
+            </div>
+            <div class="trashProgress" aria-hidden="true">
+              <div class="trashProgressFill" id="trashProgressFill"></div>
+            </div>
+          </div>
           <div id="trashGrid" class="trashGrid"></div>
           <div class="trashControls">
             <button id="btnTrashFill" class="chipBtn secondary hidden">TEST: заполнить журнал</button>
@@ -288,7 +309,7 @@
     </footer>
   </div>
 
-  <!-- cache-bust: main.js v41 (trash journal + collector rod) -->
-  <script src="main.js?v=41"></script>
+  <!-- cache-bust: main.js v42 (trash journal visuals) -->
+  <script src="main.js?v=42"></script>
 </body>
 </html>
