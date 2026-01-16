@@ -43,6 +43,13 @@
           <img id="bgLandscapeImg" src="./bg_lake_landscape.png?v=28" alt="" draggable="false">
         </div>
 
+        <div id="cityScene" aria-hidden="true">
+          <button class="city-hitbox" data-scene="fish" data-label="Рыбная лавка" aria-label="Рыбная лавка"></button>
+          <button class="city-hitbox" data-scene="gear" data-label="Снасти" aria-label="Снасти"></button>
+          <button class="city-hitbox" data-scene="trophy" data-label="Трофеи" aria-label="Трофеи"></button>
+          <div id="cityTooltip" role="status" aria-live="polite"></div>
+        </div>
+
         <canvas id="game"></canvas>
 
         <div id="lakeScene" aria-hidden="true">
@@ -323,7 +330,7 @@
     </footer>
   </div>
 
-  <!-- cache-bust: main.js v44 (travel arc visuals) -->
-  <script src="main.js?v=44"></script>
+  <!-- cache-bust: main.js v45 (city hitboxes) -->
+  <script src="main.js?v=45"></script>
 </body>
 </html>

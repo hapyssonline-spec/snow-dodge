@@ -86,6 +86,9 @@ if ("serviceWorker" in navigator) {
 
   const cityHud = document.getElementById("cityHud");
   const btnBackToLake = document.getElementById("btnBackToLake");
+  const cityScene = document.getElementById("cityScene");
+  const cityHitboxes = Array.from(document.querySelectorAll(".city-hitbox"));
+  const cityTooltip = document.getElementById("cityTooltip");
 
   const shopOverlay = document.getElementById("shopOverlay");
   const shopTitle = document.getElementById("shopTitle");
@@ -211,6 +214,8 @@ if ("serviceWorker" in navigator) {
   let hintHideTimer = null;
   let castHintCount = 0;
   let idleHintShown = false;
+  let cityTooltipTimer = null;
+  let cityTooltipHideTimer = null;
 
   function setFightHudVisible(visible) {
     if (!fightHud) return;
@@ -2650,6 +2655,65 @@ if ("serviceWorker" in navigator) {
     setHint(text, Math.min(2.0, Math.max(0.8, seconds)));
   }
 
+  function clearCityTooltip() {
+    if (!cityTooltip) return;
+    cityTooltip.classList.remove("is-visible");
+  }
+
+  function clearCityTooltipTimers() {
+    if (cityTooltipTimer) window.clearTimeout(cityTooltipTimer);
+    if (cityTooltipHideTimer) window.clearTimeout(cityTooltipHideTimer);
+    cityTooltipTimer = null;
+    cityTooltipHideTimer = null;
+  }
+
+  function showCityTooltip(target) {
+    if (!cityTooltip || !cityScene || !target) return;
+    const label = target.dataset.label || target.getAttribute("aria-label") || "";
+    if (!label) return;
+    const targetRect = target.getBoundingClientRect();
+    const sceneRect = cityScene.getBoundingClientRect();
+    const left = targetRect.left - sceneRect.left + targetRect.width / 2;
+    const top = targetRect.top - sceneRect.top;
+    cityTooltip.textContent = label;
+    cityTooltip.style.left = `${left}px`;
+    cityTooltip.style.top = `${top}px`;
+    cityTooltip.classList.add("is-visible");
+    if (cityTooltipHideTimer) window.clearTimeout(cityTooltipHideTimer);
+    cityTooltipHideTimer = window.setTimeout(() => {
+      clearCityTooltip();
+    }, 1200);
+  }
+
+  function initCityHitboxes() {
+    const sceneMap = {
+      fish: SCENE_BUILDING_FISHSHOP,
+      gear: SCENE_BUILDING_GEARSHOP,
+      trophy: SCENE_BUILDING_TROPHY
+    };
+    cityHitboxes.forEach((hitbox) => {
+      hitbox.addEventListener("pointerdown", () => {
+        hitbox.classList.add("is-pressed");
+        clearCityTooltipTimers();
+        cityTooltipTimer = window.setTimeout(() => {
+          showCityTooltip(hitbox);
+        }, 320);
+      });
+      const clearPress = () => {
+        hitbox.classList.remove("is-pressed");
+        clearCityTooltipTimers();
+        clearCityTooltip();
+      };
+      hitbox.addEventListener("pointerup", clearPress);
+      hitbox.addEventListener("pointerleave", clearPress);
+      hitbox.addEventListener("pointercancel", clearPress);
+      hitbox.addEventListener("click", () => {
+        const sceneId = sceneMap[hitbox.dataset.scene];
+        if (sceneId) openShop(sceneId);
+      });
+    });
+  }
+
   function showOverlay() {
     overlay?.classList.remove("hidden");
   }
@@ -2781,6 +2845,10 @@ if ("serviceWorker" in navigator) {
 
   function setScene(sceneId) {
     currentScene = sceneId;
+    const isCityScene = [SCENE_CITY, SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId);
+    if (app) app.dataset.scene = isCityScene ? "city" : "lake";
+    clearCityTooltipTimers();
+    clearCityTooltip();
     setCatchOverlayVisible(sceneId === SCENE_CATCH_MODAL);
     cityHud?.classList.toggle("hidden", sceneId !== SCENE_CITY);
     shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId));
@@ -3047,11 +3115,7 @@ if ("serviceWorker" in navigator) {
     startX = lastX = p.x;
     startY = lastY = p.y;
 
-    if (currentScene === SCENE_CITY) {
-      const hit = cityBuildings.find((b) => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
-      if (hit) {
-        openShop(hit.id);
-      }
+    if ([SCENE_CITY, SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(currentScene)) {
       return;
     }
 
@@ -3468,7 +3532,7 @@ if ("serviceWorker" in navigator) {
   // ===== Drawing =====
   function draw() {
     if (currentScene === SCENE_CITY || currentScene === SCENE_BUILDING_FISHSHOP || currentScene === SCENE_BUILDING_TROPHY || currentScene === SCENE_BUILDING_GEARSHOP) {
-      drawCity();
+      ctx.clearRect(0, 0, W, H);
       return;
     }
     drawLake();
@@ -3743,6 +3807,7 @@ if ("serviceWorker" in navigator) {
     load();
     updateMuteButton();
     updateHUD();
+    initCityHitboxes();
     setVhVar();
     resize();
     renderInventory();
