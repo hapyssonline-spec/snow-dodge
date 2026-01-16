@@ -32,14 +32,14 @@ if ("serviceWorker" in navigator) {
   const playerLevelEl = document.getElementById("playerLevel");
   const xpTextEl = document.getElementById("xpText");
   const xpBarFill = document.getElementById("xpBarFill");
-  const subtitleEl = document.getElementById("subtitle");
-  const chipHint = document.getElementById("chipHint");
+  const hintToast = document.getElementById("hintToast");
 
   const overlay = document.getElementById("overlay");
   const ovText = document.getElementById("ovText");
   const btnPlay = document.getElementById("btnPlay");
   const btnReset = document.getElementById("btnReset");
   const btnMute = document.getElementById("btnMute");
+  const btnProgress = document.getElementById("btnProgress");
   const btnInventory = document.getElementById("btnInventory");
   const btnCity = document.getElementById("btnCity");
 
@@ -87,11 +87,14 @@ if ("serviceWorker" in navigator) {
   const lineList = document.getElementById("lineList");
   const questList = document.getElementById("questList");
   const btnNewQuest = document.getElementById("btnNewQuest");
+  const progressOverlay = document.getElementById("progressOverlay");
+  const btnProgressClose = document.getElementById("btnProgressClose");
 
   const sceneFade = document.getElementById("sceneFade");
   const toast = document.getElementById("toast");
   const xpToast = document.getElementById("xpToast");
   const bottomBar = document.getElementById("bottombar");
+  const topBar = document.getElementById("topbar");
   const fightHud = document.getElementById("fightHud");
   const tensionFill = fightHud?.querySelector(".tensionFill");
   const tensionMarker = fightHud?.querySelector(".tensionMarker");
@@ -104,7 +107,6 @@ if ("serviceWorker" in navigator) {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + Math.random() * (b - a);
-  const DEFAULT_SUBTITLE = "Тап — заброс. Поклёвка → свайп вверх. Тапы — выматывать.";
 
   function getTensionZone(tension) {
     const zones = game.reel?.zones;
@@ -139,6 +141,9 @@ if ("serviceWorker" in navigator) {
   let fightHudHideTimer = null;
   let revealHintHideTimer = null;
   let lastFishHintText = null;
+  let hintHideTimer = null;
+  let castHintCount = 0;
+  let idleHintShown = false;
 
   function setFightHudVisible(visible) {
     if (!fightHud) return;
@@ -146,6 +151,7 @@ if ("serviceWorker" in navigator) {
     fightHudVisible = visible;
     fightHud.setAttribute("aria-hidden", visible ? "false" : "true");
     if (bottomBar) bottomBar.classList.toggle("bottombar-fight", visible);
+    if (topBar) topBar.classList.toggle("topbar-fight", visible);
     if (visible) {
       if (fightHudHideTimer) window.clearTimeout(fightHudHideTimer);
       fightHud.classList.remove("hidden");
@@ -1180,9 +1186,17 @@ if ("serviceWorker" in navigator) {
     } catch {}
   }
 
+  function updateMuteButton() {
+    if (!btnMute) return;
+    btnMute.classList.toggle("is-muted", muted);
+    btnMute.setAttribute("aria-label", muted ? "Звук выключен" : "Звук включен");
+    const icon = btnMute.querySelector(".icon");
+    if (icon) icon.textContent = muted ? "🔇" : "🔊";
+  }
+
   btnMute?.addEventListener("click", () => {
     muted = !muted;
-    btnMute.textContent = `Звук: ${muted ? "Выкл" : "Вкл"}`;
+    updateMuteButton();
     if (!muted) beep(660, 0.06, 0.05);
   });
 
@@ -1365,7 +1379,7 @@ if ("serviceWorker" in navigator) {
         progression.load();
       }
       stats.coins = player.coins;
-      if (btnMute) btnMute.textContent = `Звук: ${muted ? "Выкл" : "Вкл"}`;
+      updateMuteButton();
     } catch {}
   }
 
@@ -1430,7 +1444,7 @@ if ("serviceWorker" in navigator) {
     if (coinsEl) coinsEl.textContent = String(player.coins);
     if (fishEl) fishEl.textContent = String(stats.fish);
     if (playerLevelEl) playerLevelEl.textContent = String(player.playerLevel);
-    if (xpTextEl) xpTextEl.textContent = `XP ${player.playerXP}/${player.playerXPToNext}`;
+    if (xpTextEl) xpTextEl.textContent = `${player.playerXP}/${player.playerXPToNext}`;
     if (xpBarFill) {
       const xpPct = player.playerXPToNext > 0 ? clamp(player.playerXP / player.playerXPToNext, 0, 1) * 100 : 0;
       xpBarFill.style.width = `${xpPct}%`;
@@ -1456,6 +1470,25 @@ if ("serviceWorker" in navigator) {
     closeInventory();
   });
 
+  function openProgress() {
+    if (!progressOverlay) return;
+    progressOverlay.classList.remove("hidden");
+    updateHUD();
+  }
+
+  function closeProgress() {
+    progressOverlay?.classList.add("hidden");
+  }
+
+  btnProgress?.addEventListener("click", () => {
+    if (currentScene !== SCENE_LAKE) return;
+    openProgress();
+  });
+
+  btnProgressClose?.addEventListener("click", () => {
+    closeProgress();
+  });
+
   invSort?.addEventListener("change", () => {
     inventorySort = invSort.value;
     renderInventory();
@@ -1469,7 +1502,7 @@ if ("serviceWorker" in navigator) {
 
   btnBackToLake?.addEventListener("click", () => {
     transitionTo(SCENE_LAKE);
-    setHint(`Тапни по воде, чтобы забросить. Приманка: ${getActiveBaitLabel()}`);
+    setHint("Тап: заброс", 1.2);
   });
 
   btnShopClose?.addEventListener("click", () => {
@@ -1483,7 +1516,7 @@ if ("serviceWorker" in navigator) {
     save();
     pendingCatch = null;
     transitionTo(SCENE_LAKE);
-    setHint(`Тапни по воде, чтобы забросить. Приманка: ${getActiveBaitLabel()}`);
+    setHint("Тап: заброс", 1.2);
   });
 
   btnCatchSellNow?.addEventListener("click", () => {
@@ -1496,7 +1529,7 @@ if ("serviceWorker" in navigator) {
     pendingCatch = null;
     transitionTo(SCENE_LAKE);
     showToast("Продано со скидкой -30%.");
-    setHint(`Тапни по воде, чтобы забросить. Приманка: ${getActiveBaitLabel()}`);
+    setHint("Тап: заброс", 1.2);
   });
 
   btnHaggle?.addEventListener("click", () => {
@@ -2200,10 +2233,6 @@ if ("serviceWorker" in navigator) {
     msgT: 0,
   };
 
-  function setHint(text) {
-    if (chipHint) chipHint.textContent = text;
-  }
-
   function setHintTexts(weightTextOrNull, speciesTextOrNull) {
     if (!fishHintText) return;
     if (revealHintHideTimer) {
@@ -2228,18 +2257,31 @@ if ("serviceWorker" in navigator) {
     }, delay);
   }
 
-  function setSubtitle(text) {
-    if (subtitleEl) subtitleEl.textContent = text;
+  function showHint(text, duration = 1.4) {
+    if (!hintToast || !text) return;
+    const next = text.trim();
+    if (!next) return;
+    if (hintHideTimer) window.clearTimeout(hintHideTimer);
+    hintToast.textContent = next;
+    hintToast.classList.remove("hidden");
+    hintToast.classList.add("show");
+    hintHideTimer = window.setTimeout(() => {
+      hintToast.classList.remove("show");
+      window.setTimeout(() => hintToast.classList.add("hidden"), 220);
+    }, duration * 1000);
   }
 
-  function setDefaultSubtitle() {
-    setSubtitle(DEFAULT_SUBTITLE);
+  function setHint(text, duration) {
+    if (!text) return;
+    const inFight = game.mode === "REELING";
+    const safeDuration = inFight ? 0.9 : (duration ?? 1.6);
+    showHint(text, safeDuration);
   }
 
   function setMsg(text, seconds = 1.2) {
     game.msg = text;
     game.msgT = seconds;
-    setHint(text);
+    setHint(text, Math.min(2.0, Math.max(0.8, seconds)));
   }
 
   function showOverlay() {
@@ -2260,7 +2302,9 @@ if ("serviceWorker" in navigator) {
     shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId));
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    btnProgress?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     if (sceneId !== SCENE_LAKE && invOverlay) invOverlay.classList.add("hidden");
+    if (sceneId !== SCENE_LAKE && progressOverlay) progressOverlay.classList.add("hidden");
   }
 
   function transitionTo(sceneId) {
@@ -2287,8 +2331,11 @@ if ("serviceWorker" in navigator) {
     revealSystem.reset();
     setHintTexts(null, null);
     setScene(SCENE_LAKE);
-    setDefaultSubtitle();
-    setHint(`Тапни по воде, чтобы забросить. Приманка: ${getActiveBaitLabel()}`);
+    idleHintShown = false;
+    if (castHintCount < 2) {
+      setHint("Тап: заброс", 1.4);
+      castHintCount += 1;
+    }
     updateHUD();
     save();
   }
@@ -2322,6 +2369,7 @@ if ("serviceWorker" in navigator) {
   function castTo(x, y) {
     game.mode = "CASTING";
     game.t = 0;
+    idleHintShown = true;
     animateCastToHole();
 
     bobber.visible = true;
@@ -2348,7 +2396,7 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     scheduleBite();
     setFishing(true);
-    setMsg("Ждём поклёвку…", 1.1);
+    setMsg("Ждём поклёвку…", 1.0);
   }
 
   function enterBite() {
@@ -2356,7 +2404,7 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     triggerBite();
     beep(820, 0.08, 0.05);
-    setMsg("ПОКЛЁВКА! Свайп вверх (подсечка)!", 1.0);
+    setMsg("ПОКЛЁВКА! Свайп вверх.", 1.0);
   }
 
   function hook() {
@@ -2389,7 +2437,7 @@ if ("serviceWorker" in navigator) {
     game.mode = "HOOKED";
     game.t = 0;
     beep(960, 0.06, 0.06);
-    setMsg("Подсечка! Рыба на крючке.", 1.1);
+    setMsg("Подсечка!", 0.9);
   }
 
   function startReel() {
@@ -2397,9 +2445,8 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     game.lastTap = 999;
     setFishing(true);
-    setSubtitle("Вываживание…");
     setHintTexts(null, null);
-    setMsg("Прогресс только от тапов. Зелёная зона — максимум, красная — минимум.", 1.3);
+    setHint("Жми", 0.9);
   }
 
   function openCatchModal(catchData) {
@@ -2439,7 +2486,6 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     beep(660, 0.08, 0.06);
     setMsg(`Поймал: ${game.catch.name} ${formatKg(game.catch.weightKg)}.`, 1.8);
-    setDefaultSubtitle();
     revealSystem.reset();
     scheduleRevealHintHide(260);
 
@@ -2527,11 +2573,11 @@ if ("serviceWorker" in navigator) {
         }
       }
       if (reel.hintCooldown <= 0) {
-        if (tapZone === "GREEN") setHint("Зелёная зона: +10% за тап.");
-        else if (tapZone === "YELLOW") setHint("Жёлтая: +4% за тап. Попади в зелёную.");
-        else if (tapZone === "RED") setHint("Красная: +2% за тап. Ослабь.");
-        else if (tapZone === "DANGER") setHint("Опасно: +1% за тап. Леска на грани!");
-        else setHint("Слабо: почти нет прогресса.");
+        if (tapZone === "GREEN") setHint("Жми");
+        else if (tapZone === "YELLOW") setHint("Чуть сильнее");
+        else if (tapZone === "RED") setHint("Ослабь");
+        else if (tapZone === "DANGER") setHint("Пауза");
+        else setHint("Слабина");
         reel.hintCooldown = 0.25;
       }
 
@@ -2677,12 +2723,13 @@ if ("serviceWorker" in navigator) {
       if (game.t > game.biteWindow) {
         game.mode = "IDLE";
         game.t = 0;
+        idleHintShown = false;
         bobber.visible = false;
         bobber.inWater = false;
         game.catch = null;
         setFishing(false);
         beep(220, 0.10, 0.05);
-        setMsg("Не успел подсечь. Тап — забросить снова.", 1.6);
+        setMsg("Не успел подсечь.", 1.2);
       }
     }
 
@@ -2805,13 +2852,13 @@ if ("serviceWorker" in navigator) {
       if (game.tension >= line.breakThreshold) {
         game.mode = "IDLE";
         game.t = 0;
+        idleHintShown = false;
         bobber.visible = false;
         bobber.inWater = false;
         game.catch = null;
         setFishing(false);
         beep(220, 0.10, 0.05);
-        setMsg("Леска лопнула. Тап — забросить снова.", 1.6);
-        setDefaultSubtitle();
+        setMsg("Леска лопнула.", 1.3);
         revealSystem.reset();
         scheduleRevealHintHide(260);
         return;
@@ -2819,13 +2866,13 @@ if ("serviceWorker" in navigator) {
       if (reel.slackRisk >= 1) {
         game.mode = "IDLE";
         game.t = 0;
+        idleHintShown = false;
         bobber.visible = false;
         bobber.inWater = false;
         game.catch = null;
         setFishing(false);
         beep(220, 0.10, 0.05);
-        setMsg("Слабина! Рыба сорвалась.", 1.6);
-        setDefaultSubtitle();
+        setMsg("Слабина! Рыба сорвалась.", 1.3);
         revealSystem.reset();
         scheduleRevealHintHide(260);
         return;
@@ -2837,17 +2884,17 @@ if ("serviceWorker" in navigator) {
       }
 
       if (reel.slackRisk > 0.7 && reel.slackHintCooldown <= 0) {
-        setHint("Рыба почти сорвалась!");
+        setHint("Слабина!");
         reel.slackHintCooldown = 1.3;
       } else if (reel.hintCooldown <= 0) {
         if (game.tension > zones.dangerMin) {
-          setHint("Перегруз — пауза.");
+          setHint("Пауза");
         } else if (game.tension < zones.safeMin) {
-          setHint("Слабина — уйдёт.");
+          setHint("Ослабь");
         } else if (inSweet) {
-          setHint("Зелёная — жми!");
+          setHint("Жми");
         } else {
-          setHint("Держи натяжение ровно.");
+          setHint("Ровно");
         }
         reel.hintCooldown = HINT_COOLDOWN;
       }
@@ -2857,11 +2904,17 @@ if ("serviceWorker" in navigator) {
       if (game.t > 1.0) {
         game.mode = "IDLE";
         game.t = 0;
+        idleHintShown = false;
         bobber.visible = false;
         bobber.inWater = false;
         setFishing(false);
-        setHint("Тапни по воде, чтобы забросить.");
+        setHint("Тап: заброс", 1.2);
       }
+    }
+
+    if (game.mode === "IDLE" && currentScene === SCENE_LAKE && !idleHintShown && game.t > 5.5) {
+      setHint("Тап: заброс", 1.2);
+      idleHintShown = true;
     }
   }
 
@@ -2896,8 +2949,6 @@ if ("serviceWorker" in navigator) {
       }
     }
 
-    // short center prompt
-    drawPrompt();
   }
 
   function drawTravel() {
@@ -2982,38 +3033,6 @@ if ("serviceWorker" in navigator) {
       ctx.textAlign = "center";
       ctx.fillText(building.label, building.x + building.w / 2, building.y + building.h + 18);
     }
-  }
-
-  function drawPrompt() {
-    const show =
-      (game.mode === "IDLE") ? "Тап: заброс" :
-      (game.mode === "WAITING") ? "Ждём…" :
-      (game.mode === "BITE") ? "Свайп вверх!" :
-      (game.mode === "REELING") ? "" :
-      "";
-
-    if (!show) return;
-
-    const x = W * 0.5;
-    const y = scene.lakeY - 72;
-
-    ctx.save();
-    ctx.font = "700 16px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const m = ctx.measureText(show);
-    const w = Math.min(W - 24, m.width + 28);
-    const h = 36;
-
-    ctx.globalAlpha = 0.75;
-    ctx.fillStyle = "#0b0f14";
-    roundRect(x - w / 2, y - h / 2, w, h, 12);
-    ctx.fill();
-
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#eaf2ff";
-    ctx.fillText(show, x, y);
-    ctx.restore();
   }
 
   function drawMeters() {
@@ -3177,6 +3196,7 @@ if ("serviceWorker" in navigator) {
     if (btnPlay) btnPlay.disabled = true;
 
     load();
+    updateMuteButton();
     updateHUD();
     setVhVar();
     resize();

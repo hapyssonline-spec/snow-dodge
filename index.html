@@ -14,35 +14,25 @@
 
   <!-- Иконки (можешь оставить свои текущие icon-*.png в репозитории) -->
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
-  <link rel="manifest" href="manifest.json?v=28" />
+  <link rel="manifest" href="manifest.json?v=29" />
 
-  <link rel="stylesheet" href="style.css?v=29" />
+  <link rel="stylesheet" href="style.css?v=30" />
 </head>
 <body>
   <div id="app">
     <header id="topbar">
-      <div class="stat">
-        <div class="label">МОНЕТЫ</div>
-        <div id="coins" class="value">0</div>
+      <div class="stat stat-compact">
+        <span class="statIcon" aria-hidden="true">🪙</span>
+        <span id="coins" class="value">0</span>
       </div>
 
       <div class="center">
         <div class="title">ICE FISH</div>
-        <div id="subtitle" class="subtitle">Тап — заброс. Поклёвка → свайп вверх. Тапы — выматывать.</div>
       </div>
 
-      <div class="stat xp">
-        <div class="label">УРОВЕНЬ</div>
-        <div class="value"><span id="playerLevel">1</span></div>
-        <div class="xpBar" aria-hidden="true">
-          <div id="xpBarFill" class="xpBarFill"></div>
-        </div>
-        <div id="xpText" class="xpText">XP 0/60</div>
-      </div>
-
-      <div class="stat right">
-        <div class="label">РЫБА</div>
-        <div id="fish" class="value">0</div>
+      <div class="stat stat-compact right">
+        <span class="statIcon" aria-hidden="true">🐟</span>
+        <span id="fish" class="value">0</span>
       </div>
     </header>
 
@@ -240,20 +230,47 @@
         </div>
       </div>
 
+      <div id="progressOverlay" class="hidden">
+        <div class="progressCard">
+          <div class="progressHeader">
+            <div class="progressTitle">Прогресс</div>
+            <button id="btnProgressClose" class="chipBtn">Закрыть</button>
+          </div>
+          <div class="progressStats">
+            <div class="progressStat">
+              <span class="muted">Уровень</span>
+              <span id="playerLevel" class="value">1</span>
+            </div>
+            <div class="progressStat">
+              <span class="muted">XP</span>
+              <span id="xpText" class="value">0/60</span>
+            </div>
+          </div>
+          <div class="progressBar" aria-hidden="true">
+            <div id="xpBarFill" class="progressBarFill"></div>
+          </div>
+        </div>
+      </div>
+
       <div id="sceneFade" class="sceneFade hidden"></div>
       <div id="toast" class="toast hidden"></div>
       <div id="xpToast" class="xpToast hidden"></div>
+      <div id="hintToast" class="hintToast hidden" aria-live="polite"></div>
     </main>
 
     <footer id="bottombar">
-      <div class="chip" id="chipHint">Готово: тапни по воде, чтобы забросить.</div>
       <button id="btnCity" class="chipBtn" aria-label="В город">В город</button>
       <button id="btnInventory" class="chipBtn" aria-label="Инвентарь">Инвентарь</button>
-      <button id="btnMute" class="chipBtn" aria-label="Звук">Звук: Вкл</button>
+      <button id="btnProgress" class="chipBtn iconBtn" aria-label="Прогресс">
+        <span class="icon" aria-hidden="true">⭐</span>
+      </button>
+      <button id="btnMute" class="chipBtn iconBtn" aria-label="Звук включен">
+        <span class="icon" aria-hidden="true">🔊</span>
+      </button>
     </footer>
   </div>
 
-  <!-- cache-bust: main.js v38 (xp progression + ui) -->
-  <script src="main.js?v=38"></script>
+  <!-- cache-bust: main.js v39 (ui polish + hint system) -->
+  <script src="main.js?v=39"></script>
 </body>
 </html>
