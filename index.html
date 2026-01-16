@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
   <link rel="manifest" href="manifest.json?v=30" />
 
-  <link rel="stylesheet" href="style.css?v=31" />
+  <link rel="stylesheet" href="style.css?v=32" />
 </head>
 <body>
   <div id="app">
@@ -188,10 +188,24 @@
         </div>
       </div>
 
-      <div id="travelHud" class="hidden">
-        <div class="hudCard">
-          <div class="hudTitle">Поездка в город</div>
-          <div id="travelTimer" class="hudTimer">До города: 00:20</div>
+      <div id="travelOverlay" class="hidden" aria-hidden="true">
+        <div class="travelWrap">
+          <div class="travelHeader">
+            <div class="travelTitle">Поездка в город</div>
+            <div id="travelTimer" class="travelTimer">00:18</div>
+            <div id="travelStatus" class="travelStatus" aria-live="polite"></div>
+          </div>
+          <div class="travelCard" role="img" aria-label="Маршрут от озера до города">
+            <svg id="travelMap" viewBox="0 0 320 150" aria-hidden="true">
+              <path id="travelPathBase" d="M 30 110 Q 160 20 290 110" />
+              <path id="travelPathProgress" d="M 30 110 Q 160 20 290 110" />
+              <circle id="travelMarker" cx="30" cy="110" r="6" />
+            </svg>
+            <div class="travelLabels">
+              <span>Озеро</span>
+              <span>Город</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -309,7 +323,7 @@
     </footer>
   </div>
 
-  <!-- cache-bust: main.js v42 (trash journal visuals) -->
-  <script src="main.js?v=42"></script>
+  <!-- cache-bust: main.js v43 (travel overlay state) -->
+  <script src="main.js?v=43"></script>
 </body>
 </html>

@@ -498,11 +498,118 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   transform:translateX(-50%) translateY(0);
 }
 
-#travelHud{
+#travelOverlay{
   position:absolute;
   inset:0;
-  pointer-events:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background: rgba(6,12,20,.72);
+  backdrop-filter: blur(8px);
   z-index:6;
+}
+
+#app[data-effects="reduced"] #travelOverlay{
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.travelWrap{
+  width:min(560px, 94vw);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+}
+
+.travelHeader{
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.travelTitle{
+  font-size:12px;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+
+.travelTimer{
+  font-size:clamp(28px, 6vw, 44px);
+  font-weight:900;
+  letter-spacing:0.08em;
+}
+
+.travelStatus{
+  min-height:18px;
+  font-size:13px;
+  font-weight:600;
+  color:var(--accent);
+  opacity:0;
+  transition: opacity 0.2s ease;
+}
+
+.travelStatus.is-visible{
+  opacity:1;
+}
+
+.travelCard{
+  width:100%;
+  border-radius:20px;
+  border:1px solid rgba(130,162,198,.22);
+  background: rgba(12,22,34,.9);
+  padding:18px 16px 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+#travelMap{
+  width:100%;
+  height:auto;
+  display:block;
+}
+
+#travelPathBase{
+  fill:none;
+  stroke:#2a3f55;
+  stroke-width:6;
+  stroke-linecap:round;
+}
+
+#travelPathProgress{
+  fill:none;
+  stroke:#9ad1ff;
+  stroke-width:6;
+  stroke-linecap:round;
+  transition: stroke-dasharray 0.15s linear;
+}
+
+#travelMarker{
+  fill:#ffd166;
+  stroke:#1b2a3d;
+  stroke-width:2;
+  filter: drop-shadow(0 3px 6px rgba(6,10,16,.45));
+}
+
+.travelLabels{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+  padding:0 4px;
+}
+
+#app.travel-lock #topbar,
+#app.travel-lock #bottombar{
+  opacity:0.35;
+  pointer-events:none;
 }
 
 .invCard{
