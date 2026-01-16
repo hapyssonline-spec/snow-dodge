@@ -44,6 +44,14 @@ img, a{
   user-select:none;
 }
 
+.hud,
+.topbar,
+.bottombar{
+  touch-action: manipulation;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
 .scrollable{
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
@@ -58,7 +66,9 @@ img, a{
 }
 
 #topbar{
-  display:flex; align-items:center; justify-content:space-between;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   padding:8px 12px;
   background: linear-gradient(180deg, rgba(16,31,48,.85), rgba(16,31,48,.5));
   border-bottom: 1px solid var(--stroke);
@@ -67,9 +77,33 @@ img, a{
   z-index:5;
   transition: opacity 0.2s ease;
 }
+
+.topbarSlot{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:92px;
+  width:92px;
+}
+
+.topbarSlot-center{
+  flex:1;
+  width:auto;
+  min-width:0;
+  flex-direction:column;
+  text-align:center;
+}
+
+.topbarSlot-left{
+  justify-content:flex-start;
+}
+
+.topbarSlot-right{
+  justify-content:flex-end;
+}
 .profileButton{
-  width:clamp(40px, 10vw, 48px);
-  height:clamp(40px, 10vw, 48px);
+  width:44px;
+  height:44px;
   border-radius:50%;
   border:1px solid var(--stroke);
   background: rgba(15,26,36,.7);
@@ -101,10 +135,10 @@ img, a{
 }
 .profileLevelBadge{
   position:absolute;
-  right:-4px;
-  bottom:-4px;
-  width:clamp(18px, 5vw, 22px);
-  height:clamp(18px, 5vw, 22px);
+  right:-2px;
+  bottom:-2px;
+  width:20px;
+  height:20px;
   border-radius:999px;
   background: rgba(80,120,200,.28);
   border:1px solid rgba(150,190,255,.5);
@@ -120,8 +154,7 @@ img, a{
   opacity:0.35;
   pointer-events:none;
 }
-.stat{min-width:84px}
-.stat.right{text-align:right}
+.stat{min-width:0}
 .stat-compact{
   display:flex;
   align-items:center;
@@ -573,8 +606,7 @@ img, a{
 }
 
 #profileOverlay,
-#profileSetupOverlay,
-#leaderboardOverlay{
+#profileSetupOverlay{
   position:absolute;
   inset:0;
   display:flex;
@@ -600,6 +632,7 @@ img, a{
   display:flex;
   flex-direction:column;
   gap:14px;
+  min-height:0;
   box-shadow: 0 20px 60px rgba(0,0,0,.45);
 }
 
@@ -619,14 +652,27 @@ img, a{
   font-weight:900;
 }
 
+.profileScreen{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  flex:1;
+  min-height:0;
+}
+
 .profileBody{
   display:flex;
   flex-direction:column;
   gap:16px;
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  touch-action: pan-y;
 }
 
 .profileSection{
-  padding:12px;
+  padding:16px;
   border-radius:14px;
   border:1px solid var(--stroke);
   background: rgba(11,18,28,.65);
@@ -635,11 +681,10 @@ img, a{
   gap:10px;
 }
 
-.profileNameRow{
+.profileNameBlock{
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
+  flex-direction:column;
+  gap:4px;
 }
 
 .profileName{
@@ -703,14 +748,8 @@ img, a{
 .profileGearItem{
   border-radius:12px;
   border:1px solid rgba(166,185,218,.18);
-  padding:10px;
+  padding:12px;
   background: rgba(13,22,34,.6);
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-
-.profileGearHeader{
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -725,14 +764,16 @@ img, a{
 
 .profileGearValue{
   font-weight:800;
+  max-width: 60vw;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-.profileGearList{
+.profileGearPickerList{
   display:flex;
   flex-direction:column;
-  gap:8px;
-  max-height:180px;
-  padding-right:4px;
+  gap:10px;
 }
 
 .profileLevelRow{
@@ -749,6 +790,20 @@ img, a{
 .profileXpRemain{
   font-size:12px;
   color:var(--muted);
+}
+
+.profileConfirmText{
+  font-size:14px;
+  font-weight:700;
+  color:var(--text);
+  line-height:1.4;
+}
+
+.profileConfirmActions{
+  margin-top:12px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
 }
 
 .formLabel{
@@ -848,6 +903,40 @@ img, a{
   flex:1;
   min-height:0;
   padding-right:4px;
+}
+
+.trophyTabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.trophyTabBtn{
+  padding:8px 12px;
+  border-radius:12px;
+  border:1px solid var(--stroke);
+  background: rgba(15,26,36,.8);
+  color:var(--text);
+  font-weight:800;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.trophyTabBtn.is-active{
+  background: rgba(100,140,255,.18);
+  border-color: rgba(120,160,255,.4);
+  box-shadow: 0 8px 18px rgba(70,120,200,.2);
+}
+
+.trophyPanel{
+  display:none;
+  flex:1;
+  min-height:0;
+  flex-direction:column;
+  gap:12px;
+}
+
+.trophyPanel.is-active{
+  display:flex;
 }
 
 .leaderboardRow{
@@ -1855,10 +1944,19 @@ img, a{
 
 .shopItemTitle{
   font-weight:800;
+  flex:1;
+  max-width:60vw;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .shopItemMeta{
   color:var(--muted);
+}
+
+.shopItem.is-disabled{
+  opacity:0.6;
 }
 
 .toast{

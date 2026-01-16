@@ -141,19 +141,32 @@ if ("serviceWorker" in navigator) {
   const profileXpFill = document.getElementById("profileXpFill");
   const profileXpText = document.getElementById("profileXpText");
   const profileXpRemain = document.getElementById("profileXpRemain");
-  const btnProfileStatsToggle = document.getElementById("btnProfileStatsToggle");
-  const profileStats = document.getElementById("profileStats");
+  const btnProfileStatsOpen = document.getElementById("btnProfileStatsOpen");
+  const btnProfileStatsBack = document.getElementById("btnProfileStatsBack");
+  const profileScreenMain = document.getElementById("profileScreenMain");
+  const profileScreenStats = document.getElementById("profileScreenStats");
+  const profileScreenGear = document.getElementById("profileScreenGear");
+  const profileScreenConfirm = document.getElementById("profileScreenConfirm");
   const statPlayTime = document.getElementById("statPlayTime");
   const statFishCaught = document.getElementById("statFishCaught");
   const statGoldEarned = document.getElementById("statGoldEarned");
   const statBestRarity = document.getElementById("statBestRarity");
   const statMaxWeight = document.getElementById("statMaxWeight");
+  const statFishCaughtQuick = document.getElementById("statFishCaughtQuick");
+  const statGoldEarnedQuick = document.getElementById("statGoldEarnedQuick");
+  const statBestRarityQuick = document.getElementById("statBestRarityQuick");
+  const statMaxWeightQuick = document.getElementById("statMaxWeightQuick");
+  const profileRenameCost = document.getElementById("profileRenameCost");
+  const profileConfirmText = document.getElementById("profileConfirmText");
+  const btnProfileConfirmCancel = document.getElementById("btnProfileConfirmCancel");
+  const btnProfileConfirmBack = document.getElementById("btnProfileConfirmBack");
+  const btnProfileConfirmSave = document.getElementById("btnProfileConfirmSave");
   const profileRodName = document.getElementById("profileRodName");
   const profileLineName = document.getElementById("profileLineName");
   const profileBaitName = document.getElementById("profileBaitName");
-  const profileRodList = document.getElementById("profileRodList");
-  const profileLineList = document.getElementById("profileLineList");
-  const profileBaitList = document.getElementById("profileBaitList");
+  const profileGearTitle = document.getElementById("profileGearTitle");
+  const profileGearPickerList = document.getElementById("profileGearPickerList");
+  const btnProfileGearBack = document.getElementById("btnProfileGearBack");
   const profileGearToggles = Array.from(document.querySelectorAll(".profileGearToggle"));
 
   const profileSetupOverlay = document.getElementById("profileSetupOverlay");
@@ -162,11 +175,12 @@ if ("serviceWorker" in navigator) {
   const btnProfileSetupSave = document.getElementById("btnProfileSetupSave");
   const btnProfileSetupGenerate = document.getElementById("btnProfileSetupGenerate");
 
-  const leaderboardOverlay = document.getElementById("leaderboardOverlay");
-  const btnLeaderboardClose = document.getElementById("btnLeaderboardClose");
   const leaderboardTabButtons = Array.from(document.querySelectorAll(".leaderboardTabBtn"));
   const leaderboardYourRecord = document.getElementById("leaderboardYourRecord");
   const leaderboardLocalList = document.getElementById("leaderboardLocalList");
+  const trophySection = document.getElementById("trophySection");
+  const trophyTabButtons = Array.from(document.querySelectorAll(".trophyTabBtn"));
+  const trophyPanels = Array.from(document.querySelectorAll(".trophyPanel"));
 
   const sceneFade = document.getElementById("sceneFade");
   const toast = document.getElementById("toast");
@@ -1054,8 +1068,7 @@ if ("serviceWorker" in navigator) {
   };
 
   const QUEST_DIFFICULTY_KEYS = ["easy", "medium", "hard"];
-  const QUEST_PREVIEW_REFRESH_STEPS = [10_000, 60_000, 600_000, 3_600_000];
-  const QUEST_PREVIEW_MAX_STEP = 4;
+  const QUEST_REFRESH_COOLDOWNS = [10_000, 60_000, 600_000, 3_600_000];
   const QUEST_COMPLETION_COOLDOWNS = {
     easy: 10 * 60 * 1000,
     medium: 30 * 60 * 1000,
@@ -1502,11 +1515,11 @@ if ("serviceWorker" in navigator) {
     }
   }
 
-  function getPreviewRefreshDuration(stepIndex) {
-    if (stepIndex >= QUEST_PREVIEW_REFRESH_STEPS.length) {
-      return QUEST_PREVIEW_REFRESH_STEPS[QUEST_PREVIEW_REFRESH_STEPS.length - 1];
+  function getQuestRefreshCooldown(refreshCount) {
+    if (refreshCount >= QUEST_REFRESH_COOLDOWNS.length) {
+      return QUEST_REFRESH_COOLDOWNS[QUEST_REFRESH_COOLDOWNS.length - 1];
     }
-    return QUEST_PREVIEW_REFRESH_STEPS[stepIndex];
+    return QUEST_REFRESH_COOLDOWNS[refreshCount];
   }
 
   function updateQuestTimers() {
@@ -1517,7 +1530,7 @@ if ("serviceWorker" in navigator) {
   function updateQuestRefreshUI() {
     if (!btnQuestRefresh || !questRefreshStatus) return;
     const now = Date.now();
-    const remaining = previewRefresh.nextAllowedAt - now;
+    const remaining = questRefreshState.nextRefreshAt - now;
     if (remaining > 0) {
       btnQuestRefresh.disabled = true;
       questRefreshStatus.textContent = `Можно через: ${formatDuration(remaining)}`;
@@ -1869,7 +1882,9 @@ if ("serviceWorker" in navigator) {
   let activeQuest = null;
   let questPreviews = { easy: null, medium: null, hard: null };
   let questCooldowns = { easyAvailableAt: 0, mediumAvailableAt: 0, hardAvailableAt: 0 };
-  let previewRefresh = { stepIndex: 0, nextAllowedAt: 0 };
+  let questRefreshState = { refreshCount: 0, nextRefreshAt: 0 };
+  let pendingRename = null;
+  let activeProfileGear = null;
   let selectedQuestDifficulty = "easy";
   let questRefreshTicker = null;
   let selectedGearTab = "bait";
@@ -2037,9 +2052,13 @@ if ("serviceWorker" in navigator) {
       stats.totalPlayTimeMs = Number(obj.totalPlayTimeMs ?? 0);
       muted = !!obj.muted;
       if (obj.profile && typeof obj.profile === "object") {
+        const canRename = obj.profile.canRename !== false;
+        const freeRenameUsed = obj.profile.freeRenameUsed !== undefined
+          ? !!obj.profile.freeRenameUsed
+          : !canRename;
         profile = {
           name: obj.profile.name || "",
-          canRename: obj.profile.canRename !== false,
+          freeRenameUsed,
           createdAt: obj.profile.createdAt || Date.now()
         };
         if (!profile.name) {
@@ -2100,9 +2119,16 @@ if ("serviceWorker" in navigator) {
           };
         }
         if (obj.previewRefresh && typeof obj.previewRefresh === "object") {
-          previewRefresh = {
-            stepIndex: Math.min(Math.max(0, Number(obj.previewRefresh.stepIndex || 0)), QUEST_PREVIEW_MAX_STEP),
-            nextAllowedAt: Math.max(0, Number(obj.previewRefresh.nextAllowedAt || 0))
+          const legacyCount = Math.max(0, Number(obj.previewRefresh.stepIndex || 0));
+          questRefreshState = {
+            refreshCount: legacyCount,
+            nextRefreshAt: Math.max(0, Number(obj.previewRefresh.nextAllowedAt || 0))
+          };
+        }
+        if (obj.questRefreshState && typeof obj.questRefreshState === "object") {
+          questRefreshState = {
+            refreshCount: Math.max(0, Number(obj.questRefreshState.refreshCount || 0)),
+            nextRefreshAt: Math.max(0, Number(obj.questRefreshState.nextRefreshAt || 0))
           };
         }
       }
@@ -2149,7 +2175,7 @@ if ("serviceWorker" in navigator) {
         trophyQuest: activeQuest,
         questPreview: questPreviews,
         questCooldowns,
-        previewRefresh
+        questRefreshState
       }));
     } catch {}
   }
@@ -2184,7 +2210,7 @@ if ("serviceWorker" in navigator) {
     activeQuest = null;
     questPreviews = { easy: null, medium: null, hard: null };
     questCooldowns = { easyAvailableAt: 0, mediumAvailableAt: 0, hardAvailableAt: 0 };
-    previewRefresh = { stepIndex: 0, nextAllowedAt: 0 };
+    questRefreshState = { refreshCount: 0, nextRefreshAt: 0 };
     save();
     updateHUD();
     renderInventory();
@@ -2249,9 +2275,19 @@ if ("serviceWorker" in navigator) {
   function updateProfileStatsUI() {
     if (profileName) profileName.textContent = profile?.name || "—";
     if (profileRenameHint) {
-      profileRenameHint.textContent = profile?.canRename ? "Можно сменить ник один раз." : "Смена ника недоступна.";
+      profileRenameHint.textContent = profile
+        ? (profile.freeRenameUsed ? "Повторная смена: 10000 золота" : "Смена ника: 1 раз бесплатно")
+        : "";
     }
-    if (btnProfileRename) btnProfileRename.disabled = !profile?.canRename;
+    if (profileRenameCost) {
+      profileRenameCost.textContent = profile
+        ? (profile.freeRenameUsed ? "Стоимость: 10000 золота" : "Бесплатная смена")
+        : "";
+    }
+    if (btnProfileRename) {
+      const canRename = !!profile && (!profile.freeRenameUsed || player.coins >= 10000);
+      btnProfileRename.disabled = !canRename;
+    }
     if (profileLevel) profileLevel.textContent = String(player.playerLevel);
     if (profileXpFill) {
       const xpPct = player.playerXPToNext > 0 ? clamp(player.playerXP / player.playerXPToNext, 0, 1) * 100 : 0;
@@ -2269,12 +2305,21 @@ if ("serviceWorker" in navigator) {
     if (statFishCaught) statFishCaught.textContent = String(stats.totalFishCaught);
     if (statGoldEarned) statGoldEarned.textContent = formatCoins(stats.totalGoldEarned);
     if (statMaxWeight) statMaxWeight.textContent = formatWeightFromGrams(stats.maxFishWeightG);
+    if (statFishCaughtQuick) statFishCaughtQuick.textContent = String(stats.totalFishCaught);
+    if (statGoldEarnedQuick) statGoldEarnedQuick.textContent = formatCoins(stats.totalGoldEarned);
+    if (statMaxWeightQuick) statMaxWeightQuick.textContent = formatWeightFromGrams(stats.maxFishWeightG);
     if (statBestRarity) {
       if (stats.bestRarityName) {
-        const label = stats.bestRarityLabel || getRarityLabelByTier(stats.bestRarityTier);
-        statBestRarity.textContent = `${stats.bestRarityName} (${label})`;
+        statBestRarity.textContent = stats.bestRarityName;
       } else {
         statBestRarity.textContent = "—";
+      }
+    }
+    if (statBestRarityQuick) {
+      if (stats.bestRarityName) {
+        statBestRarityQuick.textContent = stats.bestRarityName;
+      } else {
+        statBestRarityQuick.textContent = "—";
       }
     }
     if (profileRodName) profileRodName.textContent = getRodStats().name;
@@ -2334,6 +2379,16 @@ if ("serviceWorker" in navigator) {
     const taken = leaderboardProvider.getAllNames();
     if (profile?.name && profile.name === name) return false;
     return taken.has(name);
+  }
+
+  function getRenameCost() {
+    if (!profile) return 0;
+    return profile.freeRenameUsed ? 10000 : 0;
+  }
+
+  function canRenameProfile() {
+    if (!profile) return false;
+    return !profile.freeRenameUsed || player.coins >= 10000;
   }
 
   function getNextAvailableUserName(startIndex = 1) {
@@ -2547,12 +2602,27 @@ if ("serviceWorker" in navigator) {
     closeProfile();
   }
 
+  function showProfileScreen(screen) {
+    const screens = {
+      main: profileScreenMain,
+      stats: profileScreenStats,
+      gear: profileScreenGear,
+      confirm: profileScreenConfirm
+    };
+    Object.entries(screens).forEach(([key, el]) => {
+      if (!el) return;
+      el.classList.toggle("hidden", key !== screen);
+    });
+  }
+
   function openProfile() {
     if (!profileOverlay) return;
     profileOverlay.classList.remove("hidden");
     profileOverlay.setAttribute("aria-hidden", "false");
+    showProfileScreen("main");
+    profileRenameForm?.classList.add("hidden");
+    setProfileError(profileRenameError, "");
     updateProfileStatsUI();
-    renderProfileGearLists();
   }
 
   function closeProfile() {
@@ -2560,6 +2630,8 @@ if ("serviceWorker" in navigator) {
     profileOverlay?.setAttribute("aria-hidden", "true");
     profileRenameForm?.classList.add("hidden");
     setProfileError(profileRenameError, "");
+    pendingRename = null;
+    activeProfileGear = null;
   }
 
   function openProfileSetup() {
@@ -2580,6 +2652,7 @@ if ("serviceWorker" in navigator) {
   }
 
   let activeLeaderboardTab = "max_weight";
+  let activeTrophyTab = "quests";
 
   function formatLeaderboardScore(boardId, entry) {
     if (!entry) return "—";
@@ -2646,17 +2719,19 @@ if ("serviceWorker" in navigator) {
     leaderboardYourRecord.textContent = yourText;
   }
 
-  function openLeaderboard() {
-    if (!leaderboardOverlay) return;
-    leaderboardOverlay.classList.remove("hidden");
-    leaderboardOverlay.setAttribute("aria-hidden", "false");
-    updateLeaderboardsFromStats();
-    renderLeaderboard();
-  }
-
-  function closeLeaderboard() {
-    leaderboardOverlay?.classList.add("hidden");
-    leaderboardOverlay?.setAttribute("aria-hidden", "true");
+  function updateTrophyTabs() {
+    trophyTabButtons.forEach((btn) => {
+      const isActive = btn.dataset.trophyTab === activeTrophyTab;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+    trophyPanels.forEach((panel) => {
+      panel.classList.toggle("is-active", panel.dataset.trophyPanel === activeTrophyTab);
+    });
+    if (activeTrophyTab === "records") {
+      updateLeaderboardsFromStats();
+      renderLeaderboard();
+    }
   }
 
   btnProgress?.addEventListener("click", () => {
@@ -2677,20 +2752,35 @@ if ("serviceWorker" in navigator) {
     closeProfile();
   });
 
-  btnProfileStatsToggle?.addEventListener("click", () => {
-    profileStats?.classList.toggle("hidden");
+  btnProfileStatsOpen?.addEventListener("click", () => {
+    showProfileScreen("stats");
+    updateProfileStatsUI();
+  });
+
+  btnProfileStatsBack?.addEventListener("click", () => {
+    showProfileScreen("main");
+  });
+
+  btnProfileGearBack?.addEventListener("click", () => {
+    showProfileScreen("main");
   });
 
   profileGearToggles.forEach((toggle) => {
     toggle.addEventListener("click", () => {
-      const wrapper = toggle.closest(".profileGearItem");
-      const list = wrapper?.querySelector(".profileGearList");
-      list?.classList.toggle("hidden");
+      const gear = toggle.dataset.gear;
+      if (!gear) return;
+      activeProfileGear = gear;
+      if (profileGearTitle) {
+        const labelMap = { rod: "Удочка", line: "Леска", bait: "Наживка" };
+        profileGearTitle.textContent = `Выбор: ${labelMap[gear] || "Снаряжение"}`;
+      }
+      renderProfileGearPicker(gear);
+      showProfileScreen("gear");
     });
   });
 
   btnProfileRename?.addEventListener("click", () => {
-    if (!profile?.canRename) return;
+    if (!canRenameProfile()) return;
     profileRenameForm?.classList.toggle("hidden");
     if (profileRenameInput) {
       profileRenameInput.value = profile?.name || "";
@@ -2701,10 +2791,12 @@ if ("serviceWorker" in navigator) {
   btnProfileRenameCancel?.addEventListener("click", () => {
     profileRenameForm?.classList.add("hidden");
     setProfileError(profileRenameError, "");
+    pendingRename = null;
   });
 
   btnProfileRenameSave?.addEventListener("click", () => {
-    if (!profile?.canRename || !profileRenameInput) return;
+    if (!profile || !profileRenameInput) return;
+    if (!canRenameProfile()) return;
     const proposed = normalizeNickname(profileRenameInput.value);
     if (!isNicknameValid(proposed)) {
       setProfileError(profileRenameError, "Ник: 3–16 символов, латиница/цифры/_.");
@@ -2719,13 +2811,44 @@ if ("serviceWorker" in navigator) {
       setProfileError(profileRenameError, `Ник занят. Попробуй ${suggestion}.`);
       return;
     }
-    profile.name = proposed;
-    profile.canRename = false;
+    pendingRename = { name: proposed, cost: getRenameCost() };
+    if (profileConfirmText) {
+      profileConfirmText.textContent = `Вы точно хотите сменить имя на ${pendingRename.name}?`;
+    }
+    showProfileScreen("confirm");
+  });
+
+  btnProfileConfirmCancel?.addEventListener("click", () => {
+    pendingRename = null;
+    showProfileScreen("main");
+  });
+
+  btnProfileConfirmBack?.addEventListener("click", () => {
+    pendingRename = null;
+    showProfileScreen("main");
+  });
+
+  btnProfileConfirmSave?.addEventListener("click", () => {
+    if (!profile || !pendingRename) return;
+    const cost = pendingRename.cost || 0;
+    if (cost > 0 && player.coins < cost) {
+      setProfileError(profileRenameError, "Недостаточно золота для смены ника.");
+      showProfileScreen("main");
+      return;
+    }
+    if (cost > 0) {
+      player.coins -= cost;
+    }
+    profile.name = pendingRename.name;
+    profile.freeRenameUsed = true;
+    pendingRename = null;
     setProfileError(profileRenameError, "");
     profileRenameForm?.classList.add("hidden");
     updateProfileStatsUI();
     updateLeaderboardsFromStats();
+    updateHUD();
     save();
+    showProfileScreen("main");
   });
 
   btnProfileSetupSave?.addEventListener("click", () => {
@@ -2742,7 +2865,7 @@ if ("serviceWorker" in navigator) {
     }
     profile = {
       name: proposed,
-      canRename: true,
+      freeRenameUsed: false,
       createdAt: Date.now()
     };
     setProfileError(profileSetupError, "");
@@ -2760,11 +2883,6 @@ if ("serviceWorker" in navigator) {
     setProfileError(profileSetupError, "");
   });
 
-  btnLeaderboardClose?.addEventListener("click", () => {
-    closeLeaderboard();
-    transitionTo(SCENE_CITY);
-  });
-
   leaderboardTabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const tab = btn.dataset.leaderboardTab;
@@ -2776,6 +2894,15 @@ if ("serviceWorker" in navigator) {
         button.setAttribute("aria-selected", isActive ? "true" : "false");
       });
       renderLeaderboard();
+    });
+  });
+
+  trophyTabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.trophyTab;
+      if (!tab) return;
+      activeTrophyTab = tab;
+      updateTrophyTabs();
     });
   });
 
@@ -2859,7 +2986,7 @@ if ("serviceWorker" in navigator) {
 
   btnQuestRefresh?.addEventListener("click", () => {
     const now = Date.now();
-    if (now < previewRefresh.nextAllowedAt) {
+    if (now < questRefreshState.nextRefreshAt) {
       updateQuestRefreshUI();
       return;
     }
@@ -2869,9 +2996,9 @@ if ("serviceWorker" in navigator) {
         questPreviews[difficulty] = generateQuest(difficulty);
       }
     });
-    const duration = getPreviewRefreshDuration(previewRefresh.stepIndex);
-    previewRefresh.nextAllowedAt = now + duration;
-    previewRefresh.stepIndex = Math.min(previewRefresh.stepIndex + 1, QUEST_PREVIEW_MAX_STEP);
+    const duration = getQuestRefreshCooldown(questRefreshState.refreshCount);
+    questRefreshState.nextRefreshAt = now + duration;
+    questRefreshState.refreshCount += 1;
     save();
     updateQuestPreviewUI();
     updateQuestRefreshUI();
@@ -3075,24 +3202,24 @@ if ("serviceWorker" in navigator) {
 
   function openShop(sceneId) {
     transitionTo(sceneId);
-    if (sceneId === SCENE_BUILDING_TROPHY) {
-      openLeaderboard();
-      return;
-    }
     renderShop(sceneId);
   }
 
   function renderShop(sceneId = currentScene) {
     if (!shopOverlay) return;
     fishShopSection?.classList.add("hidden");
-    trophyQuestSection?.classList.add("hidden");
-    trophyActiveSection?.classList.add("hidden");
+    trophySection?.classList.add("hidden");
     gearShopSection?.classList.add("hidden");
     if (shopStats) shopStats.classList.add("hidden");
     if (sceneId === SCENE_BUILDING_FISHSHOP) {
       if (shopTitle) shopTitle.textContent = "Рыбная лавка";
       if (fishShopSection) fishShopSection.classList.remove("hidden");
       renderFishShopInventory();
+    } else if (sceneId === SCENE_BUILDING_TROPHY) {
+      if (shopTitle) shopTitle.textContent = "Трофейная";
+      if (trophySection) trophySection.classList.remove("hidden");
+      renderTrophyQuest();
+      updateTrophyTabs();
     } else if (sceneId === SCENE_BUILDING_GEARSHOP) {
       if (shopTitle) shopTitle.textContent = "Всё для рыбалки";
       if (shopStats) shopStats.classList.remove("hidden");
@@ -3109,9 +3236,10 @@ if ("serviceWorker" in navigator) {
     `;
   }
 
-  function renderProfileGearLists() {
-    if (profileRodList) {
-      profileRodList.innerHTML = "";
+  function renderProfileGearPicker(gearType) {
+    if (!profileGearPickerList) return;
+    profileGearPickerList.innerHTML = "";
+    if (gearType === "rod") {
       const ownedRods = rodItems.filter((rod) => player.ownedRods.includes(rod.id));
       ownedRods.forEach((rod) => {
         const row = document.createElement("div");
@@ -3131,16 +3259,16 @@ if ("serviceWorker" in navigator) {
           save();
           updateHUD();
           updateProfileStatsUI();
-          renderProfileGearLists();
+          renderProfileGearPicker("rod");
           renderGearShop();
         });
         row.appendChild(btn);
-        profileRodList.appendChild(row);
+        profileGearPickerList.appendChild(row);
       });
+      return;
     }
 
-    if (profileLineList) {
-      profileLineList.innerHTML = "";
+    if (gearType === "line") {
       const ownedLines = lineItems.filter((line) => player.ownedLines.includes(line.id));
       ownedLines.forEach((line) => {
         const riskDelta = Math.round((1 - (line.breakRiskMod || 1)) * 100);
@@ -3163,20 +3291,21 @@ if ("serviceWorker" in navigator) {
           save();
           updateHUD();
           updateProfileStatsUI();
-          renderProfileGearLists();
+          renderProfileGearPicker("line");
           renderGearShop();
         });
         row.appendChild(btn);
-        profileLineList.appendChild(row);
+        profileGearPickerList.appendChild(row);
       });
+      return;
     }
 
-    if (profileBaitList) {
-      profileBaitList.innerHTML = "";
+    if (gearType === "bait") {
       baitItems.forEach((bait) => {
         const count = player.baitInventory[bait.id] || 0;
         const row = document.createElement("div");
         row.className = "shopItem";
+        const isActive = player.activeBaitId === bait.id && count > 0;
         row.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${bait.name}</div>
@@ -3186,26 +3315,32 @@ if ("serviceWorker" in navigator) {
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
-        if (player.activeBaitId === bait.id && count > 0) {
+        if (isActive) {
           btn.textContent = "Выбрано";
           btn.disabled = true;
         } else if (count <= 0) {
-          btn.textContent = "Нет";
+          btn.textContent = "Нет в наличии";
           btn.disabled = true;
+          row.classList.add("is-disabled");
         } else {
           btn.textContent = "Выбрать";
           btn.addEventListener("click", () => {
             player.activeBaitId = bait.id;
             save();
             updateProfileStatsUI();
-            renderProfileGearLists();
+            renderProfileGearPicker("bait");
             renderGearShop();
           });
         }
         row.appendChild(btn);
-        profileBaitList.appendChild(row);
+        profileGearPickerList.appendChild(row);
       });
     }
+  }
+
+  function refreshProfileGearPicker() {
+    if (!activeProfileGear) return;
+    renderProfileGearPicker(activeProfileGear);
   }
 
   function renderFishShopInventory() {
@@ -3312,7 +3447,7 @@ if ("serviceWorker" in navigator) {
           renderGearShop();
           updateHUD();
           updateProfileStatsUI();
-          renderProfileGearLists();
+          refreshProfileGearPicker();
         });
         const useBtn = document.createElement("button");
         useBtn.className = "invBtn secondary";
@@ -3324,6 +3459,7 @@ if ("serviceWorker" in navigator) {
           save();
           renderGearShop();
           updateProfileStatsUI();
+          refreshProfileGearPicker();
         });
         actions.append(buyBtn, useBtn);
         item.appendChild(actions);
@@ -3368,6 +3504,7 @@ if ("serviceWorker" in navigator) {
           renderGearShop();
           updateHUD();
           updateProfileStatsUI();
+          refreshProfileGearPicker();
         });
         item.appendChild(btn);
         rodList.appendChild(item);
@@ -3414,6 +3551,7 @@ if ("serviceWorker" in navigator) {
           renderGearShop();
           updateHUD();
           updateProfileStatsUI();
+          refreshProfileGearPicker();
         });
         item.appendChild(btn);
         lineList.appendChild(item);
@@ -3802,7 +3940,7 @@ if ("serviceWorker" in navigator) {
     clearCityTooltip();
     setCatchOverlayVisible(sceneId === SCENE_CATCH_MODAL);
     cityHud?.classList.toggle("hidden", sceneId !== SCENE_CITY);
-    shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_GEARSHOP].includes(sceneId));
+    shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_GEARSHOP, SCENE_BUILDING_TROPHY].includes(sceneId));
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
@@ -3814,7 +3952,6 @@ if ("serviceWorker" in navigator) {
       trashOverlay.classList.remove("is-visible");
     }
     if (sceneId !== SCENE_LAKE && progressOverlay) progressOverlay.classList.add("hidden");
-    if (sceneId !== SCENE_BUILDING_TROPHY) closeLeaderboard();
   }
 
   function transitionTo(sceneId) {
