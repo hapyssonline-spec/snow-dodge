@@ -92,27 +92,33 @@ if ("serviceWorker" in navigator) {
   const cityScene = document.getElementById("cityScene");
   const cityHitboxes = Array.from(document.querySelectorAll(".city-hitbox"));
   const cityTooltip = document.getElementById("cityTooltip");
+  const questReminder = document.getElementById("questReminder");
 
   const shopOverlay = document.getElementById("shopOverlay");
   const shopTitle = document.getElementById("shopTitle");
   const btnShopClose = document.getElementById("btnShopClose");
   const shopStats = document.getElementById("shopStats");
-  const shopInventory = document.getElementById("shopInventory");
+  const fishShopSection = document.getElementById("fishShopSection");
   const shopInvList = document.getElementById("shopInvList");
   const shopInvEmpty = document.getElementById("shopInvEmpty");
-  const shopOffer = document.getElementById("shopOffer");
-  const shopOfferInfo = document.getElementById("shopOfferInfo");
-  const haggleSelect = document.getElementById("haggleSelect");
-  const discountSelect = document.getElementById("discountSelect");
-  const btnHaggle = document.getElementById("btnHaggle");
-  const btnSellOffer = document.getElementById("btnSellOffer");
-  const shopOfferNote = document.getElementById("shopOfferNote");
+  const btnSellAll = document.getElementById("btnSellAll");
+  const trophyQuestSection = document.getElementById("trophyQuestSection");
+  const trophyActiveSection = document.getElementById("trophyActiveSection");
+  const difficultyButtons = Array.from(document.querySelectorAll(".difficultyBtn"));
+  const questPreviewSpecies = document.getElementById("questPreviewSpecies");
+  const questPreviewWeight = document.getElementById("questPreviewWeight");
+  const questPreviewReward = document.getElementById("questPreviewReward");
+  const btnQuestAccept = document.getElementById("btnQuestAccept");
+  const btnQuestRefresh = document.getElementById("btnQuestRefresh");
+  const activeQuestSpecies = document.getElementById("activeQuestSpecies");
+  const activeQuestWeight = document.getElementById("activeQuestWeight");
+  const activeQuestReward = document.getElementById("activeQuestReward");
+  const activeQuestStatus = document.getElementById("activeQuestStatus");
+  const btnQuestClaim = document.getElementById("btnQuestClaim");
   const gearShopSection = document.getElementById("gearShopSection");
   const baitList = document.getElementById("baitList");
   const rodList = document.getElementById("rodList");
   const lineList = document.getElementById("lineList");
-  const questList = document.getElementById("questList");
-  const btnNewQuest = document.getElementById("btnNewQuest");
   const progressOverlay = document.getElementById("progressOverlay");
   const btnProgressClose = document.getElementById("btnProgressClose");
 
@@ -204,7 +210,6 @@ if ("serviceWorker" in navigator) {
 
   const formatKg = (value) => `${value.toFixed(2)} кг`;
   const formatCoins = (value) => `${value} монет`;
-  const formatPercent = (value) => `${Math.round(value)}%`;
   const formatDayKey = (value) => {
     const date = value ? new Date(value) : new Date();
     return date.toISOString().slice(0, 10);
@@ -735,6 +740,20 @@ if ("serviceWorker" in navigator) {
     }, 1200);
   }
 
+  function showQuestToast(title, subtitle) {
+    if (!toast) return;
+    toast.innerHTML = `
+      <div class="toastTitle">${title}</div>
+      <div class="toastSub">${subtitle}</div>
+    `;
+    toast.classList.remove("hidden");
+    toast.classList.add("show");
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.classList.add("hidden"), 200);
+    }, 1300);
+  }
+
   function showXPGain(result) {
     if (!xpToast || !result) return;
     const lines = [
@@ -896,6 +915,48 @@ if ("serviceWorker" in navigator) {
       minRodTier: 3
     }
   ];
+
+  const FISH_WEIGHT_LIMITS = {
+    roach: { min: 0.1, max: 1.2 },
+    perch: { min: 0.15, max: 2.0 },
+    crucian: { min: 0.2, max: 3.5 },
+    bream: { min: 0.5, max: 6.0 },
+    pike: { min: 0.7, max: 12.0 },
+    zander: { min: 0.8, max: 8.0 },
+    trout: { min: 0.4, max: 5.0 },
+    catfish: { min: 1.0, max: 30.0 },
+    sturgeon: { min: 2.0, max: 60.0 },
+    "moon-legend": { min: 5.0, max: 25.0 }
+  };
+
+  const QUEST_DIFFICULTIES = {
+    easy: {
+      label: "Лёгкое",
+      rangePct: 0.55,
+      minWidth: 0.35,
+      rewardMult: 0.75,
+      xpMult: 1.0,
+      rarityPool: ["common", "uncommon"]
+    },
+    medium: {
+      label: "Среднее",
+      rangePct: 0.35,
+      minWidth: 0.25,
+      rewardMult: 1.0,
+      xpMult: 1.35,
+      rarityPool: ["common", "uncommon", "rare"]
+    },
+    hard: {
+      label: "Сложное",
+      rangePct: 0.2,
+      minWidth: 0.18,
+      rewardMult: 1.35,
+      xpMult: 1.8,
+      rarityPool: ["rare", "epic", "legendary"]
+    }
+  };
+
+  const QUEST_REFRESH_COOLDOWN = 10000;
 
   const confusionGroups = [
     ["roach", "crucian", "bream"],
@@ -1074,15 +1135,15 @@ if ("serviceWorker" in navigator) {
   ];
 
   const rodItems = [
-    { id: 1, name: "Теплая палка", price: 0, repReq: 0, reelBonus: 0.0 },
-    { id: 2, name: "Северный кивок", price: 280, repReq: 50, reelBonus: 0.04 },
-    { id: 3, name: "Легендарная удочка", price: 680, repReq: 80, reelBonus: 0.08 }
+    { id: 1, name: "Теплая палка", price: 0, reelBonus: 0.0 },
+    { id: 2, name: "Северный кивок", price: 280, reelBonus: 0.04 },
+    { id: 3, name: "Легендарная удочка", price: 680, reelBonus: 0.08 }
   ];
 
   const lineItems = [
-    { id: 1, name: "Леска 1X", price: 0, repReq: 0, breakThreshold: 1.0, maxKg: 4.5, tensionMult: 1.0 },
-    { id: 2, name: "Леска 2X", price: 220, repReq: 50, breakThreshold: 1.12, maxKg: 9, tensionMult: 0.92 },
-    { id: 3, name: "Леска 3X", price: 540, repReq: 75, breakThreshold: 1.22, maxKg: 18, tensionMult: 0.86 }
+    { id: 1, name: "Леска 1X", price: 0, breakThreshold: 1.0, maxKg: 4.5, tensionMult: 1.0 },
+    { id: 2, name: "Леска 2X", price: 220, breakThreshold: 1.12, maxKg: 9, tensionMult: 0.92 },
+    { id: 3, name: "Леска 3X", price: 540, breakThreshold: 1.22, maxKg: 18, tensionMult: 0.86 }
   ];
 
   const trashItems = [
@@ -1148,6 +1209,196 @@ if ("serviceWorker" in navigator) {
     const bait = baitItems.find((item) => item.id === player.activeBaitId);
     const count = player.baitInventory[player.activeBaitId] || 0;
     return bait ? `${bait.name} (${count})` : "без приманки";
+  }
+
+  function sanitizeQuest(data) {
+    if (!data || typeof data !== "object" || data.claimed) return null;
+    const speciesId = data.speciesId;
+    const species = fishSpeciesTable.find((entry) => entry.id === speciesId);
+    if (!species) return null;
+    const limits = FISH_WEIGHT_LIMITS[speciesId] || { min: species.minKg, max: species.maxKg };
+    const minWeight = clamp(Number(data.minWeightKg) || limits.min, limits.min, limits.max);
+    const maxWeight = clamp(Number(data.maxWeightKg) || limits.max, limits.min, limits.max);
+    if (maxWeight < minWeight) return null;
+    const difficulty = QUEST_DIFFICULTIES[data.difficulty] ? data.difficulty : "easy";
+    return {
+      id: data.id || `quest-${Date.now()}`,
+      difficulty,
+      speciesId,
+      speciesName: species.name,
+      minWeightKg: minWeight,
+      maxWeightKg: maxWeight,
+      rewardCoins: Math.max(0, Math.round(Number(data.rewardCoins) || 0)),
+      rewardXp: Math.max(0, Math.round(Number(data.rewardXp) || 0)),
+      status: data.status === "completed" ? "completed" : "active",
+      createdAt: data.createdAt || new Date().toISOString()
+    };
+  }
+
+  function pickQuestSpecies(difficultyKey) {
+    const config = QUEST_DIFFICULTIES[difficultyKey] || QUEST_DIFFICULTIES.easy;
+    const available = fishSpeciesTable.filter((species) => species.minRodTier <= player.rodTier);
+    const pool = available.filter((species) => config.rarityPool.includes(species.rarity));
+    const finalPool = pool.length ? pool : available;
+    const total = finalPool.reduce((sum, species) => sum + species.chance, 0);
+    let roll = Math.random() * total;
+    for (const species of finalPool) {
+      roll -= species.chance;
+      if (roll <= 0) return species;
+    }
+    return finalPool[0];
+  }
+
+  function roundWeight(value) {
+    return Math.round(value * 10) / 10;
+  }
+
+  function buildQuestRange(species, difficultyKey) {
+    const limits = FISH_WEIGHT_LIMITS[species.id] || { min: species.minKg, max: species.maxKg };
+    const range = limits.max - limits.min;
+    const config = QUEST_DIFFICULTIES[difficultyKey] || QUEST_DIFFICULTIES.easy;
+    const width = clamp(range * config.rangePct, config.minWidth, range);
+    const centerMin = limits.min + width / 2;
+    const centerMax = limits.max - width / 2;
+    const center = centerMin <= centerMax ? rand(centerMin, centerMax) : (limits.min + limits.max) / 2;
+    const minWeight = clamp(roundWeight(center - width / 2), limits.min, limits.max);
+    const maxWeight = clamp(roundWeight(center + width / 2), limits.min, limits.max);
+    return { minWeight, maxWeight };
+  }
+
+  function buildQuestReward(species, difficultyKey, minWeightKg, maxWeightKg) {
+    const config = QUEST_DIFFICULTIES[difficultyKey] || QUEST_DIFFICULTIES.easy;
+    const avgWeight = (minWeightKg + maxWeightKg) / 2;
+    const baseCoins = avgWeight * species.pricePerKg;
+    const rewardCoins = Math.max(1, Math.round(baseCoins * config.rewardMult));
+    const baseXp = 10 + (rarityRank[species.rarity] || 0) * 8 + avgWeight * 4;
+    const rewardXp = Math.max(5, Math.round(baseXp * config.xpMult));
+    return { rewardCoins, rewardXp };
+  }
+
+  function generateQuest(difficultyKey) {
+    const difficulty = QUEST_DIFFICULTIES[difficultyKey] ? difficultyKey : "easy";
+    const species = pickQuestSpecies(difficulty);
+    const { minWeight, maxWeight } = buildQuestRange(species, difficulty);
+    const reward = buildQuestReward(species, difficulty, minWeight, maxWeight);
+    return {
+      id: `quest-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      difficulty,
+      speciesId: species.id,
+      speciesName: species.name,
+      minWeightKg: minWeight,
+      maxWeightKg: maxWeight,
+      rewardCoins: reward.rewardCoins,
+      rewardXp: reward.rewardXp,
+      status: "active",
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  function updateQuestReminder() {
+    if (!questReminder) return;
+    if (!activeQuest) {
+      questReminder.textContent = "";
+      questReminder.classList.add("hidden");
+      return;
+    }
+    if (activeQuest.status === "completed") {
+      questReminder.textContent = "Задание выполнено — забери награду";
+    } else {
+      questReminder.textContent = `Задание: ${activeQuest.speciesName} ${formatKg(activeQuest.minWeightKg)}–${formatKg(activeQuest.maxWeightKg)}`;
+    }
+    questReminder.classList.remove("hidden");
+  }
+
+  function updateQuestPreviewUI() {
+    if (!questPreview) return;
+    if (questPreviewSpecies) questPreviewSpecies.textContent = questPreview.speciesName;
+    if (questPreviewWeight) questPreviewWeight.textContent = `${formatKg(questPreview.minWeightKg)}–${formatKg(questPreview.maxWeightKg)}`;
+    if (questPreviewReward) questPreviewReward.textContent = `${formatCoins(questPreview.rewardCoins)} + ${questPreview.rewardXp} XP`;
+  }
+
+  function setQuestPreview(difficultyKey) {
+    questPreview = generateQuest(difficultyKey);
+    updateQuestPreviewUI();
+    updateQuestDifficultyButtons();
+  }
+
+  function updateQuestDifficultyButtons() {
+    if (!difficultyButtons.length) return;
+    difficultyButtons.forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.difficulty === selectedQuestDifficulty);
+    });
+  }
+
+  function renderTrophyQuest() {
+    if (!trophyQuestSection || !trophyActiveSection) return;
+    if (activeQuest) {
+      trophyQuestSection.classList.add("hidden");
+      trophyActiveSection.classList.remove("hidden");
+      if (activeQuestSpecies) activeQuestSpecies.textContent = activeQuest.speciesName;
+      if (activeQuestWeight) activeQuestWeight.textContent = `${formatKg(activeQuest.minWeightKg)}–${formatKg(activeQuest.maxWeightKg)}`;
+      if (activeQuestReward) activeQuestReward.textContent = `${formatCoins(activeQuest.rewardCoins)} + ${activeQuest.rewardXp} XP`;
+      if (activeQuestStatus) {
+        const completed = activeQuest.status === "completed";
+        activeQuestStatus.textContent = completed ? "Выполнено" : "В процессе";
+        activeQuestStatus.classList.toggle("is-complete", completed);
+      }
+      if (btnQuestClaim) btnQuestClaim.disabled = activeQuest.status !== "completed";
+    } else {
+      trophyActiveSection.classList.add("hidden");
+      trophyQuestSection.classList.remove("hidden");
+      if (btnQuestRefresh && !btnQuestRefresh.disabled) btnQuestRefresh.textContent = "Обновить";
+      if (!questPreview || questPreview.difficulty !== selectedQuestDifficulty) {
+        setQuestPreview(selectedQuestDifficulty);
+      } else {
+        updateQuestPreviewUI();
+      }
+    }
+  }
+
+  function setQuestRefreshCooldown() {
+    if (!btnQuestRefresh) return;
+    btnQuestRefresh.disabled = true;
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const remain = Math.max(0, Math.ceil((QUEST_REFRESH_COOLDOWN - elapsed) / 1000));
+      btnQuestRefresh.textContent = remain > 0 ? `Обновить (${remain}с)` : "Обновить";
+      if (remain <= 0) {
+        btnQuestRefresh.disabled = false;
+        window.clearInterval(timer);
+      }
+    }, 250);
+  }
+
+  function checkQuestCompletion(catchData) {
+    if (!activeQuest || activeQuest.status !== "active") return;
+    if (catchData.catchType !== "fish") return;
+    if (catchData.speciesId !== activeQuest.speciesId) return;
+    if (catchData.weightKg < activeQuest.minWeightKg || catchData.weightKg > activeQuest.maxWeightKg) return;
+    activeQuest.status = "completed";
+    save();
+    updateQuestReminder();
+    renderTrophyQuest();
+    showQuestToast("Цель выполнена", "Загляни в трофейную за наградой");
+  }
+
+  function awardQuestRewards(quest) {
+    if (!quest) return;
+    player.coins += quest.rewardCoins;
+    const gainedXP = Math.max(1, Math.round(quest.rewardXp));
+    player.playerXP += gainedXP;
+    player.playerXPTotal += gainedXP;
+    const levelsGained = progression.normalize();
+    updateHUD();
+    showXPGain({
+      gainedXP,
+      leveledUp: levelsGained > 0,
+      levelsGained,
+      level: player.playerLevel,
+      xp: player.playerXP,
+      xpToNext: player.playerXPToNext
+    });
   }
 
   function buildFishCatch(rareBoostActive = false) {
@@ -1416,7 +1667,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
-  const STORAGE_VERSION = 5;
+  const STORAGE_VERSION = 6;
 
   const stats = {
     coins: 0,
@@ -1436,27 +1687,14 @@ if ("serviceWorker" in navigator) {
     playerXPToNext: 60
   };
 
-  const reps = {
-    fishShop: 30,
-    trophy: 30,
-    gearShop: 30
-  };
-
-  let citySession = {
-    fishShopGold: 0,
-    fishShopFishKg: 0,
-    trophyGold: 0,
-    trophyFishKg: 0,
-    gearShopGold: 0
-  };
-
   let inventory = [];
   let inventorySort = "WEIGHT_DESC";
-  let activeQuests = [];
+  let activeQuest = null;
+  let questPreview = null;
+  let selectedQuestDifficulty = "easy";
+  let lastQuestRefreshAt = 0;
   let currentScene = SCENE_LAKE;
   let pendingCatch = null;
-  let selectedShopItemId = null;
-  let negotiatedPrice = null;
   let foundTrash = {};
   let collectorRodUnlocked = false;
   let dailyRareBoostCharges = 0;
@@ -1544,12 +1782,9 @@ if ("serviceWorker" in navigator) {
         player.rodTier = Number(savedPlayer.rodTier || 1);
         player.lineTier = Number(savedPlayer.lineTier || 1);
         progression.load(savedPlayer);
-        const savedReps = obj.reps || {};
-        reps.fishShop = Number(savedReps.fishShop ?? reps.fishShop);
-        reps.trophy = Number(savedReps.trophy ?? reps.trophy);
-        reps.gearShop = Number(savedReps.gearShop ?? reps.gearShop);
-        citySession = Object.assign(citySession, obj.citySession || {});
-        activeQuests = Array.isArray(obj.quests) ? obj.quests : [];
+        if (obj.trophyQuest && typeof obj.trophyQuest === "object") {
+          activeQuest = sanitizeQuest(obj.trophyQuest);
+        }
       } else {
         player.coins = stats.coins;
         progression.load();
@@ -1588,13 +1823,7 @@ if ("serviceWorker" in navigator) {
           lineTier: player.lineTier,
           ...progression.save()
         },
-        reps: {
-          fishShop: reps.fishShop,
-          trophy: reps.trophy,
-          gearShop: reps.gearShop
-        },
-        citySession,
-        quests: activeQuests
+        trophyQuest: activeQuest
       }));
     } catch {}
   }
@@ -1613,14 +1842,12 @@ if ("serviceWorker" in navigator) {
     player.playerXP = 0;
     player.playerXPTotal = 0;
     player.playerXPToNext = progression.xpRequired(1);
-    reps.fishShop = 30;
-    reps.trophy = 30;
-    reps.gearShop = 30;
     foundTrash = {};
     collectorRodUnlocked = false;
     dailyRareBoostCharges = 0;
     lastChargeResetDate = null;
-    activeQuests = [];
+    activeQuest = null;
+    questPreview = null;
     save();
     updateHUD();
     renderInventory();
@@ -1643,6 +1870,7 @@ if ("serviceWorker" in navigator) {
     }
     updateRareBoostHud();
     updateTrashRewardStatus();
+    updateQuestReminder();
   }
 
   function getFoundTrashCount() {
@@ -1894,56 +2122,66 @@ if ("serviceWorker" in navigator) {
     setHint("Тап: заброс", 1.2);
   });
 
-  btnHaggle?.addEventListener("click", () => {
-    if (!selectedShopItemId) return;
-    if (!canAttemptHaggle()) {
-      showToast("Нужно 50% репутации.");
+  btnSellAll?.addEventListener("click", () => {
+    const items = inventory.slice();
+    if (items.length === 0) {
+      showToast("Нет рыбы для продажи.");
       return;
     }
-    const item = inventory.find((entry) => entry.id === selectedShopItemId);
-    if (!item) return;
-    const baseOffer = getFishShopOffer(item);
-    const percent = Number(haggleSelect?.value || 0);
-    if (percent <= 0) {
-      negotiatedPrice = baseOffer;
-      renderOfferPanel("fish", item, baseOffer);
-      return;
-    }
-    const successChance = clamp(0.45 + reps.fishShop / 200 - percent / 120, 0.2, 0.75);
-    const success = Math.random() < successChance;
-    if (success) {
-      negotiatedPrice = Math.round(baseOffer * (1 + percent / 100));
-      reps.fishShop = clamp(reps.fishShop - Math.ceil(percent / 4), 0, 100);
-      showToast("Торг успешен! Но репутация падает.");
-    } else {
-      negotiatedPrice = Math.round(baseOffer * 0.95);
-      reps.fishShop = clamp(reps.fishShop - Math.ceil(percent / 6), 0, 100);
-      showToast("Торг не удался.");
-    }
+    const total = items.reduce((sum, item) => sum + item.sellValue, 0);
+    inventory = [];
+    player.coins += total;
+    stats.bestCoin = Math.max(stats.bestCoin, total);
+    updateHUD();
     save();
-    renderOfferPanel("fish", item, baseOffer);
-    renderShopStats("fish");
+    renderFishShopInventory();
+    renderInventory();
+    showToast(`Продано: +${total} монет`);
   });
 
-  btnSellOffer?.addEventListener("click", () => {
-    if (!selectedShopItemId) return;
-    const item = inventory.find((entry) => entry.id === selectedShopItemId);
-    if (!item) return;
-    const sceneType = currentScene === SCENE_BUILDING_TROPHY ? "trophy" : "fish";
-    const baseOffer = sceneType === "trophy" ? getTrophyOffer(item) : getFishShopOffer(item);
-    const activeOffer = negotiatedPrice ?? baseOffer;
-    let discount = 0;
-    if (sceneType === "fish") {
-      discount = Number(discountSelect?.value || 0);
+  difficultyButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const difficulty = btn.dataset.difficulty || "easy";
+      if (!QUEST_DIFFICULTIES[difficulty]) return;
+      selectedQuestDifficulty = difficulty;
+      setQuestPreview(selectedQuestDifficulty);
+      renderTrophyQuest();
+    });
+  });
+
+  btnQuestRefresh?.addEventListener("click", () => {
+    const now = Date.now();
+    if (now - lastQuestRefreshAt < QUEST_REFRESH_COOLDOWN) {
+      const waitLeft = Math.ceil((QUEST_REFRESH_COOLDOWN - (now - lastQuestRefreshAt)) / 1000);
+      showToast(`Обновление через ${waitLeft}с.`);
+      return;
     }
-    const price = Math.round(activeOffer * (1 - discount / 100));
-    executeSale(sceneType, item, price, discount);
-    selectedShopItemId = null;
-    negotiatedPrice = null;
+    lastQuestRefreshAt = now;
+    setQuestPreview(selectedQuestDifficulty);
+    setQuestRefreshCooldown();
   });
 
-  btnNewQuest?.addEventListener("click", () => {
-    takeQuest();
+  btnQuestAccept?.addEventListener("click", () => {
+    if (!questPreview) return;
+    activeQuest = {
+      ...questPreview,
+      status: "active"
+    };
+    questPreview = null;
+    save();
+    updateQuestReminder();
+    renderTrophyQuest();
+  });
+
+  btnQuestClaim?.addEventListener("click", () => {
+    if (!activeQuest || activeQuest.status !== "completed") return;
+    awardQuestRewards(activeQuest);
+    activeQuest = null;
+    questPreview = null;
+    save();
+    renderTrophyQuest();
+    updateQuestReminder();
+    showToast("Награда получена.");
   });
 
   function sortInventory(items) {
@@ -2113,70 +2351,53 @@ if ("serviceWorker" in navigator) {
   }
 
   function openShop(sceneId) {
-    selectedShopItemId = null;
-    negotiatedPrice = null;
     transitionTo(sceneId);
     renderShop(sceneId);
   }
 
   function renderShop(sceneId = currentScene) {
     if (!shopOverlay) return;
-    shopOffer?.classList.add("hidden");
+    fishShopSection?.classList.add("hidden");
+    trophyQuestSection?.classList.add("hidden");
+    trophyActiveSection?.classList.add("hidden");
     gearShopSection?.classList.add("hidden");
-    shopInventory?.classList.remove("hidden");
+    if (shopStats) shopStats.classList.add("hidden");
     if (sceneId === SCENE_BUILDING_FISHSHOP) {
       if (shopTitle) shopTitle.textContent = "Рыбная лавка";
-      renderShopStats("fish");
-      renderShopInventory("fish");
+      if (fishShopSection) fishShopSection.classList.remove("hidden");
+      renderFishShopInventory();
     } else if (sceneId === SCENE_BUILDING_TROPHY) {
-      if (shopTitle) shopTitle.textContent = "Трофейная лавка";
-      renderShopStats("trophy");
-      renderShopInventory("trophy");
+      if (shopTitle) shopTitle.textContent = "Трофейная";
+      if (trophyQuestSection) trophyQuestSection.classList.remove("hidden");
+      renderTrophyQuest();
     } else if (sceneId === SCENE_BUILDING_GEARSHOP) {
       if (shopTitle) shopTitle.textContent = "Всё для рыбалки";
-      shopInventory?.classList.add("hidden");
-      renderShopStats("gear");
+      if (shopStats) shopStats.classList.remove("hidden");
       renderGearShop();
     }
   }
 
-  function renderShopStats(type) {
+  function renderShopStats() {
     if (!shopStats) return;
-    if (type === "fish") {
-      shopStats.innerHTML = `
-        <span>Репутация: ${formatPercent(reps.fishShop)}</span>
-        <span>Золото продавца: ${formatCoins(citySession.fishShopGold)}</span>
-        <span>Рыбы у продавца: ${citySession.fishShopFishKg.toFixed(1)} кг</span>
-      `;
-    } else if (type === "trophy") {
-      shopStats.innerHTML = `
-        <span>Репутация: ${formatPercent(reps.trophy)}</span>
-        <span>Золото коллекционера: ${formatCoins(citySession.trophyGold)}</span>
-        <span>Трофеев принято: ${citySession.trophyFishKg.toFixed(1)} кг</span>
-      `;
-    } else {
-      shopStats.innerHTML = `
-        <span>Репутация: ${formatPercent(reps.gearShop)}</span>
-        <span>Активная приманка: ${getActiveBaitLabel()}</span>
-        <span>Удочка: ${getRodStats().name}</span>
-        <span>Леска: ${getLineStats().name}</span>
-      `;
-    }
+    shopStats.innerHTML = `
+      <span>Активная приманка: ${getActiveBaitLabel()}</span>
+      <span>Удочка: ${getRodStats().name}</span>
+      <span>Леска: ${getLineStats().name}</span>
+    `;
   }
 
-  function renderShopInventory(type) {
+  function renderFishShopInventory() {
     if (!shopInvList || !shopInvEmpty) return;
     shopInvList.innerHTML = "";
 
-    const items = sortInventory(inventory).filter((item) => {
-      if (type === "trophy") return item.isTrophy;
-      return true;
-    });
+    const items = sortInventory(inventory);
 
     if (items.length === 0) {
       shopInvEmpty.classList.remove("hidden");
+      if (btnSellAll) btnSellAll.disabled = true;
     } else {
       shopInvEmpty.classList.add("hidden");
+      if (btnSellAll) btnSellAll.disabled = false;
     }
 
     for (const item of items) {
@@ -2196,79 +2417,31 @@ if ("serviceWorker" in navigator) {
 
       header.append(title, meta);
 
-      const offerValue = type === "trophy" ? getTrophyOffer(item) : getFishShopOffer(item);
       const offer = document.createElement("div");
-      offer.textContent = `Предложение: ${formatCoins(offerValue)}`;
+      offer.className = "shopItemMeta";
+      offer.textContent = `Цена: ${formatCoins(item.sellValue)}`;
 
-      const btnSelect = document.createElement("button");
-      btnSelect.className = "invBtn";
-      btnSelect.textContent = "Выбрать";
-      btnSelect.addEventListener("click", () => {
-        selectedShopItemId = item.id;
-        negotiatedPrice = null;
-        renderOfferPanel(type, item, offerValue);
+      const btnSell = document.createElement("button");
+      btnSell.className = "invBtn";
+      btnSell.textContent = "Продать";
+      btnSell.addEventListener("click", () => {
+        executeSale(item);
       });
 
-      card.append(header, offer, btnSelect);
+      card.append(header, offer, btnSell);
       shopInvList.appendChild(card);
     }
   }
 
-  function renderOfferPanel(type, item, baseOffer) {
-    if (!shopOffer || !shopOfferInfo || !btnSellOffer) return;
-    shopOffer.classList.remove("hidden");
-    const canHaggle = type === "fish" && canAttemptHaggle();
-    if (btnHaggle) btnHaggle.disabled = type !== "fish" || !canHaggle || citySession.fishShopGold <= 0;
-    if (haggleSelect) haggleSelect.disabled = type !== "fish" || !canHaggle;
-    if (discountSelect) discountSelect.disabled = type !== "fish";
-    if (shopOfferNote) {
-      shopOfferNote.textContent = type === "fish"
-        ? (canHaggle ? "Торг доступен при репутации 50%+" : "Нужно 50% репутации для торга.")
-        : "Коллекционер платит максимум за трофеи.";
-    }
-    const activeOffer = negotiatedPrice ?? baseOffer;
-    const vendorGold = type === "trophy" ? citySession.trophyGold : citySession.fishShopGold;
-    const canSell = activeOffer > 0 && vendorGold >= activeOffer;
-    btnSellOffer.disabled = !canSell;
-
-    shopOfferInfo.innerHTML = `
-      <div><strong>${item.name}</strong> • ${formatKg(item.weightKg)}</div>
-      <div>Базовая цена: ${formatCoins(item.sellValue)}</div>
-      <div>Предложение: ${formatCoins(activeOffer)}</div>
-      <div>Репутация продавца: ${type === "trophy" ? formatPercent(reps.trophy) : formatPercent(reps.fishShop)}</div>
-    `;
-    if (!canSell && vendorGold < activeOffer) {
-      shopOfferNote.textContent = "У продавца не хватает золота.";
-    }
-  }
-
-  function executeSale(type, item, price, discountPercent = 0) {
-    const vendorGoldKey = type === "trophy" ? "trophyGold" : "fishShopGold";
-    const vendorKgKey = type === "trophy" ? "trophyFishKg" : "fishShopFishKg";
-    if (citySession[vendorGoldKey] < price) {
-      showToast("У продавца не хватает золота.");
-      return;
-    }
-    citySession[vendorGoldKey] -= price;
-    citySession[vendorKgKey] += item.weightKg;
+  function executeSale(item) {
     inventory = inventory.filter((entry) => entry.id !== item.id);
-    player.coins += price;
-    stats.bestCoin = Math.max(stats.bestCoin, price);
-
-    if (type === "fish") {
-      if (discountPercent > 0) {
-        reps.fishShop = clamp(reps.fishShop + discountPercent * 0.4, 0, 100);
-        showToast(`Репутация выросла на ${Math.round(discountPercent * 0.4)}%.`);
-      }
-    } else if (type === "trophy") {
-      reps.trophy = clamp(reps.trophy + 1, 0, 100);
-    }
-
+    player.coins += item.sellValue;
+    stats.bestCoin = Math.max(stats.bestCoin, item.sellValue);
     updateHUD();
     save();
-    renderShop(type === "fish" ? SCENE_BUILDING_FISHSHOP : SCENE_BUILDING_TROPHY);
+    renderFishShopInventory();
     renderInventory();
-    showToast(`Продано за ${formatCoins(price)}.`);
+    showToast(`Продано: +${item.sellValue} монет`);
   }
 
   function renderGearShop() {
@@ -2324,23 +2497,20 @@ if ("serviceWorker" in navigator) {
       for (const rod of rodItems) {
         const item = document.createElement("div");
         item.className = "shopItem";
-        const locked = reps.gearShop < rod.repReq;
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${rod.name}</div>
             <div class="shopItemMeta">${formatCoins(rod.price)}</div>
           </div>
-          <div class="shopItemMeta">Требуется репутация: ${rod.repReq}%</div>
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
         btn.textContent = player.rodTier === rod.id ? "Активна" : "Купить";
-        btn.disabled = locked || player.rodTier >= rod.id || player.coins < rod.price;
+        btn.disabled = player.rodTier >= rod.id || player.coins < rod.price;
         btn.addEventListener("click", () => {
-          if (locked || player.coins < rod.price) return;
+          if (player.coins < rod.price) return;
           player.coins -= rod.price;
           player.rodTier = rod.id;
-          reps.gearShop = clamp(reps.gearShop + 2, 0, 100);
           save();
           renderGearShop();
           updateHUD();
@@ -2355,24 +2525,21 @@ if ("serviceWorker" in navigator) {
       for (const line of lineItems) {
         const item = document.createElement("div");
         item.className = "shopItem";
-        const locked = reps.gearShop < line.repReq;
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${line.name}</div>
             <div class="shopItemMeta">${formatCoins(line.price)}</div>
           </div>
           <div class="shopItemMeta">Макс. вес: ${line.maxKg} кг</div>
-          <div class="shopItemMeta">Требуется репутация: ${line.repReq}%</div>
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
         btn.textContent = player.lineTier === line.id ? "Активна" : "Купить";
-        btn.disabled = locked || player.lineTier >= line.id || player.coins < line.price;
+        btn.disabled = player.lineTier >= line.id || player.coins < line.price;
         btn.addEventListener("click", () => {
-          if (locked || player.coins < line.price) return;
+          if (player.coins < line.price) return;
           player.coins -= line.price;
           player.lineTier = line.id;
-          reps.gearShop = clamp(reps.gearShop + 2, 0, 100);
           save();
           renderGearShop();
           updateHUD();
@@ -2382,129 +2549,14 @@ if ("serviceWorker" in navigator) {
       }
     }
 
-    renderQuestList();
-    if (btnNewQuest) {
-      btnNewQuest.disabled = activeQuests.length >= 2;
-    }
-    renderShopStats("gear");
+    renderShopStats();
   }
-
-  function renderQuestList() {
-    if (!questList) return;
-    questList.innerHTML = "";
-    if (activeQuests.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "shopItem";
-      empty.textContent = "Нет активных заданий.";
-      questList.appendChild(empty);
-      return;
-    }
-
-    for (const quest of activeQuests) {
-      const item = document.createElement("div");
-      item.className = "shopItem";
-      item.innerHTML = `
-        <div class="shopItemHeader">
-          <div class="shopItemTitle">${quest.name}</div>
-          <div class="shopItemMeta">${formatKg(quest.minWeightKg)} - ${formatKg(quest.maxWeightKg)}</div>
-        </div>
-        <div class="shopItemMeta">Награда: ${formatCoins(quest.rewardCoins)} + ${quest.rewardRep}% репутации</div>
-      `;
-      const btn = document.createElement("button");
-      btn.className = "invBtn";
-      btn.textContent = "Сдать";
-      const hasFish = inventory.some((fish) => fish.speciesId === quest.speciesId && fish.weightKg >= quest.minWeightKg && fish.weightKg <= quest.maxWeightKg);
-      btn.disabled = !hasFish;
-      btn.addEventListener("click", () => {
-        submitQuest(quest.id);
-      });
-      item.appendChild(btn);
-      questList.appendChild(item);
-    }
-  }
-
-  function generateQuest() {
-    const species = fishSpeciesTable[Math.floor(Math.random() * fishSpeciesTable.length)];
-    const minWeight = Math.max(species.minKg, Math.round((species.minKg + (species.maxKg - species.minKg) * 0.35) * 10) / 10);
-    const maxWeight = Math.min(species.maxKg, Math.round((minWeight + (species.maxKg - minWeight) * 0.4) * 10) / 10);
-    const rewardCoins = Math.round((minWeight + maxWeight) * species.pricePerKg * 0.8);
-    const rewardRep = Math.round(4 + Math.random() * 6);
-    return {
-      id: `quest-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
-      speciesId: species.id,
-      name: `Поймать ${species.name}`,
-      minWeightKg: minWeight,
-      maxWeightKg: maxWeight,
-      rewardCoins,
-      rewardRep
-    };
-  }
-
-  function takeQuest() {
-    if (activeQuests.length >= 2) {
-      showToast("Можно взять только 2 задания.");
-      return;
-    }
-    const quest = generateQuest();
-    activeQuests.push(quest);
-    save();
-    renderQuestList();
-  }
-
-  function submitQuest(questId) {
-    const questIndex = activeQuests.findIndex((quest) => quest.id === questId);
-    if (questIndex === -1) return;
-    const quest = activeQuests[questIndex];
-    const fishIndex = inventory.findIndex((fish) => fish.speciesId === quest.speciesId && fish.weightKg >= quest.minWeightKg && fish.weightKg <= quest.maxWeightKg);
-    if (fishIndex === -1) {
-      showToast("Нет подходящей рыбы.");
-      return;
-    }
-    inventory.splice(fishIndex, 1);
-    player.coins += quest.rewardCoins;
-    reps.gearShop = clamp(reps.gearShop + quest.rewardRep, 0, 100);
-    activeQuests.splice(questIndex, 1);
-    save();
-    updateHUD();
-    renderGearShop();
-    showToast("Задание выполнено!");
-  }
-
-  function initCitySession() {
-    citySession = {
-      fishShopGold: Math.round(rand(600, 1400)),
-      fishShopFishKg: 0,
-      trophyGold: Math.round(rand(800, 1600)),
-      trophyFishKg: 0,
-      gearShopGold: Math.round(rand(600, 1200))
-    };
-    save();
-  }
-
-  function getFishShopOffer(item) {
-    const baseOfferFactor = 0.78;
-    const stockPenalty = clamp(1 - citySession.fishShopFishKg * 0.03, 0.55, 1);
-    const repBonus = 1 + (reps.fishShop - 30) * 0.003;
-    const trophyPenalty = item.isTrophy ? 0.65 : 1;
-    return Math.round(item.sellValue * baseOfferFactor * stockPenalty * repBonus * trophyPenalty);
-  }
-
-  function getTrophyOffer(item) {
-    const repBonus = 1 + (reps.trophy - 30) * 0.004;
-    const stockPenalty = clamp(1 - citySession.trophyFishKg * 0.02, 0.7, 1);
-    return Math.round(item.sellValue * (1.05 + repBonus * 0.12) * stockPenalty);
-  }
-
   function getLineStats() {
     return lineItems.find((line) => line.id === player.lineTier) || lineItems[0];
   }
 
   function getRodStats() {
     return rodItems.find((rod) => rod.id === player.rodTier) || rodItems[0];
-  }
-
-  function canAttemptHaggle() {
-    return reps.fishShop >= 50;
   }
 
   // ===== Scene objects =====
@@ -2812,8 +2864,6 @@ if ("serviceWorker" in navigator) {
       window.setTimeout(() => travelCard.classList.remove("is-arriving"), 600);
     }
     window.setTimeout(() => {
-      initCitySession();
-      showToast("Продавцы обновили запасы золота.");
       transitionTo(SCENE_CITY);
       setTravelOverlayVisible(false);
       setTravelUiLocked(false);
@@ -3106,6 +3156,7 @@ if ("serviceWorker" in navigator) {
     updateHUD();
     showXPGain(xpResult);
     save();
+    checkQuestCompletion(game.catch);
 
     game.mode = "LANDED";
     game.t = 0;
