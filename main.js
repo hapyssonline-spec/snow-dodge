@@ -32,7 +32,7 @@ if ("serviceWorker" in navigator) {
   const bobberLayer = document.getElementById("bobberLayer");
 
   const coinsEl = document.getElementById("coins");
-  const fishEl = document.getElementById("fish");
+  const profileLevelBadge = document.getElementById("profileLevelBadge");
   const playerLevelEl = document.getElementById("playerLevel");
   const xpTextEl = document.getElementById("xpText");
   const xpBarFill = document.getElementById("xpBarFill");
@@ -44,6 +44,7 @@ if ("serviceWorker" in navigator) {
   const btnReset = document.getElementById("btnReset");
   const btnMute = document.getElementById("btnMute");
   const btnProgress = document.getElementById("btnProgress");
+  const btnProfile = document.getElementById("btnProfile");
   const btnInventory = document.getElementById("btnInventory");
   const btnJournal = document.getElementById("btnJournal");
   const btnCity = document.getElementById("btnCity");
@@ -125,6 +126,47 @@ if ("serviceWorker" in navigator) {
   const lineList = document.getElementById("lineList");
   const progressOverlay = document.getElementById("progressOverlay");
   const btnProgressClose = document.getElementById("btnProgressClose");
+
+  const profileOverlay = document.getElementById("profileOverlay");
+  const btnProfileClose = document.getElementById("btnProfileClose");
+  const profileName = document.getElementById("profileName");
+  const profileRenameHint = document.getElementById("profileRenameHint");
+  const btnProfileRename = document.getElementById("btnProfileRename");
+  const profileRenameForm = document.getElementById("profileRenameForm");
+  const profileRenameInput = document.getElementById("profileRenameInput");
+  const btnProfileRenameSave = document.getElementById("btnProfileRenameSave");
+  const btnProfileRenameCancel = document.getElementById("btnProfileRenameCancel");
+  const profileRenameError = document.getElementById("profileRenameError");
+  const profileLevel = document.getElementById("profileLevel");
+  const profileXpFill = document.getElementById("profileXpFill");
+  const profileXpText = document.getElementById("profileXpText");
+  const profileXpRemain = document.getElementById("profileXpRemain");
+  const btnProfileStatsToggle = document.getElementById("btnProfileStatsToggle");
+  const profileStats = document.getElementById("profileStats");
+  const statPlayTime = document.getElementById("statPlayTime");
+  const statFishCaught = document.getElementById("statFishCaught");
+  const statGoldEarned = document.getElementById("statGoldEarned");
+  const statBestRarity = document.getElementById("statBestRarity");
+  const statMaxWeight = document.getElementById("statMaxWeight");
+  const profileRodName = document.getElementById("profileRodName");
+  const profileLineName = document.getElementById("profileLineName");
+  const profileBaitName = document.getElementById("profileBaitName");
+  const profileRodList = document.getElementById("profileRodList");
+  const profileLineList = document.getElementById("profileLineList");
+  const profileBaitList = document.getElementById("profileBaitList");
+  const profileGearToggles = Array.from(document.querySelectorAll(".profileGearToggle"));
+
+  const profileSetupOverlay = document.getElementById("profileSetupOverlay");
+  const profileSetupInput = document.getElementById("profileSetupInput");
+  const profileSetupError = document.getElementById("profileSetupError");
+  const btnProfileSetupSave = document.getElementById("btnProfileSetupSave");
+  const btnProfileSetupGenerate = document.getElementById("btnProfileSetupGenerate");
+
+  const leaderboardOverlay = document.getElementById("leaderboardOverlay");
+  const btnLeaderboardClose = document.getElementById("btnLeaderboardClose");
+  const leaderboardTabButtons = Array.from(document.querySelectorAll(".leaderboardTabBtn"));
+  const leaderboardYourRecord = document.getElementById("leaderboardYourRecord");
+  const leaderboardLocalList = document.getElementById("leaderboardLocalList");
 
   const sceneFade = document.getElementById("sceneFade");
   const toast = document.getElementById("toast");
@@ -213,6 +255,16 @@ if ("serviceWorker" in navigator) {
   }
 
   const formatKg = (value) => `${value.toFixed(2)} кг`;
+  const formatWeightFromGrams = (grams) => {
+    const kg = Math.max(0, Number(grams) || 0) / 1000;
+    return `${kg.toFixed(2)} кг`;
+  };
+  const formatItemWeight = (item) => {
+    if (!item) return formatKg(0);
+    const grams = Number(item.weightG);
+    if (Number.isFinite(grams) && grams > 0) return formatWeightFromGrams(grams);
+    return formatKg(Number(item.weightKg) || 0);
+  };
   const formatCoins = (value) => `${value} монет`;
   const formatDuration = (ms) => {
     const total = Math.max(0, Math.ceil(ms / 1000));
@@ -1187,15 +1239,15 @@ if ("serviceWorker" in navigator) {
   ];
 
   const rodItems = [
-    { id: 1, name: "Теплая палка", price: 0, reelBonus: 0.0 },
-    { id: 2, name: "Северный кивок", price: 280, reelBonus: 0.04 },
-    { id: 3, name: "Легендарная удочка", price: 680, reelBonus: 0.08 }
+    { id: 1, name: "Rod_1 «Базовая»", price: 0, reelBonus: 0.0, safeZoneBonus: 0, rareBonus: 0 },
+    { id: 2, name: "Rod_2 «Контроль»", price: 280, reelBonus: 0.03, safeZoneBonus: 0.1, rareBonus: 0 },
+    { id: 3, name: "Rod_3 «Охотник»", price: 680, reelBonus: 0.05, safeZoneBonus: 0, rareBonus: 0.07 }
   ];
 
   const lineItems = [
-    { id: 1, name: "Леска 1X", price: 0, breakThreshold: 1.0, maxKg: 4.5, tensionMult: 1.0 },
-    { id: 2, name: "Леска 2X", price: 220, breakThreshold: 1.12, maxKg: 9, tensionMult: 0.92 },
-    { id: 3, name: "Леска 3X", price: 540, breakThreshold: 1.22, maxKg: 18, tensionMult: 0.86 }
+    { id: 1, name: "Line_1 «Базовая»", price: 0, breakThreshold: 1.0, maxKg: 4.5, tensionMult: 1.0, breakRiskMod: 1, rareBonus: 0 },
+    { id: 2, name: "Line_2 «Крепкая»", price: 220, breakThreshold: 1.12, maxKg: 9, tensionMult: 0.92, breakRiskMod: 1.07, rareBonus: 0 },
+    { id: 3, name: "Line_3 «Тонкая»", price: 540, breakThreshold: 1.22, maxKg: 18, tensionMult: 0.86, breakRiskMod: 0.95, rareBonus: 0.05 }
   ];
 
   const trashItems = [
@@ -1234,12 +1286,19 @@ if ("serviceWorker" in navigator) {
 
   function rollFish(rareBoostActive = false) {
     const bait = baitItems.find((item) => item.id === player.activeBaitId);
+    const rod = getRodStats();
+    const line = getLineStats();
+    const gearRareBonus = (rod.rareBonus || 0) + (line.rareBonus || 0);
+    const rareMult = gearRareBonus > 0 ? 1 + gearRareBonus : 1;
     const rollTable = fishSpeciesTable.map((fish) => {
       const rodAllowed = fish.minRodTier <= player.rodTier;
       if (!rodAllowed) return { fish, chance: 0 };
       let mult = 1.0;
       if (bait) {
         mult = bait.boost.includes(fish.id) ? 2.0 : 0.8;
+      }
+      if ((rarityRank[fish.rarity] ?? 0) >= rarityRank.rare) {
+        mult *= rareMult;
       }
       if (rareBoostActive && (rarityRank[fish.rarity] ?? 0) >= rarityRank.rare) {
         mult *= RARE_BOOST_MULT;
@@ -1257,10 +1316,10 @@ if ("serviceWorker" in navigator) {
   }
 
   function getActiveBaitLabel() {
-    if (!player.activeBaitId) return "без приманки";
+    if (!player.activeBaitId) return "без наживки";
     const bait = baitItems.find((item) => item.id === player.activeBaitId);
     const count = player.baitInventory[player.activeBaitId] || 0;
-    return bait ? `${bait.name} (${count})` : "без приманки";
+    return bait ? `${bait.name} (${count})` : "без наживки";
   }
 
   function sanitizeQuest(data) {
@@ -1482,7 +1541,7 @@ if ("serviceWorker" in navigator) {
 
   function awardQuestRewards(quest) {
     if (!quest) return;
-    player.coins += quest.rewardCoins;
+    awardCoins(quest.rewardCoins);
     const gainedXP = Math.max(1, Math.round(quest.rewardXp));
     player.playerXP += gainedXP;
     player.playerXPTotal += gainedXP;
@@ -1496,12 +1555,14 @@ if ("serviceWorker" in navigator) {
       xp: player.playerXP,
       xpToNext: player.playerXPToNext
     });
+    updateLeaderboardsFromStats();
   }
 
   function buildFishCatch(rareBoostActive = false) {
     const species = rollFish(rareBoostActive);
     const rawWeight = triangular(species.minKg, species.modeKg, species.maxKg);
     const weightKg = Math.round(clamp(rawWeight, species.minKg, species.maxKg) * 100) / 100;
+    const weightG = Math.round(weightKg * 1000);
     const sellValue = Math.round(weightKg * species.pricePerKg);
     const weightRatio = (weightKg - species.minKg) / (species.maxKg - species.minKg);
     const power = clamp(0.32 + weightRatio * 0.48 + (rarityPower[species.rarity] || 0), 0.25, 0.9);
@@ -1513,6 +1574,7 @@ if ("serviceWorker" in navigator) {
       rarity: species.rarity,
       rarityLabel: rarityLabels[species.rarity] || species.rarity,
       weightKg,
+      weightG,
       pricePerKg: species.pricePerKg,
       sellValue,
       story: species.story,
@@ -1523,6 +1585,7 @@ if ("serviceWorker" in navigator) {
   function buildTrashCatch() {
     const item = pickTrashItem(foundTrash);
     const weightKg = Math.round(rand(0.2, 1.6) * 100) / 100;
+    const weightG = Math.round(weightKg * 1000);
     const power = clamp(0.24 + weightKg * 0.06, 0.22, 0.45);
     return {
       catchType: "trash",
@@ -1531,6 +1594,7 @@ if ("serviceWorker" in navigator) {
       rarity: "trash",
       rarityLabel: rarityLabels.trash,
       weightKg,
+      weightG,
       pricePerKg: 0,
       sellValue: 0,
       story: "",
@@ -1638,7 +1702,8 @@ if ("serviceWorker" in navigator) {
     const lineTier = line.id;
 
     const baseCenter = clamp(0.56 + power * 0.12 - (lineTier - 1) * 0.01, 0.48, 0.74);
-    const sweetWidth = clamp(0.30 - power * 0.08 + (lineTier - 1) * 0.02, 0.22, 0.32);
+    const baseSweetWidth = clamp(0.30 - power * 0.08 + (lineTier - 1) * 0.02, 0.22, 0.32);
+    const sweetWidth = clamp(baseSweetWidth * (1 + (rod.safeZoneBonus || 0)), 0.22, 0.36);
     const safeMinRatio = clamp(baseCenter - sweetWidth / 2 - (0.10 + power * 0.03), 0.08, 0.65);
     const sweetMinRatio = clamp(baseCenter - sweetWidth / 2, safeMinRatio + 0.05, 0.78);
     const sweetMaxRatio = clamp(baseCenter + sweetWidth / 2, sweetMinRatio + 0.18, 0.9);
@@ -1768,13 +1833,22 @@ if ("serviceWorker" in navigator) {
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
-  const STORAGE_VERSION = 7;
+  const STORAGE_VERSION = 8;
 
   const stats = {
     coins: 0,
-    fish: 0,
     bestCoin: 0,
+    totalFishCaught: 0,
+    totalGoldEarned: 0,
+    maxFishWeightG: 0,
+    bestRarityTier: 0,
+    bestRarityName: "",
+    bestRarityLabel: "",
+    bestRarityFishWeightG: 0,
+    totalPlayTimeMs: 0
   };
+
+  let profile = null;
 
   const player = {
     coins: 0,
@@ -1782,6 +1856,8 @@ if ("serviceWorker" in navigator) {
     baitInventory: {},
     rodTier: 1,
     lineTier: 1,
+    ownedRods: [1],
+    ownedLines: [1],
     playerLevel: 1,
     playerXP: 0,
     playerXPTotal: 0,
@@ -1866,15 +1942,113 @@ if ("serviceWorker" in navigator) {
     }
   };
 
+  const leaderboardBoardIds = ["max_weight", "best_rarity", "gold_earned", "level"];
+
+  class LocalLeaderboardProvider {
+    constructor() {
+      this.boards = {
+        max_weight: [],
+        best_rarity: [],
+        gold_earned: [],
+        level: []
+      };
+    }
+
+    load(data) {
+      if (!data || typeof data !== "object") return;
+      leaderboardBoardIds.forEach((id) => {
+        if (Array.isArray(data[id])) {
+          this.boards[id] = data[id].filter((entry) => entry && typeof entry.name === "string");
+        }
+      });
+    }
+
+    save() {
+      return { ...this.boards };
+    }
+
+    submit(boardId, entry) {
+      if (!boardId || !entry || !entry.name) return;
+      const list = Array.isArray(this.boards[boardId]) ? [...this.boards[boardId]] : [];
+      const normalized = {
+        name: entry.name,
+        score: Math.max(0, Math.floor(Number(entry.score) || 0)),
+        tieBreak: Number.isFinite(entry.tieBreak) ? Math.floor(entry.tieBreak) : null,
+        updatedAt: entry.updatedAt || Date.now()
+      };
+      const existingIndex = list.findIndex((item) => item.name === normalized.name);
+      const shouldReplace = (a, b) => {
+        if (!b) return true;
+        if (a.score !== b.score) return a.score > b.score;
+        const aTie = Number.isFinite(a.tieBreak) ? a.tieBreak : 0;
+        const bTie = Number.isFinite(b.tieBreak) ? b.tieBreak : 0;
+        if (aTie !== bTie) return aTie > bTie;
+        return a.updatedAt > b.updatedAt;
+      };
+      if (existingIndex >= 0) {
+        const current = list[existingIndex];
+        if (!shouldReplace(normalized, current)) {
+          return;
+        }
+        list.splice(existingIndex, 1);
+      }
+      list.push(normalized);
+      list.sort((a, b) => {
+        if (a.score !== b.score) return b.score - a.score;
+        const aTie = Number.isFinite(a.tieBreak) ? a.tieBreak : 0;
+        const bTie = Number.isFinite(b.tieBreak) ? b.tieBreak : 0;
+        if (aTie !== bTie) return bTie - aTie;
+        return b.updatedAt - a.updatedAt;
+      });
+      this.boards[boardId] = list.slice(0, 10);
+    }
+
+    getTop(boardId) {
+      return Array.isArray(this.boards[boardId]) ? this.boards[boardId] : [];
+    }
+
+    getAllNames() {
+      const names = new Set();
+      leaderboardBoardIds.forEach((id) => {
+        (this.boards[id] || []).forEach((entry) => {
+          if (entry?.name) names.add(entry.name);
+        });
+      });
+      return names;
+    }
+  }
+
+  const leaderboardProvider = new LocalLeaderboardProvider();
+
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const obj = JSON.parse(raw);
       stats.coins = Number(obj.coins || 0);
-      stats.fish = Number(obj.fish || 0);
       stats.bestCoin = Number(obj.bestCoin || 0);
+      stats.totalFishCaught = Number(obj.totalFishCaught ?? obj.fish ?? 0);
+      stats.totalGoldEarned = Number(obj.totalGoldEarned ?? 0);
+      stats.maxFishWeightG = Number(obj.maxFishWeightG ?? 0);
+      stats.bestRarityTier = Number(obj.bestRarityTier ?? 0);
+      stats.bestRarityName = obj.bestRarityName || "";
+      stats.bestRarityLabel = obj.bestRarityLabel || "";
+      stats.bestRarityFishWeightG = Number(obj.bestRarityFishWeightG ?? 0);
+      stats.totalPlayTimeMs = Number(obj.totalPlayTimeMs ?? 0);
       muted = !!obj.muted;
+      if (obj.profile && typeof obj.profile === "object") {
+        profile = {
+          name: obj.profile.name || "",
+          canRename: obj.profile.canRename !== false,
+          createdAt: obj.profile.createdAt || Date.now()
+        };
+        if (!profile.name) {
+          profile = null;
+        }
+      }
+      if (obj.leaderboards) {
+        leaderboardProvider.load(obj.leaderboards);
+      }
       if (obj.storageVersion >= 2 && Array.isArray(obj.inventory)) {
         inventory = obj.inventory;
       }
@@ -1883,8 +2057,21 @@ if ("serviceWorker" in navigator) {
         player.coins = Number(savedPlayer.coins || stats.coins || 0);
         player.activeBaitId = savedPlayer.activeBaitId || null;
         player.baitInventory = savedPlayer.baitInventory || {};
+        if (player.activeBaitId && (player.baitInventory[player.activeBaitId] || 0) <= 0) {
+          player.activeBaitId = null;
+        }
         player.rodTier = Number(savedPlayer.rodTier || 1);
         player.lineTier = Number(savedPlayer.lineTier || 1);
+        if (Array.isArray(savedPlayer.ownedRods) && savedPlayer.ownedRods.length) {
+          player.ownedRods = savedPlayer.ownedRods.map((id) => Number(id)).filter((id) => Number.isFinite(id));
+        } else {
+          player.ownedRods = Array.from({ length: player.rodTier }, (_, idx) => idx + 1);
+        }
+        if (Array.isArray(savedPlayer.ownedLines) && savedPlayer.ownedLines.length) {
+          player.ownedLines = savedPlayer.ownedLines.map((id) => Number(id)).filter((id) => Number.isFinite(id));
+        } else {
+          player.ownedLines = Array.from({ length: player.lineTier }, (_, idx) => idx + 1);
+        }
         progression.load(savedPlayer);
         if (obj.trophyQuest && typeof obj.trophyQuest === "object") {
           activeQuest = sanitizeQuest(obj.trophyQuest);
@@ -1932,20 +2119,31 @@ if ("serviceWorker" in navigator) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         storageVersion: STORAGE_VERSION,
         coins: player.coins,
-        fish: stats.fish,
         bestCoin: stats.bestCoin,
+        totalFishCaught: stats.totalFishCaught,
+        totalGoldEarned: stats.totalGoldEarned,
+        maxFishWeightG: stats.maxFishWeightG,
+        bestRarityTier: stats.bestRarityTier,
+        bestRarityName: stats.bestRarityName,
+        bestRarityLabel: stats.bestRarityLabel,
+        bestRarityFishWeightG: stats.bestRarityFishWeightG,
+        totalPlayTimeMs: stats.totalPlayTimeMs,
         muted,
         inventory,
         foundTrash,
         collectorRodUnlocked,
         dailyRareBoostCharges,
         lastChargeResetDate,
+        profile,
+        leaderboards: leaderboardProvider.save(),
         player: {
           coins: player.coins,
           activeBaitId: player.activeBaitId,
           baitInventory: player.baitInventory,
           rodTier: player.rodTier,
           lineTier: player.lineTier,
+          ownedRods: player.ownedRods,
+          ownedLines: player.ownedLines,
           ...progression.save()
         },
         trophyQuest: activeQuest,
@@ -1959,13 +2157,22 @@ if ("serviceWorker" in navigator) {
   function resetProgress() {
     stats.coins = 0;
     player.coins = 0;
-    stats.fish = 0;
     stats.bestCoin = 0;
+    stats.totalFishCaught = 0;
+    stats.totalGoldEarned = 0;
+    stats.maxFishWeightG = 0;
+    stats.bestRarityTier = 0;
+    stats.bestRarityName = "";
+    stats.bestRarityLabel = "";
+    stats.bestRarityFishWeightG = 0;
+    stats.totalPlayTimeMs = 0;
     inventory = [];
     player.activeBaitId = null;
     player.baitInventory = {};
     player.rodTier = 1;
     player.lineTier = 1;
+    player.ownedRods = [1];
+    player.ownedLines = [1];
     player.playerLevel = 1;
     player.playerXP = 0;
     player.playerXPTotal = 0;
@@ -1984,6 +2191,35 @@ if ("serviceWorker" in navigator) {
     renderTrashJournal();
   }
 
+  let playSessionStart = null;
+
+  function startPlaySession() {
+    if (document.hidden) return;
+    if (playSessionStart !== null) return;
+    playSessionStart = Date.now();
+  }
+
+  function endPlaySession() {
+    if (playSessionStart === null) return;
+    const elapsed = Date.now() - playSessionStart;
+    stats.totalPlayTimeMs += Math.max(0, elapsed);
+    playSessionStart = null;
+    updateProfileStatsUI();
+    save();
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      endPlaySession();
+    } else {
+      startPlaySession();
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    endPlaySession();
+  });
+
   btnReset?.addEventListener("click", () => {
     resetProgress();
     setOverlayText("Прогресс сброшен. Нажми «Играть».");
@@ -1991,7 +2227,7 @@ if ("serviceWorker" in navigator) {
 
   function updateHUD() {
     if (coinsEl) coinsEl.textContent = String(player.coins);
-    if (fishEl) fishEl.textContent = String(stats.fish);
+    if (profileLevelBadge) profileLevelBadge.textContent = String(player.playerLevel);
     if (playerLevelEl) playerLevelEl.textContent = String(player.playerLevel);
     if (xpTextEl) xpTextEl.textContent = `${player.playerXP}/${player.playerXPToNext}`;
     if (xpBarFill) {
@@ -2001,7 +2237,119 @@ if ("serviceWorker" in navigator) {
     updateRareBoostHud();
     updateTrashRewardStatus();
     updateQuestReminder();
+    updateProfileStatsUI();
   }
+
+  function getRarityLabelByTier(tier) {
+    const entry = Object.entries(rarityRank).find(([, value]) => value === tier && value >= 0);
+    if (!entry) return "обычная";
+    return rarityLabels[entry[0]] || entry[0];
+  }
+
+  function updateProfileStatsUI() {
+    if (profileName) profileName.textContent = profile?.name || "—";
+    if (profileRenameHint) {
+      profileRenameHint.textContent = profile?.canRename ? "Можно сменить ник один раз." : "Смена ника недоступна.";
+    }
+    if (btnProfileRename) btnProfileRename.disabled = !profile?.canRename;
+    if (profileLevel) profileLevel.textContent = String(player.playerLevel);
+    if (profileXpFill) {
+      const xpPct = player.playerXPToNext > 0 ? clamp(player.playerXP / player.playerXPToNext, 0, 1) * 100 : 0;
+      profileXpFill.style.width = `${xpPct}%`;
+    }
+    if (profileXpText) profileXpText.textContent = `Опыт: ${player.playerXP} / ${player.playerXPToNext}`;
+    if (profileXpRemain) {
+      const remain = Math.max(0, player.playerXPToNext - player.playerXP);
+      profileXpRemain.textContent = `До следующего: ${remain}`;
+    }
+    if (statPlayTime) {
+      const live = playSessionStart ? Date.now() - playSessionStart : 0;
+      statPlayTime.textContent = formatDuration(stats.totalPlayTimeMs + live);
+    }
+    if (statFishCaught) statFishCaught.textContent = String(stats.totalFishCaught);
+    if (statGoldEarned) statGoldEarned.textContent = formatCoins(stats.totalGoldEarned);
+    if (statMaxWeight) statMaxWeight.textContent = formatWeightFromGrams(stats.maxFishWeightG);
+    if (statBestRarity) {
+      if (stats.bestRarityName) {
+        const label = stats.bestRarityLabel || getRarityLabelByTier(stats.bestRarityTier);
+        statBestRarity.textContent = `${stats.bestRarityName} (${label})`;
+      } else {
+        statBestRarity.textContent = "—";
+      }
+    }
+    if (profileRodName) profileRodName.textContent = getRodStats().name;
+    if (profileLineName) profileLineName.textContent = getLineStats().name;
+    if (profileBaitName) profileBaitName.textContent = getActiveBaitLabel();
+  }
+
+  function awardCoins(amount) {
+    const gained = Math.max(0, Math.round(Number(amount) || 0));
+    if (!gained) return;
+    player.coins += gained;
+    stats.totalGoldEarned += gained;
+    updateLeaderboardsFromStats();
+    updateProfileStatsUI();
+  }
+
+  function updateCatchStats(catchData) {
+    if (!catchData || catchData.catchType !== "fish") return;
+    const weightG = Number.isFinite(catchData.weightG)
+      ? catchData.weightG
+      : Math.round((catchData.weightKg || 0) * 1000);
+    stats.totalFishCaught += 1;
+    stats.maxFishWeightG = Math.max(stats.maxFishWeightG, weightG);
+    const tier = rarityRank[catchData.rarity] ?? 0;
+    if (tier > stats.bestRarityTier || (tier === stats.bestRarityTier && weightG > stats.bestRarityFishWeightG)) {
+      stats.bestRarityTier = tier;
+      stats.bestRarityName = catchData.name;
+      stats.bestRarityLabel = catchData.rarityLabel || rarityLabels[catchData.rarity] || catchData.rarity;
+      stats.bestRarityFishWeightG = weightG;
+    }
+    updateLeaderboardsFromStats();
+  }
+
+  function updateLeaderboardsFromStats() {
+    if (!profile?.name) return;
+    const now = Date.now();
+    leaderboardProvider.submit("max_weight", { name: profile.name, score: stats.maxFishWeightG, updatedAt: now });
+    leaderboardProvider.submit("best_rarity", {
+      name: profile.name,
+      score: stats.bestRarityTier,
+      tieBreak: stats.bestRarityFishWeightG,
+      updatedAt: now
+    });
+    leaderboardProvider.submit("gold_earned", { name: profile.name, score: stats.totalGoldEarned, updatedAt: now });
+    leaderboardProvider.submit("level", { name: profile.name, score: player.playerLevel, tieBreak: player.playerXPTotal, updatedAt: now });
+  }
+
+  function normalizeNickname(value) {
+    return (value || "").trim();
+  }
+
+  function isNicknameValid(name) {
+    return /^[A-Za-z0-9_]{3,16}$/.test(name);
+  }
+
+  function isNicknameTaken(name) {
+    const taken = leaderboardProvider.getAllNames();
+    if (profile?.name && profile.name === name) return false;
+    return taken.has(name);
+  }
+
+  function getNextAvailableUserName(startIndex = 1) {
+    const taken = leaderboardProvider.getAllNames();
+    let idx = Math.max(1, startIndex);
+    while (taken.has(`user${idx}`)) idx += 1;
+    return { name: `user${idx}`, nextIndex: idx + 1 };
+  }
+
+  function setProfileError(target, message) {
+    if (!target) return;
+    target.textContent = message || "";
+    target.classList.toggle("is-error", !!message);
+  }
+
+  let suggestedUserIndex = 1;
 
   function getFoundTrashCount() {
     return Object.keys(foundTrash).length;
@@ -2098,7 +2446,7 @@ if ("serviceWorker" in navigator) {
       showToast(`Найдено: ${catchData.name}.`);
     } else {
       const bonus = DEV_TRASH_TEST ? 25 : 6;
-      player.coins += bonus;
+      awardCoins(bonus);
       showToast(`Повтор: ${catchData.name}. +${bonus} монет.`);
     }
     if (getFoundTrashCount() >= trashItems.length) {
@@ -2192,13 +2540,123 @@ if ("serviceWorker" in navigator) {
   });
 
   function openProgress() {
-    if (!progressOverlay) return;
-    progressOverlay.classList.remove("hidden");
-    updateHUD();
+    openProfile();
   }
 
   function closeProgress() {
-    progressOverlay?.classList.add("hidden");
+    closeProfile();
+  }
+
+  function openProfile() {
+    if (!profileOverlay) return;
+    profileOverlay.classList.remove("hidden");
+    profileOverlay.setAttribute("aria-hidden", "false");
+    updateProfileStatsUI();
+    renderProfileGearLists();
+  }
+
+  function closeProfile() {
+    profileOverlay?.classList.add("hidden");
+    profileOverlay?.setAttribute("aria-hidden", "true");
+    profileRenameForm?.classList.add("hidden");
+    setProfileError(profileRenameError, "");
+  }
+
+  function openProfileSetup() {
+    if (!profileSetupOverlay) return;
+    profileSetupOverlay.classList.remove("hidden");
+    profileSetupOverlay.setAttribute("aria-hidden", "false");
+    if (profileSetupInput) {
+      const next = getNextAvailableUserName(suggestedUserIndex);
+      profileSetupInput.value = next.name;
+      suggestedUserIndex = next.nextIndex;
+    }
+    setProfileError(profileSetupError, "");
+  }
+
+  function closeProfileSetup() {
+    profileSetupOverlay?.classList.add("hidden");
+    profileSetupOverlay?.setAttribute("aria-hidden", "true");
+  }
+
+  let activeLeaderboardTab = "max_weight";
+
+  function formatLeaderboardScore(boardId, entry) {
+    if (!entry) return "—";
+    switch (boardId) {
+      case "max_weight":
+        return formatWeightFromGrams(entry.score);
+      case "best_rarity": {
+        const label = getRarityLabelByTier(entry.score);
+        const tie = Number.isFinite(entry.tieBreak) ? formatWeightFromGrams(entry.tieBreak) : "";
+        return tie ? `${label} • ${tie}` : label;
+      }
+      case "gold_earned":
+        return formatCoins(entry.score);
+      case "level":
+        return `Ур. ${entry.score}`;
+      default:
+        return String(entry.score ?? 0);
+    }
+  }
+
+  function renderLeaderboard() {
+    if (!leaderboardLocalList || !leaderboardYourRecord) return;
+    leaderboardLocalList.innerHTML = "";
+    const top = leaderboardProvider.getTop(activeLeaderboardTab);
+    if (top.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "leaderboardRow";
+      empty.textContent = "Локальных записей пока нет.";
+      leaderboardLocalList.appendChild(empty);
+    } else {
+      top.forEach((entry, index) => {
+        const row = document.createElement("div");
+        row.className = "leaderboardRow";
+        row.innerHTML = `
+          <span class="leaderboardRank">#${index + 1}</span>
+          <span class="leaderboardName">${entry.name}</span>
+          <span class="leaderboardScore">${formatLeaderboardScore(activeLeaderboardTab, entry)}</span>
+        `;
+        leaderboardLocalList.appendChild(row);
+      });
+    }
+    let yourText = "Твой рекорд: —";
+    if (profile?.name) {
+      switch (activeLeaderboardTab) {
+        case "max_weight":
+          yourText = `Твой рекорд: ${profile.name} — ${formatWeightFromGrams(stats.maxFishWeightG)}`;
+          break;
+        case "best_rarity": {
+          const label = stats.bestRarityLabel || getRarityLabelByTier(stats.bestRarityTier);
+          const name = stats.bestRarityName ? `${stats.bestRarityName} (${label})` : "—";
+          yourText = `Твой рекорд: ${profile.name} — ${name}`;
+          break;
+        }
+        case "gold_earned":
+          yourText = `Твой рекорд: ${profile.name} — ${formatCoins(stats.totalGoldEarned)}`;
+          break;
+        case "level":
+          yourText = `Твой рекорд: ${profile.name} — ур. ${player.playerLevel}`;
+          break;
+        default:
+          break;
+      }
+    }
+    leaderboardYourRecord.textContent = yourText;
+  }
+
+  function openLeaderboard() {
+    if (!leaderboardOverlay) return;
+    leaderboardOverlay.classList.remove("hidden");
+    leaderboardOverlay.setAttribute("aria-hidden", "false");
+    updateLeaderboardsFromStats();
+    renderLeaderboard();
+  }
+
+  function closeLeaderboard() {
+    leaderboardOverlay?.classList.add("hidden");
+    leaderboardOverlay?.setAttribute("aria-hidden", "true");
   }
 
   btnProgress?.addEventListener("click", () => {
@@ -2208,6 +2666,117 @@ if ("serviceWorker" in navigator) {
 
   btnProgressClose?.addEventListener("click", () => {
     closeProgress();
+  });
+
+  btnProfile?.addEventListener("click", () => {
+    if (profileSetupOverlay && !profile && !profileSetupOverlay.classList.contains("hidden")) return;
+    openProfile();
+  });
+
+  btnProfileClose?.addEventListener("click", () => {
+    closeProfile();
+  });
+
+  btnProfileStatsToggle?.addEventListener("click", () => {
+    profileStats?.classList.toggle("hidden");
+  });
+
+  profileGearToggles.forEach((toggle) => {
+    toggle.addEventListener("click", () => {
+      const wrapper = toggle.closest(".profileGearItem");
+      const list = wrapper?.querySelector(".profileGearList");
+      list?.classList.toggle("hidden");
+    });
+  });
+
+  btnProfileRename?.addEventListener("click", () => {
+    if (!profile?.canRename) return;
+    profileRenameForm?.classList.toggle("hidden");
+    if (profileRenameInput) {
+      profileRenameInput.value = profile?.name || "";
+      profileRenameInput.focus();
+    }
+  });
+
+  btnProfileRenameCancel?.addEventListener("click", () => {
+    profileRenameForm?.classList.add("hidden");
+    setProfileError(profileRenameError, "");
+  });
+
+  btnProfileRenameSave?.addEventListener("click", () => {
+    if (!profile?.canRename || !profileRenameInput) return;
+    const proposed = normalizeNickname(profileRenameInput.value);
+    if (!isNicknameValid(proposed)) {
+      setProfileError(profileRenameError, "Ник: 3–16 символов, латиница/цифры/_.");
+      return;
+    }
+    if (proposed === profile.name) {
+      setProfileError(profileRenameError, "Это текущий ник.");
+      return;
+    }
+    if (isNicknameTaken(proposed)) {
+      const suggestion = getNextAvailableUserName(1).name;
+      setProfileError(profileRenameError, `Ник занят. Попробуй ${suggestion}.`);
+      return;
+    }
+    profile.name = proposed;
+    profile.canRename = false;
+    setProfileError(profileRenameError, "");
+    profileRenameForm?.classList.add("hidden");
+    updateProfileStatsUI();
+    updateLeaderboardsFromStats();
+    save();
+  });
+
+  btnProfileSetupSave?.addEventListener("click", () => {
+    if (!profileSetupInput) return;
+    const proposed = normalizeNickname(profileSetupInput.value);
+    if (!isNicknameValid(proposed)) {
+      setProfileError(profileSetupError, "Ник: 3–16 символов, латиница/цифры/_.");
+      return;
+    }
+    if (isNicknameTaken(proposed)) {
+      const suggestion = getNextAvailableUserName(1).name;
+      setProfileError(profileSetupError, `Ник занят. Попробуй ${suggestion}.`);
+      return;
+    }
+    profile = {
+      name: proposed,
+      canRename: true,
+      createdAt: Date.now()
+    };
+    setProfileError(profileSetupError, "");
+    closeProfileSetup();
+    updateProfileStatsUI();
+    updateLeaderboardsFromStats();
+    save();
+  });
+
+  btnProfileSetupGenerate?.addEventListener("click", () => {
+    if (!profileSetupInput) return;
+    const next = getNextAvailableUserName(suggestedUserIndex);
+    profileSetupInput.value = next.name;
+    suggestedUserIndex = next.nextIndex;
+    setProfileError(profileSetupError, "");
+  });
+
+  btnLeaderboardClose?.addEventListener("click", () => {
+    closeLeaderboard();
+    transitionTo(SCENE_CITY);
+  });
+
+  leaderboardTabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.leaderboardTab;
+      if (!tab) return;
+      activeLeaderboardTab = tab;
+      leaderboardTabButtons.forEach((button) => {
+        const isActive = button.dataset.leaderboardTab === tab;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
+      renderLeaderboard();
+    });
   });
 
   invSort?.addEventListener("change", () => {
@@ -2242,7 +2811,7 @@ if ("serviceWorker" in navigator) {
   btnCatchSellNow?.addEventListener("click", () => {
     if (!pendingCatch) return;
     const discounted = Math.round(pendingCatch.sellValue * 0.7);
-    player.coins += discounted;
+    awardCoins(discounted);
     stats.bestCoin = Math.max(stats.bestCoin, discounted);
     updateHUD();
     save();
@@ -2260,7 +2829,7 @@ if ("serviceWorker" in navigator) {
     }
     const total = items.reduce((sum, item) => sum + item.sellValue, 0);
     inventory = [];
-    player.coins += total;
+    awardCoins(total);
     stats.bestCoin = Math.max(stats.bestCoin, total);
     updateHUD();
     save();
@@ -2368,7 +2937,7 @@ if ("serviceWorker" in navigator) {
     item.isTrophy = true;
     save();
     renderInventory();
-    setMsg(`Трофей оформлен: ${item.name} (${formatKg(item.weightKg)}).`, 1.5);
+    setMsg(`Трофей оформлен: ${item.name} (${formatItemWeight(item)}).`, 1.5);
   }
 
   function renderInventory() {
@@ -2403,7 +2972,7 @@ if ("serviceWorker" in navigator) {
 
       const weight = document.createElement("span");
       weight.className = "invItemWeight";
-      weight.textContent = formatKg(item.weightKg);
+      weight.textContent = formatItemWeight(item);
 
       meta.append(rarityBadge, weight);
 
@@ -2429,7 +2998,7 @@ if ("serviceWorker" in navigator) {
         <div class="invDetailRow"><strong>История:</strong> ${item.story}</div>
         <div class="invDetailRow"><strong>Дата:</strong> ${formatDate(item.caughtAt)}</div>
         <div class="invDetailRow"><strong>Цена за кг:</strong> ${formatCoins(item.pricePerKg)}</div>
-        <div class="invDetailRow"><strong>Вес:</strong> ${formatKg(item.weightKg)}</div>
+        <div class="invDetailRow"><strong>Вес:</strong> ${formatItemWeight(item)}</div>
         <div class="invDetailRow"><strong>Итог продажи:</strong> ${formatCoins(item.sellValue)}</div>
       `;
 
@@ -2489,6 +3058,7 @@ if ("serviceWorker" in navigator) {
       name: catchData.name,
       rarity: catchData.rarity,
       weightKg: catchData.weightKg,
+      weightG: Number.isFinite(catchData.weightG) ? catchData.weightG : Math.round((catchData.weightKg || 0) * 1000),
       pricePerKg: catchData.pricePerKg,
       sellValue: catchData.sellValue,
       story: catchData.story,
@@ -2505,6 +3075,10 @@ if ("serviceWorker" in navigator) {
 
   function openShop(sceneId) {
     transitionTo(sceneId);
+    if (sceneId === SCENE_BUILDING_TROPHY) {
+      openLeaderboard();
+      return;
+    }
     renderShop(sceneId);
   }
 
@@ -2519,10 +3093,6 @@ if ("serviceWorker" in navigator) {
       if (shopTitle) shopTitle.textContent = "Рыбная лавка";
       if (fishShopSection) fishShopSection.classList.remove("hidden");
       renderFishShopInventory();
-    } else if (sceneId === SCENE_BUILDING_TROPHY) {
-      if (shopTitle) shopTitle.textContent = "Трофейная";
-      if (trophyQuestSection) trophyQuestSection.classList.remove("hidden");
-      renderTrophyQuest();
     } else if (sceneId === SCENE_BUILDING_GEARSHOP) {
       if (shopTitle) shopTitle.textContent = "Всё для рыбалки";
       if (shopStats) shopStats.classList.remove("hidden");
@@ -2537,6 +3107,105 @@ if ("serviceWorker" in navigator) {
       <span>Удочка: ${getRodStats().name}</span>
       <span>Леска: ${getLineStats().name}</span>
     `;
+  }
+
+  function renderProfileGearLists() {
+    if (profileRodList) {
+      profileRodList.innerHTML = "";
+      const ownedRods = rodItems.filter((rod) => player.ownedRods.includes(rod.id));
+      ownedRods.forEach((rod) => {
+        const row = document.createElement("div");
+        row.className = "shopItem";
+        row.innerHTML = `
+          <div class="shopItemHeader">
+            <div class="shopItemTitle">${rod.name}</div>
+            <div class="shopItemMeta">Эффект: +${Math.round((rod.safeZoneBonus || 0) * 100)}% зона, +${Math.round((rod.rareBonus || 0) * 100)}% редкость</div>
+          </div>
+        `;
+        const btn = document.createElement("button");
+        btn.className = "invBtn";
+        btn.textContent = player.rodTier === rod.id ? "Выбрано" : "Выбрать";
+        btn.disabled = player.rodTier === rod.id;
+        btn.addEventListener("click", () => {
+          player.rodTier = rod.id;
+          save();
+          updateHUD();
+          updateProfileStatsUI();
+          renderProfileGearLists();
+          renderGearShop();
+        });
+        row.appendChild(btn);
+        profileRodList.appendChild(row);
+      });
+    }
+
+    if (profileLineList) {
+      profileLineList.innerHTML = "";
+      const ownedLines = lineItems.filter((line) => player.ownedLines.includes(line.id));
+      ownedLines.forEach((line) => {
+        const riskDelta = Math.round((1 - (line.breakRiskMod || 1)) * 100);
+        const riskText = `${riskDelta > 0 ? "+" : ""}${riskDelta}%`;
+        const row = document.createElement("div");
+        row.className = "shopItem";
+        row.innerHTML = `
+          <div class="shopItemHeader">
+            <div class="shopItemTitle">${line.name}</div>
+            <div class="shopItemMeta">Эффект: ${Math.round((line.rareBonus || 0) * 100)}% редкость, риск ${riskText}</div>
+          </div>
+          <div class="shopItemMeta">Макс. вес: ${line.maxKg} кг</div>
+        `;
+        const btn = document.createElement("button");
+        btn.className = "invBtn";
+        btn.textContent = player.lineTier === line.id ? "Выбрано" : "Выбрать";
+        btn.disabled = player.lineTier === line.id;
+        btn.addEventListener("click", () => {
+          player.lineTier = line.id;
+          save();
+          updateHUD();
+          updateProfileStatsUI();
+          renderProfileGearLists();
+          renderGearShop();
+        });
+        row.appendChild(btn);
+        profileLineList.appendChild(row);
+      });
+    }
+
+    if (profileBaitList) {
+      profileBaitList.innerHTML = "";
+      baitItems.forEach((bait) => {
+        const count = player.baitInventory[bait.id] || 0;
+        const row = document.createElement("div");
+        row.className = "shopItem";
+        row.innerHTML = `
+          <div class="shopItemHeader">
+            <div class="shopItemTitle">${bait.name}</div>
+            <div class="shopItemMeta">В наличии: ${count}</div>
+          </div>
+          <div class="shopItemMeta">${bait.note}</div>
+        `;
+        const btn = document.createElement("button");
+        btn.className = "invBtn";
+        if (player.activeBaitId === bait.id && count > 0) {
+          btn.textContent = "Выбрано";
+          btn.disabled = true;
+        } else if (count <= 0) {
+          btn.textContent = "Нет";
+          btn.disabled = true;
+        } else {
+          btn.textContent = "Выбрать";
+          btn.addEventListener("click", () => {
+            player.activeBaitId = bait.id;
+            save();
+            updateProfileStatsUI();
+            renderProfileGearLists();
+            renderGearShop();
+          });
+        }
+        row.appendChild(btn);
+        profileBaitList.appendChild(row);
+      });
+    }
   }
 
   function renderFishShopInventory() {
@@ -2566,7 +3235,7 @@ if ("serviceWorker" in navigator) {
 
       const meta = document.createElement("div");
       meta.className = "shopItemMeta";
-      meta.textContent = `${formatKg(item.weightKg)} • ${rarityLabels[item.rarity] || item.rarity}`;
+      meta.textContent = `${formatItemWeight(item)} • ${rarityLabels[item.rarity] || item.rarity}`;
 
       header.append(title, meta);
 
@@ -2588,7 +3257,7 @@ if ("serviceWorker" in navigator) {
 
   function executeSale(item) {
     inventory = inventory.filter((entry) => entry.id !== item.id);
-    player.coins += item.sellValue;
+    awardCoins(item.sellValue);
     stats.bestCoin = Math.max(stats.bestCoin, item.sellValue);
     updateHUD();
     save();
@@ -2610,7 +3279,9 @@ if ("serviceWorker" in navigator) {
 
   function renderGearShop() {
     if (!gearShopSection) return;
-    gearShopSection.classList.remove("hidden");
+    if (currentScene === SCENE_BUILDING_GEARSHOP) {
+      gearShopSection.classList.remove("hidden");
+    }
     updateGearTabs();
 
     if (baitList) {
@@ -2640,6 +3311,8 @@ if ("serviceWorker" in navigator) {
           save();
           renderGearShop();
           updateHUD();
+          updateProfileStatsUI();
+          renderProfileGearLists();
         });
         const useBtn = document.createElement("button");
         useBtn.className = "invBtn secondary";
@@ -2650,6 +3323,7 @@ if ("serviceWorker" in navigator) {
           player.activeBaitId = bait.id;
           save();
           renderGearShop();
+          updateProfileStatsUI();
         });
         actions.append(buyBtn, useBtn);
         item.appendChild(actions);
@@ -2660,25 +3334,40 @@ if ("serviceWorker" in navigator) {
     if (rodList) {
       rodList.innerHTML = "";
       for (const rod of rodItems) {
+        const owned = player.ownedRods.includes(rod.id);
         const item = document.createElement("div");
         item.className = "shopItem";
+        const purchasedTag = owned ? "<div class=\"shopItemMeta\">Куплено</div>" : "";
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${rod.name}</div>
             <div class="shopItemMeta">${formatCoins(rod.price)}</div>
           </div>
+          <div class="shopItemMeta">Эффект: +${Math.round((rod.safeZoneBonus || 0) * 100)}% зона натяжения, +${Math.round((rod.rareBonus || 0) * 100)}% редкость</div>
+          ${purchasedTag}
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
-        btn.textContent = player.rodTier === rod.id ? "Активна" : "Купить";
-        btn.disabled = player.rodTier >= rod.id || player.coins < rod.price;
+        if (!owned) {
+          btn.textContent = "Купить";
+          btn.disabled = player.coins < rod.price;
+        } else {
+          btn.textContent = player.rodTier === rod.id ? "Выбрано" : "Выбрать";
+          btn.disabled = player.rodTier === rod.id;
+        }
         btn.addEventListener("click", () => {
-          if (player.coins < rod.price) return;
-          player.coins -= rod.price;
+          if (!owned) {
+            if (player.coins < rod.price) return;
+            player.coins -= rod.price;
+            if (!player.ownedRods.includes(rod.id)) {
+              player.ownedRods.push(rod.id);
+            }
+          }
           player.rodTier = rod.id;
           save();
           renderGearShop();
           updateHUD();
+          updateProfileStatsUI();
         });
         item.appendChild(btn);
         rodList.appendChild(item);
@@ -2688,26 +3377,43 @@ if ("serviceWorker" in navigator) {
     if (lineList) {
       lineList.innerHTML = "";
       for (const line of lineItems) {
+        const owned = player.ownedLines.includes(line.id);
         const item = document.createElement("div");
         item.className = "shopItem";
+        const riskDelta = Math.round((1 - (line.breakRiskMod || 1)) * 100);
+        const riskText = `${riskDelta > 0 ? "+" : ""}${riskDelta}%`;
+        const purchasedTag = owned ? "<div class=\"shopItemMeta\">Куплено</div>" : "";
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${line.name}</div>
             <div class="shopItemMeta">${formatCoins(line.price)}</div>
           </div>
           <div class="shopItemMeta">Макс. вес: ${line.maxKg} кг</div>
+          <div class="shopItemMeta">Эффект: ${Math.round((line.rareBonus || 0) * 100)}% редкость, риск ${riskText}</div>
+          ${purchasedTag}
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
-        btn.textContent = player.lineTier === line.id ? "Активна" : "Купить";
-        btn.disabled = player.lineTier >= line.id || player.coins < line.price;
+        if (!owned) {
+          btn.textContent = "Купить";
+          btn.disabled = player.coins < line.price;
+        } else {
+          btn.textContent = player.lineTier === line.id ? "Выбрано" : "Выбрать";
+          btn.disabled = player.lineTier === line.id;
+        }
         btn.addEventListener("click", () => {
-          if (player.coins < line.price) return;
-          player.coins -= line.price;
+          if (!owned) {
+            if (player.coins < line.price) return;
+            player.coins -= line.price;
+            if (!player.ownedLines.includes(line.id)) {
+              player.ownedLines.push(line.id);
+            }
+          }
           player.lineTier = line.id;
           save();
           renderGearShop();
           updateHUD();
+          updateProfileStatsUI();
         });
         item.appendChild(btn);
         lineList.appendChild(item);
@@ -2717,7 +3423,11 @@ if ("serviceWorker" in navigator) {
     renderShopStats();
   }
   function getLineStats() {
-    return lineItems.find((line) => line.id === player.lineTier) || lineItems[0];
+    const base = lineItems.find((line) => line.id === player.lineTier) || lineItems[0];
+    return {
+      ...base,
+      breakThreshold: base.breakThreshold * (base.breakRiskMod || 1)
+    };
   }
 
   function getRodStats() {
@@ -3092,7 +3802,7 @@ if ("serviceWorker" in navigator) {
     clearCityTooltip();
     setCatchOverlayVisible(sceneId === SCENE_CATCH_MODAL);
     cityHud?.classList.toggle("hidden", sceneId !== SCENE_CITY);
-    shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId));
+    shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_GEARSHOP].includes(sceneId));
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
@@ -3104,6 +3814,7 @@ if ("serviceWorker" in navigator) {
       trashOverlay.classList.remove("is-visible");
     }
     if (sceneId !== SCENE_LAKE && progressOverlay) progressOverlay.classList.add("hidden");
+    if (sceneId !== SCENE_BUILDING_TROPHY) closeLeaderboard();
   }
 
   function transitionTo(sceneId) {
@@ -3121,6 +3832,10 @@ if ("serviceWorker" in navigator) {
   }
 
   function startGame() {
+    if (!profile) {
+      openProfileSetup();
+      return;
+    }
     hideOverlay();
     game.mode = "IDLE";
     game.t = 0;
@@ -3191,7 +3906,6 @@ if ("serviceWorker" in navigator) {
     bobber.vy = (ty - bobber.y) / flight - 230;
 
     beep(440, 0.06, 0.04);
-    consumeBait();
     setMsg("Заброс.", 0.7);
   }
 
@@ -3316,14 +4030,16 @@ if ("serviceWorker" in navigator) {
       return;
     }
 
-    stats.fish += 1;
+    updateCatchStats(game.catch);
     const xpResult = progression.awardXP({
       speciesId: game.catch.speciesId,
       rarity: game.catch.rarity,
       weightKg: game.catch.weightKg
     });
+    consumeBait();
     updateHUD();
     showXPGain(xpResult);
+    updateLeaderboardsFromStats();
     save();
     checkQuestCompletion(game.catch);
 
@@ -4060,6 +4776,8 @@ if ("serviceWorker" in navigator) {
     load();
     updateMuteButton();
     updateHUD();
+    updateLeaderboardsFromStats();
+    updateProfileStatsUI();
     initCityHitboxes();
     setVhVar();
     resize();
@@ -4067,6 +4785,10 @@ if ("serviceWorker" in navigator) {
     renderTrashJournal();
     setScene(SCENE_LAKE);
     setLakeState("idle");
+    startPlaySession();
+    if (!profile) {
+      openProfileSetup();
+    }
     registerSW();
 
     await preloadSceneAssets();

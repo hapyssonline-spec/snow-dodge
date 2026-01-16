@@ -16,15 +16,20 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
   <link rel="manifest" href="manifest.json?v=30" />
 
-  <link rel="stylesheet" href="style.css?v=34" />
+  <link rel="stylesheet" href="style.css?v=35" />
 </head>
 <body>
   <div id="app">
     <header id="topbar" class="hud">
-      <div class="stat stat-compact">
-        <span class="statIcon" aria-hidden="true">🪙</span>
-        <span id="coins" class="value">0</span>
-      </div>
+      <button id="btnProfile" class="profileButton" aria-label="Профиль">
+        <span class="profileAvatar" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="presentation" focusable="false">
+            <circle cx="24" cy="18" r="8"></circle>
+            <path d="M10 38c2.2-8.5 9-12 14-12s11.8 3.5 14 12"></path>
+          </svg>
+        </span>
+        <span id="profileLevelBadge" class="profileLevelBadge">1</span>
+      </button>
 
       <div class="center">
         <div class="title">ICE FISH</div>
@@ -32,8 +37,8 @@
       </div>
 
       <div class="stat stat-compact right">
-        <span class="statIcon" aria-hidden="true">🐟</span>
-        <span id="fish" class="value">0</span>
+        <span class="statIcon" aria-hidden="true">🪙</span>
+        <span id="coins" class="value">0</span>
       </div>
     </header>
 
@@ -196,6 +201,108 @@
         </div>
       </div>
 
+      <div id="profileSetupOverlay" class="hidden modal modal-blocking" aria-hidden="true">
+        <div class="profileCard profileCard--setup">
+          <div class="profileHeader">
+            <div class="profileTitle">Профиль</div>
+          </div>
+          <div class="profileBody">
+            <label class="formLabel" for="profileSetupInput">Ник</label>
+            <input id="profileSetupInput" class="textInput" type="text" maxlength="16" autocomplete="nickname" />
+            <div id="profileSetupError" class="formHint"></div>
+            <div class="row">
+              <button id="btnProfileSetupSave">Сохранить</button>
+              <button id="btnProfileSetupGenerate" class="secondary">Сгенерировать другой</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="profileOverlay" class="hidden modal" aria-hidden="true">
+        <div class="profileCard">
+          <div class="profileHeader">
+            <div class="profileTitle">Профиль</div>
+            <button id="btnProfileClose" class="chipBtn">Закрыть</button>
+          </div>
+          <div class="profileBody">
+            <section class="profileSection">
+              <div class="profileNameRow">
+                <div>
+                  <div id="profileName" class="profileName">user1</div>
+                  <div id="profileRenameHint" class="profileRenameHint"></div>
+                </div>
+                <button id="btnProfileRename" class="chipBtn small">Сменить ник</button>
+              </div>
+              <div id="profileRenameForm" class="profileRenameForm hidden">
+                <input id="profileRenameInput" class="textInput" type="text" maxlength="16" autocomplete="nickname" />
+                <div class="profileRenameActions">
+                  <button id="btnProfileRenameSave" class="chipBtn">Сохранить</button>
+                  <button id="btnProfileRenameCancel" class="chipBtn secondary">Отмена</button>
+                </div>
+                <div id="profileRenameError" class="formHint"></div>
+              </div>
+            </section>
+
+            <section class="profileSection">
+              <div class="sectionTitle">Уровень</div>
+              <div class="profileLevelRow">
+                <span>Уровень: <strong id="profileLevel">1</strong></span>
+              </div>
+              <div class="progressBar progressBar--slim" aria-hidden="true">
+                <div id="profileXpFill" class="progressBarFill"></div>
+              </div>
+              <div id="profileXpText" class="profileXpText">Опыт: 0 / 60</div>
+              <div id="profileXpRemain" class="profileXpRemain">До следующего: 60</div>
+            </section>
+
+            <section class="profileSection">
+              <button id="btnProfileStatsToggle" class="sectionToggle" type="button">Статистика</button>
+              <div id="profileStats" class="profileStats hidden">
+                <div class="statRow"><span>Время в игре</span><span id="statPlayTime">00:00</span></div>
+                <div class="statRow"><span>Поймано рыб</span><span id="statFishCaught">0</span></div>
+                <div class="statRow"><span>Заработано золота</span><span id="statGoldEarned">0</span></div>
+                <div class="statRow"><span>Самая редкая</span><span id="statBestRarity">—</span></div>
+                <div class="statRow"><span>Максимальный вес (рекорд)</span><span id="statMaxWeight">0 кг</span></div>
+              </div>
+            </section>
+
+            <section class="profileSection">
+              <div class="sectionTitle">Снаряжение</div>
+              <div class="profileGearItem" data-gear="rod">
+                <div class="profileGearHeader">
+                  <div>
+                    <div class="profileGearLabel">Удочка</div>
+                    <div id="profileRodName" class="profileGearValue">—</div>
+                  </div>
+                  <button class="chipBtn small profileGearToggle" type="button">Изменить</button>
+                </div>
+                <div id="profileRodList" class="profileGearList scrollable hidden"></div>
+              </div>
+              <div class="profileGearItem" data-gear="line">
+                <div class="profileGearHeader">
+                  <div>
+                    <div class="profileGearLabel">Леска</div>
+                    <div id="profileLineName" class="profileGearValue">—</div>
+                  </div>
+                  <button class="chipBtn small profileGearToggle" type="button">Изменить</button>
+                </div>
+                <div id="profileLineList" class="profileGearList scrollable hidden"></div>
+              </div>
+              <div class="profileGearItem" data-gear="bait">
+                <div class="profileGearHeader">
+                  <div>
+                    <div class="profileGearLabel">Наживка</div>
+                    <div id="profileBaitName" class="profileGearValue">—</div>
+                  </div>
+                  <button class="chipBtn small profileGearToggle" type="button">Изменить</button>
+                </div>
+                <div id="profileBaitList" class="profileGearList scrollable hidden"></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
       <div id="travelOverlay" class="hidden modal" aria-hidden="true">
         <div class="travelWrap">
           <div class="travelHeader">
@@ -298,6 +405,26 @@
         </div>
       </div>
 
+      <div id="leaderboardOverlay" class="hidden modal" aria-hidden="true">
+        <div class="leaderboardCard">
+          <div class="leaderboardHeader">
+            <div class="leaderboardTitle">Лидерборды</div>
+            <button id="btnLeaderboardClose" class="chipBtn">Закрыть</button>
+          </div>
+          <div class="leaderboardTabs" role="tablist" aria-label="Таблица рекордов">
+            <button class="leaderboardTabBtn is-active" data-leaderboard-tab="max_weight" role="tab" aria-selected="true">Вес</button>
+            <button class="leaderboardTabBtn" data-leaderboard-tab="best_rarity" role="tab" aria-selected="false">Редкость</button>
+            <button class="leaderboardTabBtn" data-leaderboard-tab="gold_earned" role="tab" aria-selected="false">Золото</button>
+            <button class="leaderboardTabBtn" data-leaderboard-tab="level" role="tab" aria-selected="false">Уровень</button>
+          </div>
+          <div class="leaderboardPanel">
+            <div id="leaderboardYourRecord" class="leaderboardYourRecord">Твой рекорд: —</div>
+            <div id="leaderboardLocalList" class="leaderboardList scrollable"></div>
+            <div class="leaderboardWorldStub">Мировые: скоро (после релиза в Яндекс Игры).</div>
+          </div>
+        </div>
+      </div>
+
       <div id="progressOverlay" class="hidden modal">
         <div class="progressCard">
           <div class="progressHeader">
@@ -347,7 +474,7 @@
     </div>
   </div>
 
-  <!-- cache-bust: main.js v48 (orientation lock + shop tabs + quests) -->
-  <script src="main.js?v=48"></script>
+  <!-- cache-bust: main.js v49 (profile + leaderboards + gear updates) -->
+  <script src="main.js?v=49"></script>
 </body>
 </html>
