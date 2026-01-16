@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 53 for trash journal + collector rod.
-const CACHE_VERSION = 53;
+// CACHE_VERSION bumped to 54 for trash journal visuals.
+const CACHE_VERSION = 54;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 

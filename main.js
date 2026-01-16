@@ -55,6 +55,11 @@ if ("serviceWorker" in navigator) {
   const btnTrashClose = document.getElementById("btnTrashClose");
   const trashGrid = document.getElementById("trashGrid");
   const trashRewardStatus = document.getElementById("trashRewardStatus");
+  const trashFoundCount = document.getElementById("trashFoundCount");
+  const trashFoundTotal = document.getElementById("trashFoundTotal");
+  const trashRewardLineProgress = document.getElementById("trashRewardLineProgress");
+  const trashRewardLineComplete = document.getElementById("trashRewardLineComplete");
+  const trashProgressFill = document.getElementById("trashProgressFill");
   const btnTrashFill = document.getElementById("btnTrashFill");
   const btnResetCharges = document.getElementById("btnResetCharges");
 
@@ -1645,11 +1650,20 @@ if ("serviceWorker" in navigator) {
 
   function updateTrashRewardStatus() {
     if (!trashRewardStatus) return;
+    if (trashFoundTotal) trashFoundTotal.textContent = `/${trashItems.length}.`;
+    const foundCount = getFoundTrashCount();
+    const progressPct = trashItems.length > 0 ? clamp(foundCount / trashItems.length, 0, 1) * 100 : 0;
+    if (trashProgressFill) trashProgressFill.style.width = `${progressPct}%`;
     if (collectorRodUnlocked) {
-      trashRewardStatus.textContent = "Награда: Удочка «Собиратель» получена.";
+      trashRewardStatus.classList.add("is-complete");
+      if (trashRewardLineProgress) trashRewardLineProgress.setAttribute("aria-hidden", "true");
+      if (trashRewardLineComplete) trashRewardLineComplete.removeAttribute("aria-hidden");
       return;
     }
-    trashRewardStatus.textContent = `Найдено: ${getFoundTrashCount()}/${trashItems.length}. Награда: Удочка «Собиратель».`;
+    trashRewardStatus.classList.remove("is-complete");
+    if (trashRewardLineProgress) trashRewardLineProgress.removeAttribute("aria-hidden");
+    if (trashRewardLineComplete) trashRewardLineComplete.setAttribute("aria-hidden", "true");
+    if (trashFoundCount) trashFoundCount.textContent = String(foundCount);
   }
 
   function refreshDailyCharges() {
@@ -1682,6 +1696,13 @@ if ("serviceWorker" in navigator) {
       const found = !!foundTrash[item.id];
       const cell = document.createElement("div");
       cell.className = `trashCell ${found ? "is-found" : "is-missing"}`;
+      cell.dataset.trashId = item.id;
+      if (!found && item.id === "rusty_key") cell.classList.add("is-special");
+      if (!found) {
+        const silhouette = document.createElement("div");
+        silhouette.className = `trashSilhouette trashSilhouette--${item.id}`;
+        cell.append(silhouette);
+      }
       const name = document.createElement("div");
       name.className = "trashName";
       name.textContent = found ? item.name : "???";
@@ -1729,12 +1750,20 @@ if ("serviceWorker" in navigator) {
   }
 
   function openTrashJournal() {
-    trashOverlay?.classList.remove("hidden");
+    if (!trashOverlay) return;
+    trashOverlay.classList.remove("hidden");
+    requestAnimationFrame(() => {
+      trashOverlay.classList.add("is-visible");
+    });
     renderTrashJournal();
   }
 
   function closeTrashJournal() {
-    trashOverlay?.classList.add("hidden");
+    if (!trashOverlay) return;
+    trashOverlay.classList.remove("is-visible");
+    window.setTimeout(() => {
+      trashOverlay.classList.add("hidden");
+    }, 250);
   }
 
   btnInventory?.addEventListener("click", () => {
@@ -2659,7 +2688,10 @@ if ("serviceWorker" in navigator) {
     btnProgress?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     if (rareBoostHud) rareBoostHud.classList.toggle("hidden", sceneId !== SCENE_LAKE || !collectorRodUnlocked);
     if (sceneId !== SCENE_LAKE && invOverlay) invOverlay.classList.add("hidden");
-    if (sceneId !== SCENE_LAKE && trashOverlay) trashOverlay.classList.add("hidden");
+    if (sceneId !== SCENE_LAKE && trashOverlay) {
+      trashOverlay.classList.add("hidden");
+      trashOverlay.classList.remove("is-visible");
+    }
     if (sceneId !== SCENE_LAKE && progressOverlay) progressOverlay.classList.add("hidden");
   }
 
