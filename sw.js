@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 50 for XP progression UI update.
-const CACHE_VERSION = 50;
+// CACHE_VERSION bumped to 51 for streamlined HUD + hint system.
+const CACHE_VERSION = 51;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
