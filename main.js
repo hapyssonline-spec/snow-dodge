@@ -669,33 +669,65 @@ if ("serviceWorker" in navigator) {
   const orientationQuery = window.matchMedia?.("(orientation: landscape)");
 
   function isLandscapeOrientation() {
-    if (window.innerWidth && window.innerHeight) {
-      return window.innerWidth > window.innerHeight;
-    }
-    if (orientationQuery) return orientationQuery.matches;
-    return false;
+    const match = window.matchMedia?.("(orientation: landscape)");
+    return (match && match.matches) || (window.innerWidth > window.innerHeight);
   }
 
-  function setOrientationLock(locked) {
-    orientationLocked = locked;
-    if (rotateOverlay) rotateOverlay.classList.toggle("hidden", !locked);
-    if (app) app.classList.toggle("orientation-locked", locked);
-    if (locked) {
-      if (orientationPauseStarted === null) {
-        orientationPauseStarted = Date.now();
-      }
-    } else if (orientationPauseStarted !== null) {
-      pendingOrientationPause += Date.now() - orientationPauseStarted;
-      orientationPauseStarted = null;
-    }
+  function showRotateOverlay() {
+    if (!rotateOverlay) return;
+    rotateOverlay.classList.remove("hidden");
+    rotateOverlay.style.display = "flex";
+    rotateOverlay.style.pointerEvents = "auto";
+    rotateOverlay.setAttribute("aria-hidden", "false");
     updateModalLayerState();
-    if (!locked) {
-      layout();
+  }
+
+  function hideRotateOverlay() {
+    if (!rotateOverlay) return;
+    rotateOverlay.classList.add("hidden");
+    rotateOverlay.style.display = "none";
+    rotateOverlay.style.pointerEvents = "none";
+    rotateOverlay.setAttribute("aria-hidden", "true");
+    updateModalLayerState();
+  }
+
+  function disableGameInput() {
+    if (gameLayer) {
+      gameLayer.style.pointerEvents = "none";
+    }
+    if (uiLayer) {
+      uiLayer.style.pointerEvents = "none";
+    }
+  }
+
+  function enableGameInput() {
+    if (gameLayer) {
+      gameLayer.style.pointerEvents = "auto";
+    }
+    if (uiLayer) {
+      uiLayer.style.pointerEvents = "";
     }
   }
 
   function updateOrientationLock() {
-    setOrientationLock(isLandscapeOrientation());
+    const shouldLock = isLandscapeOrientation();
+    orientationLocked = shouldLock;
+    if (app) app.classList.toggle("orientation-locked", shouldLock);
+    if (shouldLock) {
+      showRotateOverlay();
+      disableGameInput();
+      if (orientationPauseStarted === null) {
+        orientationPauseStarted = Date.now();
+      }
+      return;
+    }
+    hideRotateOverlay();
+    enableGameInput();
+    if (orientationPauseStarted !== null) {
+      pendingOrientationPause += Date.now() - orientationPauseStarted;
+      orientationPauseStarted = null;
+    }
+    layout();
   }
 
   function applyLakeRig() {
@@ -1877,11 +1909,10 @@ if ("serviceWorker" in navigator) {
   }
   // Layer interactivity is controlled here to keep game taps on the scene only.
   function updateLayerVisibility() {
-    if (gameLayer) {
-      gameLayer.style.pointerEvents = orientationLocked ? "none" : "auto";
-    }
-    if (uiLayer) {
-      uiLayer.style.pointerEvents = orientationLocked ? "none" : "";
+    if (orientationLocked) {
+      disableGameInput();
+    } else {
+      enableGameInput();
     }
     updateModalLayerState();
   }
@@ -1896,13 +1927,10 @@ if ("serviceWorker" in navigator) {
     updateLayerVisibility();
   };
 
-  const handleResize = debounce(layout, 100);
+  const handleResize = debounce(updateOrientationLock, 100);
   window.addEventListener("resize", handleResize);
-  window.addEventListener("orientationchange", handleResize);
-  window.addEventListener("resize", debounce(updateOrientationLock, 80));
   window.addEventListener("orientationchange", updateOrientationLock);
   orientationQuery?.addEventListener?.("change", updateOrientationLock);
-  updateOrientationLock();
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
@@ -5081,7 +5109,10 @@ if ("serviceWorker" in navigator) {
     updateLeaderboardsFromStats();
     updateProfileStatsUI();
     initCityHitboxes();
-    layout();
+    updateOrientationLock();
+    if (orientationLocked) {
+      layout();
+    }
     renderInventory();
     renderTrashJournal();
     setScene(SCENE_LAKE);

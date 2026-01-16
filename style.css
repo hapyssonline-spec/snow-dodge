@@ -2418,6 +2418,11 @@ button:disabled{
   pointer-events:auto;
 }
 
+.rotateOverlay.hidden{
+  display:none;
+  pointer-events:none;
+}
+
 .rotateCard{
   max-width:320px;
   border-radius:20px;
