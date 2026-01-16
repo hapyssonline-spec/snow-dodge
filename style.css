@@ -253,8 +253,8 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   position:absolute;
   inset:2px auto 2px 2px;
   width:36%;
-  border-radius:999px;
-  background: rgba(255,255,255,0.32);
+  border-radius:inherit;
+  background: linear-gradient(to right, rgba(90, 180, 255, 0.55), rgba(90, 180, 255, 0.85));
   overflow:hidden;
 }
 .reelFill::after{
@@ -264,7 +264,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   right:0;
   width:8px;
   height:100%;
-  background: rgba(255,255,255,0.55);
+  background: rgba(190,230,255,0.45);
   border-radius:inherit;
   display:none;
 }
