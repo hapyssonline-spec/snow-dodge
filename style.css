@@ -334,9 +334,50 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   align-items:center;
   justify-content:center;
   padding:18px;
-  background: rgba(6,12,20,.68);
-  backdrop-filter: blur(10px);
+  background: rgba(6,12,20,.7);
   z-index:6;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.2s ease;
+}
+
+#catchOverlay.is-visible{
+  opacity:1;
+  pointer-events:auto;
+}
+
+#catchOverlay.is-hiding{
+  opacity:0;
+}
+
+@supports ((backdrop-filter: blur(6px)) or (-webkit-backdrop-filter: blur(6px))) {
+  #catchOverlay{
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+}
+
+#app[data-effects="reduced"] #catchOverlay{
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+#app[data-effects="reduced"] #overlay,
+#app[data-effects="reduced"] #invOverlay,
+#app[data-effects="reduced"] #shopOverlay,
+#app[data-effects="reduced"] #progressOverlay{
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+#app[data-effects="reduced"] #catchOverlay,
+#app[data-effects="reduced"] #catchOverlay .catchCard{
+  transition: none;
+}
+
+#app[data-effects="reduced"] #catchOverlay .catchCard{
+  transform: scale(1);
+  opacity:1;
 }
 
 #shopOverlay{
@@ -466,12 +507,20 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   flex-direction:column;
   gap:12px;
   box-shadow: 0 20px 60px rgba(0,0,0,.4);
-  animation: catchIn .28s ease-out;
+  transform: scale(0.96);
+  opacity:0;
+  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 
-@keyframes catchIn{
-  from{opacity:0; transform:scale(.92)}
-  to{opacity:1; transform:scale(1)}
+#catchOverlay.is-visible .catchCard{
+  transform: scale(1);
+  opacity:1;
+  box-shadow: 0 24px 70px rgba(0,0,0,.46);
+}
+
+#catchOverlay.is-hiding .catchCard{
+  transform: scale(0.98);
+  opacity:0;
 }
 
 .catchHeader{
@@ -504,6 +553,10 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   font-style:italic;
 }
 
+.catchStory.hidden{
+  display:none;
+}
+
 .catchPrices{
   border-radius:14px;
   border:1px solid var(--stroke);
@@ -519,17 +572,31 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   align-items:center;
   justify-content:space-between;
   font-size:13px;
+  gap:8px;
+}
+
+.priceLabel{
+  font-weight:600;
+}
+
+.priceValue{
+  font-weight:800;
+}
+
+.catchPriceRow.subtle{
+  font-size:12px;
+  color:rgba(166,185,218,.8);
 }
 
 .catchPriceRow.highlight{
   font-size:16px;
   font-weight:900;
-  color:#ffcc66;
+  color:#ffb86b;
 }
 
 .catchDiscount{
   font-size:11px;
-  color:#ffb4b4;
+  color:rgba(255,190,150,.85);
 }
 
 .strike{
@@ -546,9 +613,13 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 }
 
 .danger{
-  background: rgba(255,107,107,.2);
-  border-color: rgba(255,107,107,.4);
-  color:#ffdada;
+  background: rgba(255,174,106,.18);
+  border-color: rgba(255,174,106,.45);
+  color:#ffe1c4;
+}
+
+#catchOverlay .danger{
+  box-shadow: 0 12px 24px rgba(255,174,106,.18);
 }
 
 .hudCard{
@@ -733,7 +804,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   position:absolute;
   top:72px;
   left:50%;
-  transform:translateX(-50%);
+  transform:translateX(-50%) translateY(8px);
   padding:8px 12px;
   border-radius:12px;
   border:1px solid var(--stroke);
@@ -741,7 +812,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   font-weight:800;
   font-size:12px;
   opacity:0;
-  transition: opacity .2s ease;
+  transition: opacity .2s ease, transform .2s ease;
   z-index:7;
   text-align:center;
   pointer-events:none;
@@ -749,6 +820,7 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
 
 .xpToast.show{
   opacity:1;
+  transform:translateX(-50%) translateY(0);
 }
 
 .xpToastLine{
@@ -947,13 +1019,13 @@ button:active{transform:translateY(1px)}
 }
 
 @keyframes bobber-sway{
-  0%, 100%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(0) rotate(-2deg)}
-  50%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(-4px) rotate(2deg)}
+  0%, 100%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(0) rotate(-1.6deg)}
+  50%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(-4px) rotate(2.2deg)}
 }
 
 @keyframes bobber-jerk{
   0%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(0) rotate(-3deg)}
-  50%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(-8px) rotate(4deg)}
+  50%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(-9px) rotate(5deg)}
   100%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(0) rotate(-2deg)}
 }
 
@@ -1136,11 +1208,11 @@ button:disabled{
 #lakeScene.is-idle #bobberLayer{ opacity: 0; }
 
 #lakeScene.is-fishing #bobberLayer{
-  animation: bobber-sway 2.4s ease-in-out infinite;
+  animation: bobber-sway 3s ease-in-out infinite;
 }
 #lakeScene.is-bite #bobberLayer{
   opacity: 1;
-  animation: bobber-jerk 0.18s ease-in-out 5, bobber-sway 2.4s ease-in-out infinite;
+  animation: bobber-jerk 0.18s ease-in-out 5, bobber-sway 3s ease-in-out infinite;
 }
 
 #lakeScene.is-fishing #rodLayer{
@@ -1156,4 +1228,12 @@ button:disabled{
 #lakeScene.is-bite #heroLayer,
 #lakeScene.is-strike #heroLayer{
   animation: hero-sway-strong 2.8s ease-in-out infinite;
+}
+
+#app[data-effects="reduced"] #lakeScene .layer{
+  animation: none !important;
+}
+
+#app[data-effects="reduced"] #lakeScene #bobberLayer{
+  transition: opacity .18s ease;
 }
