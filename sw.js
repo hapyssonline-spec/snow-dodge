@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 55 for travel overlay state.
-const CACHE_VERSION = 55;
+// CACHE_VERSION bumped to 56 for travel arc visuals.
+const CACHE_VERSION = 56;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 

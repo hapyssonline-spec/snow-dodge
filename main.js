@@ -82,6 +82,7 @@ if ("serviceWorker" in navigator) {
   const travelPathBase = document.getElementById("travelPathBase");
   const travelPathProgress = document.getElementById("travelPathProgress");
   const travelMarker = document.getElementById("travelMarker");
+  const travelCard = document.querySelector(".travelCard");
 
   const cityHud = document.getElementById("cityHud");
   const btnBackToLake = document.getElementById("btnBackToLake");
@@ -2720,6 +2721,10 @@ if ("serviceWorker" in navigator) {
     if (travel.arrivalHandled) return;
     travel.arrivalHandled = true;
     setTravelStatus("Вы прибыли в город", 600);
+    if (travelCard) {
+      travelCard.classList.add("is-arriving");
+      window.setTimeout(() => travelCard.classList.remove("is-arriving"), 600);
+    }
     window.setTimeout(() => {
       initCitySession();
       showToast("Продавцы обновили запасы золота.");
