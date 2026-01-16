@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 48 for reel fill gradient restore.
-const CACHE_VERSION = 48;
+// CACHE_VERSION bumped to 49 for tension marker orientation update.
+const CACHE_VERSION = 49;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
