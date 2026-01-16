@@ -31,6 +31,7 @@ if ("serviceWorker" in navigator) {
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: true });
   const lakeScene = document.getElementById("lakeScene");
+  const heroLayer = document.getElementById("heroLayer");
   const rodLayer = document.getElementById("rodLayer");
   const bobberLayer = document.getElementById("bobberLayer");
 
@@ -1878,6 +1879,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== DPI / Resize =====
   let W = 0, H = 0, DPR = 1;
+  const HERO_ROD_Y_OFFSET_FACTOR = 0.9;
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -1907,6 +1909,20 @@ if ("serviceWorker" in navigator) {
 
     layoutCity();
   }
+
+  function updateHeroRodOffset() {
+    if (!lakeScene || !heroLayer) return;
+    const heroRect = heroLayer.getBoundingClientRect();
+    if (!heroRect.height) return;
+    const currentOffset = Number.parseFloat(
+      getComputedStyle(lakeScene).getPropertyValue("--hero-rod-y-offset")
+    ) || 0;
+    const baseCenterY = heroRect.top + heroRect.height / 2 - currentOffset;
+    const desiredOffset = Math.round(heroRect.height * HERO_ROD_Y_OFFSET_FACTOR);
+    const maxOffset = Math.max(0, Math.floor(H - heroRect.height / 2 - baseCenterY));
+    const nextOffset = clamp(desiredOffset, 0, maxOffset);
+    lakeScene.style.setProperty("--hero-rod-y-offset", `${nextOffset}px`);
+  }
   // Layer interactivity is controlled here to keep game taps on the scene only.
   function updateLayerVisibility() {
     if (orientationLocked) {
@@ -1920,6 +1936,7 @@ if ("serviceWorker" in navigator) {
   const layout = () => {
     setVhVar();
     resize();
+    updateHeroRodOffset();
     applyLakeRig();
     if (!bobber.visible) {
       syncBobberToRodTip();

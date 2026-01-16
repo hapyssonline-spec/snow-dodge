@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 64 for orientation lock + rotate overlay input fix.
-const CACHE_VERSION = 64;
+// CACHE_VERSION bumped to 65 for hero/rod lake offset tweak.
+const CACHE_VERSION = 65;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
