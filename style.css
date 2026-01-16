@@ -254,7 +254,22 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-f
   inset:2px auto 2px 2px;
   width:36%;
   border-radius:999px;
-  background: linear-gradient(90deg, rgba(124,219,255,0.85), rgba(111,179,215,0.7));
+  background: rgba(255,255,255,0.32);
+  overflow:hidden;
+}
+.reelFill::after{
+  content:"";
+  position:absolute;
+  top:0;
+  right:0;
+  width:8px;
+  height:100%;
+  background: rgba(255,255,255,0.55);
+  border-radius:inherit;
+  display:none;
+}
+.reelFill.reelFill--head::after{
+  display:block;
 }
 .reelPercent{
   position:absolute;
