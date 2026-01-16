@@ -29,6 +29,9 @@ if ("serviceWorker" in navigator) {
 
   const coinsEl = document.getElementById("coins");
   const fishEl = document.getElementById("fish");
+  const playerLevelEl = document.getElementById("playerLevel");
+  const xpTextEl = document.getElementById("xpText");
+  const xpBarFill = document.getElementById("xpBarFill");
   const subtitleEl = document.getElementById("subtitle");
   const chipHint = document.getElementById("chipHint");
 
@@ -87,6 +90,7 @@ if ("serviceWorker" in navigator) {
 
   const sceneFade = document.getElementById("sceneFade");
   const toast = document.getElementById("toast");
+  const xpToast = document.getElementById("xpToast");
   const bottomBar = document.getElementById("bottombar");
   const fightHud = document.getElementById("fightHud");
   const tensionFill = fightHud?.querySelector(".tensionFill");
@@ -621,6 +625,24 @@ if ("serviceWorker" in navigator) {
       toast.classList.remove("show");
       setTimeout(() => toast.classList.add("hidden"), 200);
     }, 1200);
+  }
+
+  function showXPGain(result) {
+    if (!xpToast || !result) return;
+    const lines = [
+      `<span class="xpToastLine">+${result.gainedXP} XP</span>`,
+      `<span class="xpToastLine">Ур. ${result.level} ${result.xp}/${result.xpToNext}</span>`
+    ];
+    if (result.leveledUp) {
+      lines.push(`<span class="xpToastLine">Новый уровень: ${result.level}</span>`);
+    }
+    xpToast.innerHTML = lines.join("");
+    xpToast.classList.remove("hidden");
+    xpToast.classList.add("show");
+    setTimeout(() => {
+      xpToast.classList.remove("show");
+      setTimeout(() => xpToast.classList.add("hidden"), 200);
+    }, 1500);
   }
 
   // ===== Tension + progress balance (REELING) =====
@@ -1208,7 +1230,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
-  const STORAGE_VERSION = 3;
+  const STORAGE_VERSION = 4;
 
   const stats = {
     coins: 0,
@@ -1221,7 +1243,11 @@ if ("serviceWorker" in navigator) {
     activeBaitId: null,
     baitInventory: {},
     rodTier: 1,
-    lineTier: 1
+    lineTier: 1,
+    playerLevel: 1,
+    playerXP: 0,
+    playerXPTotal: 0,
+    playerXPToNext: 60
   };
 
   const reps = {
@@ -1246,6 +1272,68 @@ if ("serviceWorker" in navigator) {
   let selectedShopItemId = null;
   let negotiatedPrice = null;
 
+  const progression = {
+    xpRequired(level) {
+      const lvl = Math.max(1, Math.floor(level || 1));
+      const delta = lvl - 1;
+      return Math.round(60 + delta * 25 + delta * delta * 6);
+    },
+    normalize() {
+      let levelsGained = 0;
+      while (player.playerXP >= player.playerXPToNext) {
+        player.playerXP -= player.playerXPToNext;
+        player.playerLevel += 1;
+        player.playerXPToNext = this.xpRequired(player.playerLevel);
+        levelsGained += 1;
+      }
+      return levelsGained;
+    },
+    load(savedPlayer = {}) {
+      const level = Number(savedPlayer.playerLevel ?? 1);
+      const xp = Number(savedPlayer.playerXP ?? 0);
+      const total = Number(savedPlayer.playerXPTotal ?? 0);
+      const next = Number(savedPlayer.playerXPToNext ?? this.xpRequired(level));
+      player.playerLevel = Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
+      player.playerXP = Number.isFinite(xp) && xp >= 0 ? Math.floor(xp) : 0;
+      player.playerXPTotal = Number.isFinite(total) && total >= 0 ? Math.floor(total) : 0;
+      player.playerXPToNext = Number.isFinite(next) && next > 0 ? Math.floor(next) : this.xpRequired(player.playerLevel);
+      this.normalize();
+    },
+    save() {
+      return {
+        playerLevel: player.playerLevel,
+        playerXP: player.playerXP,
+        playerXPTotal: player.playerXPTotal,
+        playerXPToNext: player.playerXPToNext
+      };
+    },
+    awardXP({ speciesId, rarity, weightKg }) {
+      const rarityMap = {
+        common: 10,
+        uncommon: 18,
+        rare: 30,
+        epic: 50,
+        legendary: 80
+      };
+      const baseXP = rarityMap[rarity] ?? rarityMap.common;
+      const weight = Number(weightKg) || 0;
+      const weightFactor = 1 + clamp(weight / 5, 0, 1.2);
+      const gainedXP = Math.max(1, Math.round(baseXP * weightFactor));
+      player.playerXP += gainedXP;
+      player.playerXPTotal += gainedXP;
+      const levelsGained = this.normalize();
+      return {
+        gainedXP,
+        leveledUp: levelsGained > 0,
+        levelsGained,
+        level: player.playerLevel,
+        xp: player.playerXP,
+        xpToNext: player.playerXPToNext,
+        speciesId
+      };
+    }
+  };
+
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -1265,6 +1353,7 @@ if ("serviceWorker" in navigator) {
         player.baitInventory = savedPlayer.baitInventory || {};
         player.rodTier = Number(savedPlayer.rodTier || 1);
         player.lineTier = Number(savedPlayer.lineTier || 1);
+        progression.load(savedPlayer);
         const savedReps = obj.reps || {};
         reps.fishShop = Number(savedReps.fishShop ?? reps.fishShop);
         reps.trophy = Number(savedReps.trophy ?? reps.trophy);
@@ -1273,6 +1362,7 @@ if ("serviceWorker" in navigator) {
         activeQuests = Array.isArray(obj.quests) ? obj.quests : [];
       } else {
         player.coins = stats.coins;
+        progression.load();
       }
       stats.coins = player.coins;
       if (btnMute) btnMute.textContent = `Звук: ${muted ? "Выкл" : "Вкл"}`;
@@ -1294,7 +1384,8 @@ if ("serviceWorker" in navigator) {
           activeBaitId: player.activeBaitId,
           baitInventory: player.baitInventory,
           rodTier: player.rodTier,
-          lineTier: player.lineTier
+          lineTier: player.lineTier,
+          ...progression.save()
         },
         reps: {
           fishShop: reps.fishShop,
@@ -1317,6 +1408,10 @@ if ("serviceWorker" in navigator) {
     player.baitInventory = {};
     player.rodTier = 1;
     player.lineTier = 1;
+    player.playerLevel = 1;
+    player.playerXP = 0;
+    player.playerXPTotal = 0;
+    player.playerXPToNext = progression.xpRequired(1);
     reps.fishShop = 30;
     reps.trophy = 30;
     reps.gearShop = 30;
@@ -1334,6 +1429,12 @@ if ("serviceWorker" in navigator) {
   function updateHUD() {
     if (coinsEl) coinsEl.textContent = String(player.coins);
     if (fishEl) fishEl.textContent = String(stats.fish);
+    if (playerLevelEl) playerLevelEl.textContent = String(player.playerLevel);
+    if (xpTextEl) xpTextEl.textContent = `XP ${player.playerXP}/${player.playerXPToNext}`;
+    if (xpBarFill) {
+      const xpPct = player.playerXPToNext > 0 ? clamp(player.playerXP / player.playerXPToNext, 0, 1) * 100 : 0;
+      xpBarFill.style.width = `${xpPct}%`;
+    }
   }
 
   function openInventory() {
@@ -2325,7 +2426,14 @@ if ("serviceWorker" in navigator) {
     if (!game.catch) return;
 
     stats.fish += 1;
+    const xpResult = progression.awardXP({
+      speciesId: game.catch.speciesId,
+      rarity: game.catch.rarity,
+      weightKg: game.catch.weightKg
+    });
     updateHUD();
+    showXPGain(xpResult);
+    save();
 
     game.mode = "LANDED";
     game.t = 0;
