@@ -130,13 +130,7 @@ if ("serviceWorker" in navigator) {
   const profileOverlay = document.getElementById("profileOverlay");
   const btnProfileClose = document.getElementById("btnProfileClose");
   const profileName = document.getElementById("profileName");
-  const profileRenameHint = document.getElementById("profileRenameHint");
   const btnProfileRename = document.getElementById("btnProfileRename");
-  const profileRenameForm = document.getElementById("profileRenameForm");
-  const profileRenameInput = document.getElementById("profileRenameInput");
-  const btnProfileRenameSave = document.getElementById("btnProfileRenameSave");
-  const btnProfileRenameCancel = document.getElementById("btnProfileRenameCancel");
-  const profileRenameError = document.getElementById("profileRenameError");
   const profileXpRing = document.getElementById("profileXpRing");
   const btnProfileStatsOpen = document.getElementById("btnProfileStatsOpen");
   const btnProfileLeaderboardsOpen = document.getElementById("btnProfileLeaderboardsOpen");
@@ -144,16 +138,11 @@ if ("serviceWorker" in navigator) {
   const profileScreenMain = document.getElementById("profileScreenMain");
   const profileScreenStats = document.getElementById("profileScreenStats");
   const profileScreenGear = document.getElementById("profileScreenGear");
-  const profileScreenConfirm = document.getElementById("profileScreenConfirm");
   const statPlayTime = document.getElementById("statPlayTime");
   const statFishCaught = document.getElementById("statFishCaught");
   const statGoldEarned = document.getElementById("statGoldEarned");
   const statBestRarity = document.getElementById("statBestRarity");
   const statMaxWeight = document.getElementById("statMaxWeight");
-  const profileConfirmText = document.getElementById("profileConfirmText");
-  const btnProfileConfirmCancel = document.getElementById("btnProfileConfirmCancel");
-  const btnProfileConfirmBack = document.getElementById("btnProfileConfirmBack");
-  const btnProfileConfirmSave = document.getElementById("btnProfileConfirmSave");
   const profileRodName = document.getElementById("profileRodName");
   const profileLineName = document.getElementById("profileLineName");
   const profileBaitName = document.getElementById("profileBaitName");
@@ -161,6 +150,18 @@ if ("serviceWorker" in navigator) {
   const profileGearPickerList = document.getElementById("profileGearPickerList");
   const btnProfileGearBack = document.getElementById("btnProfileGearBack");
   const profileGearToggles = Array.from(document.querySelectorAll(".profileGearToggle"));
+
+  const renameOverlay = document.getElementById("renameOverlay");
+  const btnRenameClose = document.getElementById("btnRenameClose");
+  const renameInput = document.getElementById("renameInput");
+  const renameFreeHint = document.getElementById("renameFreeHint");
+  const renameError = document.getElementById("renameError");
+  const btnRenameSave = document.getElementById("btnRenameSave");
+  const renameScreenMain = document.getElementById("renameScreenMain");
+  const renameScreenConfirm = document.getElementById("renameScreenConfirm");
+  const renameConfirmText = document.getElementById("renameConfirmText");
+  const btnRenameConfirmBack = document.getElementById("btnRenameConfirmBack");
+  const btnRenameConfirmSave = document.getElementById("btnRenameConfirmSave");
 
   const profileSetupOverlay = document.getElementById("profileSetupOverlay");
   const profileSetupSuggested = document.getElementById("profileSetupSuggested");
@@ -203,6 +204,14 @@ if ("serviceWorker" in navigator) {
     event.stopImmediatePropagation();
   };
 
+  const stopModalEvent = (event) => {
+    if (!modalLayer?.classList.contains("is-active")) return;
+    event.stopPropagation();
+    if (event.target instanceof HTMLElement && event.target.classList.contains("modal")) {
+      event.preventDefault();
+    }
+  };
+
   const guardUiClick = (event) => {
     if (event?.target?.closest?.("button")) {
       stopUiEvent(event);
@@ -213,6 +222,15 @@ if ("serviceWorker" in navigator) {
   uiLayer?.addEventListener("click", guardUiClick);
   modalLayer?.addEventListener("pointerdown", guardUiClick);
   modalLayer?.addEventListener("click", guardUiClick);
+  modalLayer?.addEventListener("pointerdown", stopModalEvent);
+  modalLayer?.addEventListener("click", stopModalEvent);
+  modalLayer?.addEventListener("focusin", handleModalBodyFocus);
+  modalLayer?.addEventListener("touchmove", handleModalTouchMove, { passive: false });
+
+  window.addEventListener("resize", updateModalViewportHeight);
+  window.visualViewport?.addEventListener("resize", updateModalViewportHeight);
+  window.visualViewport?.addEventListener("scroll", updateModalViewportHeight);
+  updateModalViewportHeight();
 
   const blockingOverlays = [
     overlay,
@@ -221,6 +239,7 @@ if ("serviceWorker" in navigator) {
     catchOverlay,
     profileSetupOverlay,
     profileOverlay,
+    renameOverlay,
     travelOverlay,
     shopOverlay,
     leaderboardOverlay,
@@ -232,6 +251,83 @@ if ("serviceWorker" in navigator) {
     if (!modalLayer) return;
     const hasBlocking = blockingOverlays.some((el) => el && !el.classList.contains("hidden"));
     modalLayer.classList.toggle("is-active", hasBlocking);
+    uiLayer?.classList.toggle("is-blocked", hasBlocking);
+    document.body.style.overflow = hasBlocking ? "hidden" : "";
+    document.body.style.touchAction = hasBlocking ? "none" : "";
+    updateModalViewportHeight();
+  }
+
+  function updateModalViewportHeight() {
+    const height = window.visualViewport?.height || window.innerHeight;
+    document.documentElement.style.setProperty("--modal-viewport-height", `${height}px`);
+  }
+
+  function blurActiveInput() {
+    const active = document.activeElement;
+    if (active && active instanceof HTMLElement && active.blur) {
+      active.blur();
+    }
+  }
+
+  function showRenameScreen(screen) {
+    const screens = {
+      main: renameScreenMain,
+      confirm: renameScreenConfirm
+    };
+    Object.entries(screens).forEach(([key, el]) => {
+      if (!el) return;
+      el.classList.toggle("hidden", key !== screen);
+    });
+  }
+
+  function openRenameModal({ returnToProfile = false } = {}) {
+    if (!renameOverlay || !canRenameProfile()) return;
+    renameReturnToProfile = returnToProfile;
+    if (returnToProfile) {
+      profileOverlay?.classList.add("hidden");
+      profileOverlay?.setAttribute("aria-hidden", "true");
+    }
+    renameOverlay.classList.remove("hidden");
+    renameOverlay.setAttribute("aria-hidden", "false");
+    showRenameScreen("main");
+    if (renameFreeHint) renameFreeHint.textContent = "Первый раз — бесплатно.";
+    setProfileError(renameError, "");
+    if (renameInput) {
+      renameInput.value = profile?.nickname || "";
+      requestAnimationFrame(() => renameInput.focus());
+    }
+    updateModalLayerState();
+  }
+
+  function closeRenameModal({ returnToProfileOverride } = {}) {
+    renameOverlay?.classList.add("hidden");
+    renameOverlay?.setAttribute("aria-hidden", "true");
+    setProfileError(renameError, "");
+    pendingRename = null;
+    blurActiveInput();
+    updateModalLayerState();
+    const shouldReturn = returnToProfileOverride ?? renameReturnToProfile;
+    renameReturnToProfile = false;
+    if (shouldReturn) {
+      openProfile();
+    }
+  }
+
+  function handleModalBodyFocus(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const body = target.closest(".modalBody");
+    if (!body) return;
+    requestAnimationFrame(() => {
+      updateModalViewportHeight();
+      target.scrollIntoView({ block: "center" });
+    });
+  }
+
+  function handleModalTouchMove(event) {
+    if (!(event.target instanceof HTMLElement)) return;
+    if (event.target.closest(".modalBody")) return;
+    event.preventDefault();
   }
 
   // ===== Helpers =====
@@ -2187,6 +2283,7 @@ if ("serviceWorker" in navigator) {
   let questCooldowns = { easyAvailableAt: 0, mediumAvailableAt: 0, hardAvailableAt: 0 };
   let questRefreshState = { refreshCount: 0, nextRefreshAt: 0 };
   let pendingRename = null;
+  let renameReturnToProfile = false;
   let activeProfileGear = null;
   let selectedQuestDifficulty = "easy";
   let questRefreshTicker = null;
@@ -2706,9 +2803,6 @@ if ("serviceWorker" in navigator) {
 
   function updateProfileStatsUI() {
     if (profileName) profileName.textContent = profile?.nickname || "—";
-    if (profileRenameHint) {
-      profileRenameHint.textContent = profile ? "Первый раз — бесплатно." : "";
-    }
     if (btnProfileRename) {
       btnProfileRename.disabled = !profile;
     }
@@ -3021,8 +3115,7 @@ if ("serviceWorker" in navigator) {
     const screens = {
       main: profileScreenMain,
       stats: profileScreenStats,
-      gear: profileScreenGear,
-      confirm: profileScreenConfirm
+      gear: profileScreenGear
     };
     Object.entries(screens).forEach(([key, el]) => {
       if (!el) return;
@@ -3036,8 +3129,6 @@ if ("serviceWorker" in navigator) {
     profileOverlay.classList.remove("hidden");
     profileOverlay.setAttribute("aria-hidden", "false");
     showProfileScreen("main");
-    profileRenameForm?.classList.add("hidden");
-    setProfileError(profileRenameError, "");
     updateProfileStatsUI();
     updateModalLayerState();
   }
@@ -3045,10 +3136,9 @@ if ("serviceWorker" in navigator) {
   function closeProfile() {
     profileOverlay?.classList.add("hidden");
     profileOverlay?.setAttribute("aria-hidden", "true");
-    profileRenameForm?.classList.add("hidden");
-    setProfileError(profileRenameError, "");
     pendingRename = null;
     activeProfileGear = null;
+    blurActiveInput();
     updateModalLayerState();
   }
 
@@ -3069,6 +3159,7 @@ if ("serviceWorker" in navigator) {
   function closeProfileSetup() {
     profileSetupOverlay?.classList.add("hidden");
     profileSetupOverlay?.setAttribute("aria-hidden", "true");
+    blurActiveInput();
     updateModalLayerState();
   }
 
@@ -3221,63 +3312,52 @@ if ("serviceWorker" in navigator) {
 
   btnProfileRename?.addEventListener("click", () => {
     if (!canRenameProfile()) return;
-    profileRenameForm?.classList.toggle("hidden");
-    if (profileRenameInput) {
-      profileRenameInput.value = profile?.nickname || "";
-      profileRenameInput.focus();
-    }
+    openRenameModal({ returnToProfile: true });
   });
 
-  btnProfileRenameCancel?.addEventListener("click", () => {
-    profileRenameForm?.classList.add("hidden");
-    setProfileError(profileRenameError, "");
-    pendingRename = null;
+  btnRenameClose?.addEventListener("click", () => {
+    closeRenameModal();
   });
 
-  btnProfileRenameSave?.addEventListener("click", () => {
-    if (!profile || !profileRenameInput) return;
+  btnRenameSave?.addEventListener("click", () => {
+    if (!profile || !renameInput) return;
     if (!canRenameProfile()) return;
-    const proposed = normalizeNickname(profileRenameInput.value);
+    const proposed = normalizeNickname(renameInput.value);
     if (!isNicknameValid(proposed)) {
-      setProfileError(profileRenameError, "Ник: 3–12 символов, латиница/цифры/_.");
+      setProfileError(renameError, "Ник: 3–12 символов, латиница/цифры/_.");
       return;
     }
     if (normalizeNicknameKey(proposed) === normalizeNicknameKey(profile.nickname)) {
-      setProfileError(profileRenameError, "Это текущий ник.");
+      setProfileError(renameError, "Это текущий ник.");
       return;
     }
     if (isNicknameTaken(proposed)) {
       const suggestion = getNextAvailableUserName(1).name;
-      setProfileError(profileRenameError, `Ник занят. Попробуй ${suggestion}.`);
+      setProfileError(renameError, `Ник занят. Попробуй ${suggestion}.`);
       return;
     }
     pendingRename = { name: proposed, cost: getRenameCost(), previous: profile.nickname };
-    if (profileConfirmText) {
+    if (renameConfirmText) {
       let confirmText = `Вы точно хотите сменить имя на ${pendingRename.name}?`;
       if (pendingRename.cost > 0) {
         confirmText += ` Стоимость: ${formatCoins(pendingRename.cost)}.`;
       }
-      profileConfirmText.textContent = confirmText;
+      renameConfirmText.textContent = confirmText;
     }
-    showProfileScreen("confirm");
+    showRenameScreen("confirm");
   });
 
-  btnProfileConfirmCancel?.addEventListener("click", () => {
+  btnRenameConfirmBack?.addEventListener("click", () => {
     pendingRename = null;
-    showProfileScreen("main");
+    showRenameScreen("main");
   });
 
-  btnProfileConfirmBack?.addEventListener("click", () => {
-    pendingRename = null;
-    showProfileScreen("main");
-  });
-
-  btnProfileConfirmSave?.addEventListener("click", () => {
+  btnRenameConfirmSave?.addEventListener("click", () => {
     if (!profile || !pendingRename) return;
     const cost = pendingRename.cost || 0;
     if (cost > 0 && player.coins < cost) {
-      setProfileError(profileRenameError, "Недостаточно золота для смены ника.");
-      showProfileScreen("main");
+      setProfileError(renameError, "Недостаточно золота для смены ника.");
+      showRenameScreen("main");
       return;
     }
     if (cost > 0) {
@@ -3290,13 +3370,12 @@ if ("serviceWorker" in navigator) {
     profile.renameFreeUsed = true;
     registerNickname(pendingRename.name);
     pendingRename = null;
-    setProfileError(profileRenameError, "");
-    profileRenameForm?.classList.add("hidden");
+    setProfileError(renameError, "");
     updateProfileStatsUI();
     updateLeaderboardsFromStats();
     updateHUD();
     save();
-    showProfileScreen("main");
+    closeRenameModal();
   });
 
   function applyProfileNickname(name) {

@@ -14,6 +14,11 @@
   --fight-hud-radius: clamp(18px, 3vw, 24px);
   --fight-hud-pad: clamp(16px, 2.8vw, 20px);
   --fight-hud-shadow: 0 18px 50px rgba(4, 10, 18, 0.35);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --modal-viewport-height: 100vh;
 }
 
 *{box-sizing:border-box}
@@ -91,6 +96,13 @@ img, a{
 #uiLayer .hud .iconBtn,
 #uiLayer .hud .profileButton{
   pointer-events:auto;
+}
+
+#uiLayer.is-blocked .hud button,
+#uiLayer.is-blocked .hud .chipBtn,
+#uiLayer.is-blocked .hud .iconBtn,
+#uiLayer.is-blocked .hud .profileButton{
+  pointer-events:none;
 }
 
 #modalLayer{
@@ -385,19 +397,20 @@ img, a{
 }
 
 .modalCloseX{
-  width:32px;
-  height:32px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.12);
-  background: linear-gradient(180deg, rgba(255,90,90,.95), rgba(160,35,35,.95));
-  color:#fff;
+  width:clamp(32px, 8vw, 40px);
+  height:clamp(32px, 8vw, 40px);
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.14);
+  background: linear-gradient(160deg, rgba(138,47,55,.95), rgba(110,28,35,.96));
+  color:#ffe3e3;
   font-weight:900;
-  font-size:14px;
+  font-size:16px;
   display:flex;
   align-items:center;
   justify-content:center;
-  box-shadow: 0 6px 14px rgba(10,18,28,.35);
+  box-shadow: 0 8px 18px rgba(10,18,28,.35);
   padding:0;
+  line-height:1;
 }
 
 .modalCloseX:hover{
@@ -644,7 +657,7 @@ img, a{
 #overlay{
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
-  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
   backdrop-filter: blur(10px);
   background: rgba(11,22,33,.55);
   z-index:6;
@@ -654,7 +667,7 @@ img, a{
 #invOverlay{
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
-  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.68);
   z-index:6;
@@ -663,7 +676,7 @@ img, a{
 #trashOverlay{
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
-  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.74);
   z-index:6;
@@ -683,7 +696,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
   background: rgba(6,12,20,.7);
   z-index:6;
   opacity:0;
@@ -718,6 +731,7 @@ img, a{
 #app[data-effects="reduced"] #shopOverlay,
 #app[data-effects="reduced"] #profileOverlay,
 #app[data-effects="reduced"] #profileSetupOverlay,
+#app[data-effects="reduced"] #renameOverlay,
 #app[data-effects="reduced"] #leaderboardOverlay{
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -730,7 +744,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.72);
   z-index:7;
@@ -746,15 +760,27 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.72);
   z-index:7;
 }
 
+#renameOverlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
+  backdrop-filter: blur(10px);
+  background: rgba(6,12,20,.72);
+  z-index:8;
+}
+
 .profileCard{
   width:min(720px, 100%);
-  max-height: calc(100% - 32px);
+  max-height: calc(var(--modal-viewport-height) - var(--safe-top) - var(--safe-bottom) - 24px);
   border-radius:18px;
   border:1px solid var(--stroke);
   background: rgba(16,31,48,.97);
@@ -800,10 +826,15 @@ img, a{
   display:flex;
   flex-direction:column;
   min-height:0;
+  max-height: calc(var(--modal-viewport-height) - var(--safe-top) - var(--safe-bottom) - 24px);
 }
 
 .modalHeader{
   flex:0 0 auto;
+  position:sticky;
+  top:0;
+  z-index:2;
+  background: rgba(16,31,48,.98);
 }
 
 .modalBody{
@@ -815,6 +846,8 @@ img, a{
   display:flex;
   flex-direction:column;
   gap:16px;
+  padding-bottom: calc(16px + var(--safe-bottom));
+  overscroll-behavior: contain;
 }
 
 .profileScreen{
@@ -875,6 +908,41 @@ img, a{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
+}
+
+.renameCard{
+  width:min(520px, 100%);
+  border-radius:18px;
+  border:1px solid var(--stroke);
+  background: rgba(16,31,48,.97);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+
+.renameHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.renameTitle{
+  font-size:20px;
+  font-weight:900;
+}
+
+.renameHint{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.renameScreen{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
 
 .sectionTitle{
@@ -1118,7 +1186,7 @@ img, a{
 
 .leaderboardCard{
   width:min(760px, 100%);
-  max-height: calc(100% - 32px);
+  max-height: calc(var(--modal-viewport-height) - var(--safe-top) - var(--safe-bottom) - 24px);
   border-radius:18px;
   border:1px solid var(--stroke);
   background: rgba(16,31,48,.97);
@@ -1313,7 +1381,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
   background: rgba(6,12,20,.68);
   backdrop-filter: blur(10px);
   z-index:6;
@@ -1349,7 +1417,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
   background: rgba(6,12,20,.72);
   backdrop-filter: blur(8px);
   z-index:6;
@@ -1508,7 +1576,7 @@ img, a{
 
 .invCard{
   width:min(520px, 100%);
-  max-height: calc(100% - 32px);
+  max-height: calc(var(--modal-viewport-height) - var(--safe-top) - var(--safe-bottom) - 24px);
   border-radius:18px;
   border:1px solid var(--stroke);
   background: rgba(16,31,48,.96);
@@ -1521,7 +1589,7 @@ img, a{
 
 .trashCard{
   width:min(520px, 100%);
-  max-height: calc(100% - 32px);
+  max-height: calc(var(--modal-viewport-height) - var(--safe-top) - var(--safe-bottom) - 24px);
   border-radius:18px;
   border:1px solid rgba(130,162,198,.22);
   background: rgba(14,26,40,.98);
@@ -1947,7 +2015,7 @@ img, a{
 
 .shopCard{
   width:min(900px, 100%);
-  max-height: calc(100% - 32px);
+  max-height: calc(var(--modal-viewport-height) - var(--safe-top) - var(--safe-bottom) - 24px);
   border-radius:18px;
   border:1px solid var(--stroke);
   background: rgba(16,31,48,.97);
