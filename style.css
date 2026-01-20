@@ -397,28 +397,28 @@ img, a{
 }
 
 .modalCloseX{
-  width:clamp(32px, 8vw, 40px);
-  height:clamp(32px, 8vw, 40px);
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,.14);
-  background: linear-gradient(160deg, rgba(138,47,55,.95), rgba(110,28,35,.96));
-  color:#ffe3e3;
-  font-weight:900;
-  font-size:16px;
+  width:36px;
+  height:36px;
+  border-radius:11px;
+  border:1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg, #a6454f 0%, #7b2b33 100%);
+  color:#ffe6e8;
+  font-weight:800;
+  font-size:18px;
   display:flex;
   align-items:center;
   justify-content:center;
-  box-shadow: 0 8px 18px rgba(10,18,28,.35);
+  box-shadow: 0 8px 18px rgba(10,18,28,.35), inset 0 1px 0 rgba(255,255,255,.18);
   padding:0;
   line-height:1;
 }
 
 .modalCloseX:hover{
-  filter: brightness(0.95);
+  filter: brightness(0.96);
 }
 
 .modalCloseX:active{
-  filter: brightness(0.9);
+  filter: brightness(0.92);
   transform: scale(0.98);
 }
 
@@ -1441,6 +1441,7 @@ img, a{
   display:flex;
   flex-direction:column;
   gap:8px;
+  background: transparent;
 }
 
 .travelTitle{
@@ -1448,12 +1449,14 @@ img, a{
   letter-spacing:0.22em;
   text-transform:uppercase;
   color:var(--muted);
+  text-shadow: 0 2px 6px rgba(6,12,20,.45);
 }
 
 .travelTimer{
   font-size:clamp(28px, 6vw, 44px);
   font-weight:900;
   letter-spacing:0.08em;
+  text-shadow: 0 2px 6px rgba(6,12,20,.45);
 }
 
 .travelStatus{
@@ -1463,6 +1466,7 @@ img, a{
   color:var(--accent);
   opacity:0;
   transition: opacity 0.2s ease;
+  text-shadow: 0 2px 6px rgba(6,12,20,.45);
 }
 
 .travelStatus.is-visible{
@@ -1572,6 +1576,11 @@ img, a{
 #app.travel-lock #bottombar{
   opacity:0.35;
   pointer-events:none;
+}
+
+#bottombar::before,
+#bottombar::after{
+  content:none;
 }
 
 .invCard{
