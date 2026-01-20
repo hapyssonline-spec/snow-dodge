@@ -135,9 +135,11 @@ if ("serviceWorker" in navigator) {
   const btnProfileStatsOpen = document.getElementById("btnProfileStatsOpen");
   const btnProfileLeaderboardsOpen = document.getElementById("btnProfileLeaderboardsOpen");
   const btnProfileStatsBack = document.getElementById("btnProfileStatsBack");
+  const btnProfileStatsClose = document.getElementById("btnProfileStatsClose");
   const profileScreenMain = document.getElementById("profileScreenMain");
   const profileScreenStats = document.getElementById("profileScreenStats");
   const profileScreenGear = document.getElementById("profileScreenGear");
+  const btnProfileGearClose = document.getElementById("btnProfileGearClose");
   const statPlayTime = document.getElementById("statPlayTime");
   const statFishCaught = document.getElementById("statFishCaught");
   const statGoldEarned = document.getElementById("statGoldEarned");
@@ -227,10 +229,10 @@ if ("serviceWorker" in navigator) {
   modalLayer?.addEventListener("focusin", handleModalBodyFocus);
   modalLayer?.addEventListener("touchmove", handleModalTouchMove, { passive: false });
 
-  window.addEventListener("resize", updateModalViewportHeight);
-  window.visualViewport?.addEventListener("resize", updateModalViewportHeight);
-  window.visualViewport?.addEventListener("scroll", updateModalViewportHeight);
-  updateModalViewportHeight();
+  window.addEventListener("resize", setViewportVars);
+  window.visualViewport?.addEventListener("resize", setViewportVars);
+  window.visualViewport?.addEventListener("scroll", setViewportVars);
+  setViewportVars();
 
   const blockingOverlays = [
     overlay,
@@ -247,19 +249,75 @@ if ("serviceWorker" in navigator) {
     sceneFade
   ];
 
+  const scrollFreezeState = {
+    active: false,
+    scrollY: 0,
+    style: {}
+  };
+
+  function setViewportVars() {
+    const v = window.visualViewport;
+    const height = v ? v.height : window.innerHeight;
+    const top = v ? v.offsetTop : 0;
+    document.documentElement.style.setProperty("--vvh", `${height}px`);
+    document.documentElement.style.setProperty("--vv-top", `${top}px`);
+    document.documentElement.style.setProperty("--modal-viewport-height", `${height}px`);
+  }
+
+  function freezePageScroll() {
+    if (scrollFreezeState.active) return;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    scrollFreezeState.scrollY = scrollY;
+    const bodyStyle = document.body.style;
+    scrollFreezeState.style = {
+      position: bodyStyle.position,
+      top: bodyStyle.top,
+      left: bodyStyle.left,
+      right: bodyStyle.right,
+      width: bodyStyle.width,
+      overflow: bodyStyle.overflow,
+      touchAction: bodyStyle.touchAction
+    };
+    bodyStyle.position = "fixed";
+    bodyStyle.top = `-${scrollY}px`;
+    bodyStyle.left = "0";
+    bodyStyle.right = "0";
+    bodyStyle.width = "100%";
+    bodyStyle.overflow = "hidden";
+    bodyStyle.touchAction = "none";
+    scrollFreezeState.active = true;
+  }
+
+  function unfreezePageScroll() {
+    if (!scrollFreezeState.active) return;
+    const bodyStyle = document.body.style;
+    const prev = scrollFreezeState.style;
+    bodyStyle.position = prev.position || "";
+    bodyStyle.top = prev.top || "";
+    bodyStyle.left = prev.left || "";
+    bodyStyle.right = prev.right || "";
+    bodyStyle.width = prev.width || "";
+    bodyStyle.overflow = prev.overflow || "";
+    bodyStyle.touchAction = prev.touchAction || "";
+    window.scrollTo(0, scrollFreezeState.scrollY || 0);
+    scrollFreezeState.active = false;
+  }
+
+  function relayoutModalToViewport() {
+    setViewportVars();
+  }
+
   function updateModalLayerState() {
     if (!modalLayer) return;
     const hasBlocking = blockingOverlays.some((el) => el && !el.classList.contains("hidden"));
     modalLayer.classList.toggle("is-active", hasBlocking);
     uiLayer?.classList.toggle("is-blocked", hasBlocking);
-    document.body.style.overflow = hasBlocking ? "hidden" : "";
-    document.body.style.touchAction = hasBlocking ? "none" : "";
-    updateModalViewportHeight();
-  }
-
-  function updateModalViewportHeight() {
-    const height = window.visualViewport?.height || window.innerHeight;
-    document.documentElement.style.setProperty("--modal-viewport-height", `${height}px`);
+    if (hasBlocking) {
+      freezePageScroll();
+    } else {
+      unfreezePageScroll();
+    }
+    setViewportVars();
   }
 
   function blurActiveInput() {
@@ -296,7 +354,9 @@ if ("serviceWorker" in navigator) {
       renameInput.value = profile?.nickname || "";
       requestAnimationFrame(() => renameInput.focus());
     }
+    freezePageScroll();
     updateModalLayerState();
+    requestAnimationFrame(() => relayoutModalToViewport());
   }
 
   function closeRenameModal({ returnToProfileOverride } = {}) {
@@ -313,14 +373,25 @@ if ("serviceWorker" in navigator) {
     }
   }
 
+  function scrollIntoModalBody(target) {
+    const body = target.closest(".modalBody");
+    if (!body) return;
+    const bodyRect = body.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const offsetTop = targetRect.top - bodyRect.top + body.scrollTop;
+    const targetCenter = offsetTop + targetRect.height / 2;
+    const nextScrollTop = Math.max(0, Math.min(body.scrollHeight - body.clientHeight, targetCenter - body.clientHeight / 2));
+    body.scrollTo({ top: nextScrollTop, behavior: "auto" });
+  }
+
   function handleModalBodyFocus(event) {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     const body = target.closest(".modalBody");
     if (!body) return;
     requestAnimationFrame(() => {
-      updateModalViewportHeight();
-      target.scrollIntoView({ block: "center" });
+      setViewportVars();
+      scrollIntoModalBody(target);
     });
   }
 
@@ -3288,8 +3359,16 @@ if ("serviceWorker" in navigator) {
     showProfileScreen("main");
   });
 
+  btnProfileStatsClose?.addEventListener("click", () => {
+    closeProfile();
+  });
+
   btnProfileGearBack?.addEventListener("click", () => {
     showProfileScreen("main");
+  });
+
+  btnProfileGearClose?.addEventListener("click", () => {
+    closeProfile();
   });
 
   btnLeaderboardClose?.addEventListener("click", () => {
