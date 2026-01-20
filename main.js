@@ -408,6 +408,46 @@ if ("serviceWorker" in navigator) {
     setSlip(slipPercent);
   }
 
+  let isFighting = false;
+
+  function setUiLocked(isLocked) {
+    const lockTargets = [
+      btnCity,
+      btnInventory,
+      btnJournal,
+      btnStar,
+      btnMute,
+      btnProfile,
+      btnBackToLake,
+      btnProfileStatsOpen,
+      btnProfileLeaderboardsOpen,
+      btnTrophyQuests,
+      btnTrophyRecords,
+      btnTrophyBack
+    ];
+    const extraTargets = Array.from(document.querySelectorAll(".navBtn, .hudBtn, .openModalBtn"));
+    const applyLock = (el) => {
+      if (!el) return;
+      const isButton = el.tagName === "BUTTON";
+      if (isButton) {
+        el.disabled = isLocked;
+      } else {
+        el.style.pointerEvents = isLocked ? "none" : "";
+      }
+      el.classList.toggle("isDisabled", isLocked);
+    };
+    lockTargets.concat(extraTargets, cityHitboxes).forEach(applyLock);
+    if (cityScene) {
+      cityScene.style.pointerEvents = isLocked ? "none" : "";
+    }
+  }
+
+  function setFightState(nextState) {
+    if (isFighting === nextState) return;
+    isFighting = nextState;
+    setUiLocked(isFighting);
+  }
+
   class RevealSystem {
     constructor(options) {
       this.fishTable = options.fishTable;
@@ -1871,6 +1911,7 @@ if ("serviceWorker" in navigator) {
   }
 
   btnMute?.addEventListener("click", () => {
+    if (isFighting) return;
     muted = !muted;
     updateMuteButton();
     if (!muted) beep(660, 0.06, 0.05);
@@ -2664,6 +2705,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function openInventory() {
+    if (isFighting) return;
     invOverlay?.classList.remove("hidden");
     if (invSort) invSort.value = inventorySort;
     renderInventory();
@@ -2676,6 +2718,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function openTrashJournal() {
+    if (isFighting) return;
     if (!trashOverlay) return;
     trashOverlay.classList.remove("hidden");
     requestAnimationFrame(() => {
@@ -2763,6 +2806,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function openProfile() {
+    if (isFighting) return;
     if (!profileOverlay) return;
     profileOverlay.classList.remove("hidden");
     profileOverlay.setAttribute("aria-hidden", "false");
@@ -2784,6 +2828,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function openProfileSetup() {
+    if (isFighting) return;
     if (!profileSetupOverlay) return;
     profileSetupOverlay.classList.remove("hidden");
     profileSetupOverlay.setAttribute("aria-hidden", "false");
@@ -2880,6 +2925,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function openLeaderboard() {
+    if (isFighting) return;
     if (!leaderboardOverlay) return;
     leaderboardOverlay.classList.remove("hidden");
     leaderboardOverlay.setAttribute("aria-hidden", "false");
@@ -2895,11 +2941,13 @@ if ("serviceWorker" in navigator) {
   }
 
   btnStar?.addEventListener("click", () => {
+    if (isFighting) return;
     if (currentScene !== SCENE_LAKE) return;
     showToast("Скоро.");
   });
 
   btnProfile?.addEventListener("click", () => {
+    if (isFighting) return;
     if (profileSetupOverlay && !profile && !profileSetupOverlay.classList.contains("hidden")) return;
     openProfile();
   });
@@ -2909,11 +2957,13 @@ if ("serviceWorker" in navigator) {
   });
 
   btnProfileStatsOpen?.addEventListener("click", () => {
+    if (isFighting) return;
     showProfileScreen("stats");
     updateProfileStatsUI();
   });
 
   btnProfileLeaderboardsOpen?.addEventListener("click", () => {
+    if (isFighting) return;
     closeProfile();
     openLeaderboard();
   });
@@ -3089,14 +3139,17 @@ if ("serviceWorker" in navigator) {
   });
 
   btnTrophyQuests?.addEventListener("click", () => {
+    if (isFighting) return;
     setTrophyView("quests");
   });
 
   btnTrophyRecords?.addEventListener("click", () => {
+    if (isFighting) return;
     openLeaderboard();
   });
 
   btnTrophyBack?.addEventListener("click", () => {
+    if (isFighting) return;
     setTrophyView("hub");
   });
 
@@ -3106,6 +3159,7 @@ if ("serviceWorker" in navigator) {
   });
 
   btnCity?.addEventListener("click", () => {
+    if (isFighting) return;
     if (currentScene !== SCENE_LAKE) return;
     startTravelToCity();
   });
@@ -3395,6 +3449,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function openShop(sceneId) {
+    if (isFighting) return;
     transitionTo(sceneId);
     renderShop(sceneId);
   }
@@ -3976,6 +4031,7 @@ if ("serviceWorker" in navigator) {
     };
     cityHitboxes.forEach((hitbox) => {
       hitbox.addEventListener("pointerdown", (event) => {
+        if (isFighting) return;
         if (currentScene !== SCENE_CITY) return;
         stopUiEvent(event);
         hitbox.classList.add("is-pressed");
@@ -3996,6 +4052,7 @@ if ("serviceWorker" in navigator) {
       hitbox.addEventListener("pointerleave", clearPress);
       hitbox.addEventListener("pointercancel", clearPress);
       hitbox.addEventListener("click", (event) => {
+        if (isFighting) return;
         if (currentScene !== SCENE_CITY) return;
         stopUiEvent(event);
         const sceneId = sceneMap[hitbox.dataset.scene];
@@ -4095,6 +4152,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function startTravelToCity() {
+    if (isFighting) return;
     if (travel.state !== "idle") return;
     const now = Date.now();
     travel.state = "toCity";
@@ -4187,6 +4245,7 @@ if ("serviceWorker" in navigator) {
       return;
     }
     hideOverlay();
+    setFightState(false);
     game.mode = "IDLE";
     game.t = 0;
     bobber.visible = false;
@@ -4321,6 +4380,7 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     game.lastTap = 999;
     setFishing(true);
+    setFightState(true);
     setHintTexts(null, null);
     setHint("Жми", 0.9);
   }
@@ -4367,6 +4427,7 @@ if ("serviceWorker" in navigator) {
 
   function land() {
     if (!game.catch) return;
+    setFightState(false);
 
     if (game.catch.catchType === "trash") {
       game.mode = "LANDED";
@@ -4780,6 +4841,7 @@ if ("serviceWorker" in navigator) {
       setHintTexts(revealHint.weightText, revealHint.speciesText);
 
       if (game.tension >= line.breakThreshold) {
+        setFightState(false);
         game.mode = "IDLE";
         game.t = 0;
         idleHintShown = false;
@@ -4794,6 +4856,7 @@ if ("serviceWorker" in navigator) {
         return;
       }
       if (reel.slackRisk >= 1) {
+        setFightState(false);
         game.mode = "IDLE";
         game.t = 0;
         idleHintShown = false;
