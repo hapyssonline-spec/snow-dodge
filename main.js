@@ -137,10 +137,7 @@ if ("serviceWorker" in navigator) {
   const btnProfileRenameSave = document.getElementById("btnProfileRenameSave");
   const btnProfileRenameCancel = document.getElementById("btnProfileRenameCancel");
   const profileRenameError = document.getElementById("profileRenameError");
-  const profileLevel = document.getElementById("profileLevel");
-  const profileXpFill = document.getElementById("profileXpFill");
-  const profileXpText = document.getElementById("profileXpText");
-  const profileXpRemain = document.getElementById("profileXpRemain");
+  const profileXpRing = document.getElementById("profileXpRing");
   const btnProfileStatsOpen = document.getElementById("btnProfileStatsOpen");
   const btnProfileLeaderboardsOpen = document.getElementById("btnProfileLeaderboardsOpen");
   const btnProfileStatsBack = document.getElementById("btnProfileStatsBack");
@@ -153,7 +150,6 @@ if ("serviceWorker" in navigator) {
   const statGoldEarned = document.getElementById("statGoldEarned");
   const statBestRarity = document.getElementById("statBestRarity");
   const statMaxWeight = document.getElementById("statMaxWeight");
-  const profileRenameCost = document.getElementById("profileRenameCost");
   const profileConfirmText = document.getElementById("profileConfirmText");
   const btnProfileConfirmCancel = document.getElementById("btnProfileConfirmCancel");
   const btnProfileConfirmBack = document.getElementById("btnProfileConfirmBack");
@@ -2598,6 +2594,110 @@ if ("serviceWorker" in navigator) {
     updateProfileStatsUI();
   }
 
+  const xpRingState = {
+    currentProgress: 0,
+    rafId: null,
+    lastXp: null,
+    lastLevel: null
+  };
+
+  function initXpRing() {
+    if (!profileXpRing || profileXpRing.dataset.ready) return;
+    profileXpRing.innerHTML = `
+      <svg class="xpRingSvg" viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="xpRingTrack" cx="60" cy="60" r="52"></circle>
+        <circle class="xpRingProgress" cx="60" cy="60" r="52"></circle>
+      </svg>
+      <div class="xpRingCenter">
+        <div class="xpRingLevel"></div>
+        <div class="xpRingValue"></div>
+      </div>
+    `;
+    const progressCircle = profileXpRing.querySelector(".xpRingProgress");
+    if (progressCircle) {
+      const radius = Number(progressCircle.getAttribute("r")) || 52;
+      const circumference = 2 * Math.PI * radius;
+      progressCircle.style.strokeDasharray = `${circumference}`;
+      progressCircle.style.strokeDashoffset = `${circumference}`;
+      progressCircle.dataset.circumference = String(circumference);
+    }
+    profileXpRing.dataset.ready = "true";
+  }
+
+  function updateXpRingProgress(progress) {
+    if (!profileXpRing) return;
+    const progressCircle = profileXpRing.querySelector(".xpRingProgress");
+    if (!progressCircle) return;
+    const circumference = Number(progressCircle.dataset.circumference) || 0;
+    const offset = circumference * (1 - clamp(progress, 0, 1));
+    progressCircle.style.strokeDashoffset = `${offset}`;
+  }
+
+  function animateXpRing(targetProgress) {
+    if (!profileXpRing) return;
+    if (xpRingState.rafId) {
+      cancelAnimationFrame(xpRingState.rafId);
+    }
+    const startProgress = xpRingState.currentProgress;
+    const duration = 600;
+    const startTime = performance.now();
+    const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const eased = easeOut(t);
+      const current = startProgress + (targetProgress - startProgress) * eased;
+      updateXpRingProgress(current);
+      if (t < 1) {
+        xpRingState.rafId = requestAnimationFrame(step);
+      } else {
+        xpRingState.currentProgress = targetProgress;
+        xpRingState.rafId = null;
+      }
+    };
+    xpRingState.rafId = requestAnimationFrame(step);
+  }
+
+  function triggerRingClass(className, duration = 450) {
+    if (!profileXpRing) return;
+    profileXpRing.classList.remove(className);
+    requestAnimationFrame(() => {
+      profileXpRing.classList.add(className);
+      window.setTimeout(() => {
+        profileXpRing.classList.remove(className);
+      }, duration);
+    });
+  }
+
+  function renderXpRing(level, xp, nextXp) {
+    if (!profileXpRing) return;
+    initXpRing();
+    const levelEl = profileXpRing.querySelector(".xpRingLevel");
+    const valueEl = profileXpRing.querySelector(".xpRingValue");
+    if (levelEl) levelEl.textContent = String(level ?? 1);
+    if (valueEl) valueEl.textContent = `${xp}/${nextXp}`;
+
+    const targetProgress = nextXp > 0 ? clamp(xp / nextXp, 0, 1) : 0;
+    const unchanged = xpRingState.lastXp === xp && xpRingState.lastLevel === level;
+    if (xpRingState.lastXp === null) {
+      xpRingState.currentProgress = targetProgress;
+      updateXpRingProgress(targetProgress);
+    } else if (!unchanged || xpRingState.currentProgress !== targetProgress) {
+      animateXpRing(targetProgress);
+    }
+
+    const levelUp = xpRingState.lastLevel !== null && level > xpRingState.lastLevel;
+    const xpIncrease = xpRingState.lastXp !== null && xp > xpRingState.lastXp;
+    if (levelUp) {
+      triggerRingClass("xpRing--levelup", 520);
+    } else if (xpIncrease) {
+      triggerRingClass("xpRing--pulse", 420);
+    }
+
+    xpRingState.lastXp = xp;
+    xpRingState.lastLevel = level;
+  }
+
   function getRarityLabelByTier(tier) {
     const entry = Object.entries(rarityRank).find(([, value]) => value === tier && value >= 0);
     if (!entry) return "обычная";
@@ -2607,26 +2707,12 @@ if ("serviceWorker" in navigator) {
   function updateProfileStatsUI() {
     if (profileName) profileName.textContent = profile?.nickname || "—";
     if (profileRenameHint) {
-      profileRenameHint.textContent = profile ? "Смена: 1 раз бесплатно, далее 10000" : "";
-    }
-    if (profileRenameCost) {
-      profileRenameCost.textContent = profile
-        ? (profile.renameFreeUsed ? "Стоимость: 10000 золота" : "Бесплатная смена")
-        : "";
+      profileRenameHint.textContent = profile ? "Первый раз — бесплатно." : "";
     }
     if (btnProfileRename) {
       btnProfileRename.disabled = !profile;
     }
-    if (profileLevel) profileLevel.textContent = String(player.playerLevel);
-    if (profileXpFill) {
-      const xpPct = player.playerXPToNext > 0 ? clamp(player.playerXP / player.playerXPToNext, 0, 1) * 100 : 0;
-      profileXpFill.style.width = `${xpPct}%`;
-    }
-    if (profileXpText) profileXpText.textContent = `Опыт: ${player.playerXP} / ${player.playerXPToNext}`;
-    if (profileXpRemain) {
-      const remain = Math.max(0, player.playerXPToNext - player.playerXP);
-      profileXpRemain.textContent = `До следующего: ${remain}`;
-    }
+    renderXpRing(player.playerLevel, player.playerXP, player.playerXPToNext);
     if (statPlayTime) {
       const live = playSessionStart ? Date.now() - playSessionStart : 0;
       statPlayTime.textContent = formatDuration(stats.totalPlayTimeMs + live);
@@ -3167,7 +3253,11 @@ if ("serviceWorker" in navigator) {
     }
     pendingRename = { name: proposed, cost: getRenameCost(), previous: profile.nickname };
     if (profileConfirmText) {
-      profileConfirmText.textContent = `Вы точно хотите сменить имя на ${pendingRename.name}?`;
+      let confirmText = `Вы точно хотите сменить имя на ${pendingRename.name}?`;
+      if (pendingRename.cost > 0) {
+        confirmText += ` Стоимость: ${formatCoins(pendingRename.cost)}.`;
+      }
+      profileConfirmText.textContent = confirmText;
     }
     showProfileScreen("confirm");
   });

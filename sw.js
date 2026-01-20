@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 71 for gear unlock progression and bite delay.
-const CACHE_VERSION = 71;
+// CACHE_VERSION bumped to 72 for profile UI cleanup and XP ring.
+const CACHE_VERSION = 72;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
