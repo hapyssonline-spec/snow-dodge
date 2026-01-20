@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 76 for iOS keyboard + travel UI fixes.
-const CACHE_VERSION = 76;
+// CACHE_VERSION bumped to 77 for travel overlay sync + input lock.
+const CACHE_VERSION = 77;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
