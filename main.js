@@ -229,10 +229,10 @@ if ("serviceWorker" in navigator) {
   modalLayer?.addEventListener("focusin", handleModalBodyFocus);
   modalLayer?.addEventListener("touchmove", handleModalTouchMove, { passive: false });
 
-  window.addEventListener("resize", setViewportVars);
-  window.visualViewport?.addEventListener("resize", setViewportVars);
-  window.visualViewport?.addEventListener("scroll", setViewportVars);
-  setViewportVars();
+  window.addEventListener("resize", updateVvh);
+  window.visualViewport?.addEventListener("resize", updateVvh);
+  window.visualViewport?.addEventListener("scroll", updateVvh);
+  updateVvh();
 
   const blockingOverlays = [
     overlay,
@@ -255,11 +255,11 @@ if ("serviceWorker" in navigator) {
     style: {}
   };
 
-  function setViewportVars() {
+  function updateVvh() {
     const v = window.visualViewport;
     const height = v ? v.height : window.innerHeight;
     const top = v ? v.offsetTop : 0;
-    document.documentElement.style.setProperty("--vvh", `${height}px`);
+    document.documentElement.style.setProperty("--vvh", `${height * 0.01}px`);
     document.documentElement.style.setProperty("--vv-top", `${top}px`);
     document.documentElement.style.setProperty("--modal-viewport-height", `${height}px`);
   }
@@ -285,6 +285,7 @@ if ("serviceWorker" in navigator) {
     bodyStyle.width = "100%";
     bodyStyle.overflow = "hidden";
     bodyStyle.touchAction = "none";
+    document.body.classList.add("modalOpen");
     scrollFreezeState.active = true;
   }
 
@@ -300,11 +301,12 @@ if ("serviceWorker" in navigator) {
     bodyStyle.overflow = prev.overflow || "";
     bodyStyle.touchAction = prev.touchAction || "";
     window.scrollTo(0, scrollFreezeState.scrollY || 0);
+    document.body.classList.remove("modalOpen");
     scrollFreezeState.active = false;
   }
 
   function relayoutModalToViewport() {
-    setViewportVars();
+    updateVvh();
   }
 
   function updateModalLayerState() {
@@ -316,8 +318,12 @@ if ("serviceWorker" in navigator) {
       freezePageScroll();
     } else {
       unfreezePageScroll();
+      blurActiveInput();
+      if (canvas?.focus) {
+        requestAnimationFrame(() => canvas.focus());
+      }
     }
-    setViewportVars();
+    updateVvh();
   }
 
   function blurActiveInput() {
@@ -390,7 +396,7 @@ if ("serviceWorker" in navigator) {
     const body = target.closest(".modalBody");
     if (!body) return;
     requestAnimationFrame(() => {
-      setViewportVars();
+      updateVvh();
       scrollIntoModalBody(target);
     });
   }

@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
   <link rel="manifest" href="manifest.json?v=30" />
 
-  <link rel="stylesheet" href="style.css?v=45" />
+  <link rel="stylesheet" href="style.css?v=46" />
 </head>
 <body>
   <div id="app">
@@ -35,7 +35,7 @@
             <div id="cityTooltip" role="status" aria-live="polite"></div>
           </div>
 
-          <canvas id="game"></canvas>
+          <canvas id="game" tabindex="-1"></canvas>
 
           <div id="lakeScene" aria-hidden="true">
             <img id="heroLayer" class="layer hero" src="./hero.png?v=28" alt="" draggable="false">
@@ -120,7 +120,7 @@
     </div>
 
     <div id="modalLayer">
-      <div id="overlay" class="hidden modal">
+      <div id="overlay" class="hidden modal modalOverlay">
         <div class="card">
           <div class="h1">Рыбалка</div>
           <div class="p" id="ovText">Тапни, чтобы начать.</div>
@@ -136,11 +136,11 @@
         </div>
       </div>
 
-      <div id="invOverlay" class="hidden modal">
+      <div id="invOverlay" class="hidden modal modalOverlay">
         <div class="invCard modalCard">
           <div class="invHeader modalHeader">
-            <div class="invTitle">Инвентарь</div>
-            <button id="btnInvClose" class="modalCloseBtn" aria-label="Закрыть">×</button>
+            <div class="invTitle modalTitle">Инвентарь</div>
+            <button id="btnInvClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="modalBody">
             <div class="invControls">
@@ -159,11 +159,11 @@
         </div>
       </div>
 
-      <div id="trashOverlay" class="hidden modal">
+      <div id="trashOverlay" class="hidden modal modalOverlay">
         <div class="trashCard modalCard">
           <div class="trashHeader modalHeader">
-            <div class="trashTitle">Журнал находок</div>
-            <button id="btnTrashClose" class="modalCloseBtn" aria-label="Закрыть">×</button>
+            <div class="trashTitle modalTitle">Журнал находок</div>
+            <button id="btnTrashClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="modalBody">
             <div id="trashRewardStatus" class="trashRewardStatus">
@@ -197,7 +197,7 @@
         </div>
       </div>
 
-      <div id="catchOverlay" class="hidden modal">
+      <div id="catchOverlay" class="hidden modal modalOverlay">
         <div class="catchCard">
           <div class="catchHeader">
             <div id="catchTitle" class="catchTitle">Поймал рыбу!</div>
@@ -230,10 +230,10 @@
         </div>
       </div>
 
-      <div id="profileSetupOverlay" class="hidden modal modal-blocking" aria-hidden="true">
+      <div id="profileSetupOverlay" class="hidden modal modalOverlay modal-blocking" aria-hidden="true">
         <div class="profileCard profileCard--setup modalCard">
           <div class="profileHeader modalHeader">
-            <div class="profileTitle">Выбор ника</div>
+            <div class="profileTitle modalTitle">Выбор ника</div>
           </div>
           <div class="profileBody modalBody">
             <div class="profileSetupSuggested">
@@ -256,12 +256,12 @@
         </div>
       </div>
 
-      <div id="profileOverlay" class="hidden modal" aria-hidden="true">
+      <div id="profileOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="profileCard modalCard">
           <div id="profileScreenMain" class="profileScreen">
             <div class="profileHeader modalHeader">
               <div class="profileHeaderInfo">
-                <div class="profileTitle">Профиль</div>
+                <div class="profileTitle modalTitle">Профиль</div>
                 <div class="profileHeaderNickRow">
                   <div id="profileName" class="profileName">user1</div>
                   <button id="btnProfileRename" class="iconButton" aria-label="Сменить ник">
@@ -269,7 +269,7 @@
                   </button>
                 </div>
               </div>
-              <button id="btnProfileClose" class="modalCloseBtn" aria-label="Закрыть">×</button>
+              <button id="btnProfileClose" class="modalClose" aria-label="Закрыть">×</button>
             </div>
             <div class="profileBody modalBody">
               <section class="profileSection">
@@ -313,9 +313,11 @@
 
           <div id="profileScreenStats" class="profileScreen hidden">
             <div class="profileHeader modalHeader">
-              <div class="profileTitle">Статистика</div>
-              <button id="btnProfileStatsBack" class="chipBtn">Назад</button>
-              <button id="btnProfileStatsClose" class="modalCloseBtn" aria-label="Закрыть">×</button>
+              <div class="modalTitleGroup">
+                <div class="profileTitle modalTitle">Статистика</div>
+                <button id="btnProfileStatsBack" class="chipBtn">Назад</button>
+              </div>
+              <button id="btnProfileStatsClose" class="modalClose" aria-label="Закрыть">×</button>
             </div>
             <div class="profileBody modalBody">
               <div class="profileStats">
@@ -330,9 +332,11 @@
 
           <div id="profileScreenGear" class="profileScreen hidden">
             <div class="profileHeader modalHeader">
-              <div id="profileGearTitle" class="profileTitle">Выбор</div>
-              <button id="btnProfileGearBack" class="chipBtn">Назад</button>
-              <button id="btnProfileGearClose" class="modalCloseBtn" aria-label="Закрыть">×</button>
+              <div class="modalTitleGroup">
+                <div id="profileGearTitle" class="profileTitle modalTitle">Выбор</div>
+                <button id="btnProfileGearBack" class="chipBtn">Назад</button>
+              </div>
+              <button id="btnProfileGearClose" class="modalClose" aria-label="Закрыть">×</button>
             </div>
             <div class="profileBody modalBody">
               <div id="profileGearPickerList" class="profileGearPickerList"></div>
@@ -341,11 +345,11 @@
         </div>
       </div>
 
-      <div id="renameOverlay" class="hidden modal" aria-hidden="true">
+      <div id="renameOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="renameCard modalCard">
           <div class="renameHeader modalHeader">
-            <div class="renameTitle">Смена ника</div>
-            <button id="btnRenameClose" class="modalCloseBtn" aria-label="Закрыть">×</button>
+            <div class="renameTitle modalTitle">Смена ника</div>
+            <button id="btnRenameClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="renameBody modalBody">
             <div id="renameScreenMain" class="renameScreen">
@@ -368,10 +372,10 @@
         </div>
       </div>
 
-      <div id="travelOverlay" class="hidden modal" aria-hidden="true">
+      <div id="travelOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="travelWrap modalCard">
           <div class="travelHeader modalHeader">
-            <div class="travelTitle">Поездка в город</div>
+            <div class="travelTitle modalTitle">Поездка в город</div>
             <div id="travelTimer" class="travelTimer">00:18</div>
             <div id="travelStatus" class="travelStatus" aria-live="polite"></div>
           </div>
@@ -391,11 +395,11 @@
         </div>
       </div>
 
-      <div id="shopOverlay" class="hidden modal">
+      <div id="shopOverlay" class="hidden modal modalOverlay">
         <div class="shopCard modalCard">
           <div class="shopHeader modalHeader">
-            <div id="shopTitle" class="shopTitle">Магазин</div>
-            <button id="btnShopClose" class="modalCloseBtn" aria-label="Закрыть">×</button>
+            <div id="shopTitle" class="shopTitle modalTitle">Магазин</div>
+            <button id="btnShopClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
 
           <div id="shopContent" class="shopContent modalBody">
@@ -482,11 +486,11 @@
           </div>
         </div>
       </div>
-      <div id="leaderboardOverlay" class="hidden modal" aria-hidden="true">
+      <div id="leaderboardOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="leaderboardCard modalCard">
           <div class="leaderboardHeader modalHeader">
-            <div class="leaderboardTitle">Таблица рекордов</div>
-            <button id="btnLeaderboardClose" class="modalCloseBtn" aria-label="Закрыть">×</button>
+            <div class="leaderboardTitle modalTitle">Таблица рекордов</div>
+            <button id="btnLeaderboardClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="leaderboardBody modalBody">
             <div class="leaderboardTabs" role="tablist" aria-label="Таблица рекордов">
@@ -520,7 +524,7 @@
     </div>
   </div>
 
-  <!-- cache-bust: main.js v71 (modal close button + iOS viewport fixes) -->
-  <script src="main.js?v=71"></script>
+  <!-- cache-bust: main.js v72 (modal centering + iOS viewport fixes) -->
+  <script src="main.js?v=72"></script>
 </body>
 </html>
