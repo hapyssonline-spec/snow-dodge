@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 72 for profile UI cleanup and XP ring.
-const CACHE_VERSION = 72;
+// CACHE_VERSION bumped to 73 for modal close button + travel HUD + bottom nav cleanup.
+const CACHE_VERSION = 73;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
