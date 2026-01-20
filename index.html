@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
   <link rel="manifest" href="manifest.json?v=30" />
 
-  <link rel="stylesheet" href="style.css?v=42" />
+  <link rel="stylesheet" href="style.css?v=43" />
 </head>
 <body>
   <div id="app">
@@ -273,22 +273,6 @@
             </div>
             <div class="profileBody modalBody">
               <section class="profileSection">
-                <div class="profileRenameHeader">
-                  <div class="sectionTitle">Смена ника</div>
-                  <div id="profileRenameHint" class="profileRenameHint">Первый раз — бесплатно.</div>
-                </div>
-                <div id="profileRenameForm" class="profileRenameForm hidden">
-                  <label class="formLabel" for="profileRenameInput">Новый ник</label>
-                  <input id="profileRenameInput" class="textInput" type="text" maxlength="12" autocomplete="nickname" />
-                  <div class="profileRenameActions">
-                    <button id="btnProfileRenameSave" class="chipBtn">Продолжить</button>
-                    <button id="btnProfileRenameCancel" class="chipBtn secondary">Отмена</button>
-                  </div>
-                  <div id="profileRenameError" class="formHint"></div>
-                </div>
-              </section>
-
-              <section class="profileSection">
                 <div class="sectionTitle">Уровень</div>
                 <div id="profileXpRing" class="xpRing" aria-label="Прогресс опыта"></div>
               </section>
@@ -352,17 +336,30 @@
               <div id="profileGearPickerList" class="profileGearPickerList"></div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div id="profileScreenConfirm" class="profileScreen hidden">
-            <div class="profileHeader modalHeader">
-              <div class="profileTitle">Подтверждение</div>
-              <button id="btnProfileConfirmCancel" class="chipBtn">Отмена</button>
+      <div id="renameOverlay" class="hidden modal" aria-hidden="true">
+        <div class="renameCard modalCard">
+          <div class="renameHeader modalHeader">
+            <div class="renameTitle">Смена ника</div>
+            <button id="btnRenameClose" class="modalCloseX" aria-label="Закрыть">X</button>
+          </div>
+          <div class="renameBody modalBody">
+            <div id="renameScreenMain" class="renameScreen">
+              <div id="renameFreeHint" class="renameHint">Первый раз — бесплатно.</div>
+              <label class="formLabel" for="renameInput">Новый ник</label>
+              <input id="renameInput" class="textInput" type="text" maxlength="12" autocomplete="nickname" />
+              <div id="renameError" class="formHint"></div>
+              <div class="row">
+                <button id="btnRenameSave">Сохранить</button>
+              </div>
             </div>
-            <div class="profileBody modalBody">
-              <div id="profileConfirmText" class="profileConfirmText"></div>
+            <div id="renameScreenConfirm" class="renameScreen hidden">
+              <div id="renameConfirmText" class="profileConfirmText"></div>
               <div class="profileConfirmActions">
-                <button id="btnProfileConfirmBack" class="chipBtn secondary">Отмена</button>
-                <button id="btnProfileConfirmSave" class="chipBtn">Подтвердить</button>
+                <button id="btnRenameConfirmBack" class="chipBtn secondary">Отмена</button>
+                <button id="btnRenameConfirmSave" class="chipBtn">Подтвердить</button>
               </div>
             </div>
           </div>
@@ -521,7 +518,7 @@
     </div>
   </div>
 
-  <!-- cache-bust: main.js v68 (profile UI cleanup + XP ring) -->
-  <script src="main.js?v=68"></script>
+  <!-- cache-bust: main.js v69 (profile rename modal + modal fixes) -->
+  <script src="main.js?v=69"></script>
 </body>
 </html>
