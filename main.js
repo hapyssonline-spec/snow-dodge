@@ -96,6 +96,18 @@ if ("serviceWorker" in navigator) {
   const questReminder = document.getElementById("questReminder");
   const rotateOverlay = document.getElementById("rotateOverlay");
 
+  const setButtonText = (button, text) => {
+    if (!button) return;
+    let textNode = button.querySelector(".btnText");
+    if (!textNode) {
+      button.textContent = "";
+      textNode = document.createElement("span");
+      textNode.className = "btnText";
+      button.appendChild(textNode);
+    }
+    textNode.textContent = text;
+  };
+
   const shopOverlay = document.getElementById("shopOverlay");
   const shopTitle = document.getElementById("shopTitle");
   const btnShopClose = document.getElementById("btnShopClose");
@@ -3826,18 +3838,18 @@ if ("serviceWorker" in navigator) {
       `;
 
       const btnDetails = document.createElement("button");
-      btnDetails.className = "invBtn secondary";
-      btnDetails.textContent = "Подробнее";
+      btnDetails.className = "invBtn secondary btn--singleLine";
+      setButtonText(btnDetails, "Подробнее");
       btnDetails.addEventListener("click", (event) => {
         event.stopPropagation();
         const isHidden = detail.classList.toggle("hidden");
-        btnDetails.textContent = isHidden ? "Подробнее" : "Скрыть";
+        setButtonText(btnDetails, isHidden ? "Подробнее" : "Скрыть");
       });
 
       if (item.canBeTrophy && !item.isTrophy) {
         const btnTrophy = document.createElement("button");
-        btnTrophy.className = "invBtn";
-        btnTrophy.textContent = "Сделать трофеем";
+        btnTrophy.className = "invBtn btn--twoLines";
+        setButtonText(btnTrophy, "Сделать трофеем");
         btnTrophy.addEventListener("click", (event) => {
           event.stopPropagation();
           makeTrophy(item.id);
@@ -3852,8 +3864,8 @@ if ("serviceWorker" in navigator) {
 
       if (item.canBeTrophy && !item.isTrophy) {
         const btnTrophyDetail = document.createElement("button");
-        btnTrophyDetail.className = "invBtn";
-        btnTrophyDetail.textContent = "Сделать трофеем";
+        btnTrophyDetail.className = "invBtn btn--twoLines";
+        setButtonText(btnTrophyDetail, "Сделать трофеем");
         btnTrophyDetail.addEventListener("click", (event) => {
           event.stopPropagation();
           makeTrophy(item.id);
@@ -3867,7 +3879,7 @@ if ("serviceWorker" in navigator) {
 
       card.addEventListener("click", () => {
         const isHidden = detail.classList.toggle("hidden");
-        btnDetails.textContent = isHidden ? "Подробнее" : "Скрыть";
+        setButtonText(btnDetails, isHidden ? "Подробнее" : "Скрыть");
       });
 
       invList.appendChild(card);
@@ -3956,14 +3968,14 @@ if ("serviceWorker" in navigator) {
           </div>
         `;
         const btn = document.createElement("button");
-        btn.className = "invBtn";
+        btn.className = "invBtn btn--singleLine";
         if (!unlocked) {
-          btn.textContent = "Закрыто";
+          setButtonText(btn, "Закрыто");
           btn.disabled = true;
           row.classList.add("is-disabled");
           row.appendChild(createUnlockNote(rod.unlockLevel));
         } else {
-          btn.textContent = player.rodTier === rod.id ? "Выбрано" : "Выбрать";
+          setButtonText(btn, player.rodTier === rod.id ? "Выбрано" : "Выбрать");
           btn.disabled = player.rodTier === rod.id;
         }
         btn.addEventListener("click", () => {
@@ -3997,14 +4009,14 @@ if ("serviceWorker" in navigator) {
           <div class="shopItemMeta">Макс. вес: ${line.maxKg} кг</div>
         `;
         const btn = document.createElement("button");
-        btn.className = "invBtn";
+        btn.className = "invBtn btn--singleLine";
         if (!unlocked) {
-          btn.textContent = "Закрыто";
+          setButtonText(btn, "Закрыто");
           btn.disabled = true;
           row.classList.add("is-disabled");
           row.appendChild(createUnlockNote(line.unlockLevel));
         } else {
-          btn.textContent = player.lineTier === line.id ? "Выбрано" : "Выбрать";
+          setButtonText(btn, player.lineTier === line.id ? "Выбрано" : "Выбрать");
           btn.disabled = player.lineTier === line.id;
         }
         btn.addEventListener("click", () => {
@@ -4037,21 +4049,21 @@ if ("serviceWorker" in navigator) {
           <div class="shopItemMeta">${bait.note}</div>
         `;
         const btn = document.createElement("button");
-        btn.className = "invBtn";
+        btn.className = "invBtn btn--singleLine";
         if (!unlocked) {
-          btn.textContent = "Закрыто";
+          setButtonText(btn, "Закрыто");
           btn.disabled = true;
           row.classList.add("is-disabled");
           row.appendChild(createUnlockNote(bait.unlockLevel));
         } else if (isActive) {
-          btn.textContent = "Выбрано";
+          setButtonText(btn, "Выбрано");
           btn.disabled = true;
         } else if (count <= 0) {
-          btn.textContent = "Нет в наличии";
+          setButtonText(btn, "Нет в наличии");
           btn.disabled = true;
           row.classList.add("is-disabled");
         } else {
-          btn.textContent = "Выбрать";
+          setButtonText(btn, "Выбрать");
           btn.addEventListener("click", () => {
             player.activeBaitId = bait.id;
             save();
@@ -4107,8 +4119,8 @@ if ("serviceWorker" in navigator) {
       offer.textContent = `Цена: ${formatCoins(item.sellValue)}`;
 
       const btnSell = document.createElement("button");
-      btnSell.className = "invBtn";
-      btnSell.textContent = "Продать";
+      btnSell.className = "invBtn btn--singleLine";
+      setButtonText(btnSell, "Продать");
       btnSell.addEventListener("click", () => {
         executeSale(item);
       });
@@ -4163,8 +4175,8 @@ if ("serviceWorker" in navigator) {
         const actions = document.createElement("div");
         actions.className = "shopControls";
         const buyBtn = document.createElement("button");
-        buyBtn.className = "invBtn";
-        buyBtn.textContent = "Купить";
+        buyBtn.className = "invBtn btn--singleLine";
+        setButtonText(buyBtn, "Купить");
         buyBtn.disabled = !unlocked || player.coins < bait.price;
         buyBtn.addEventListener("click", () => {
           if (!unlocked) return;
@@ -4178,8 +4190,8 @@ if ("serviceWorker" in navigator) {
           refreshProfileGearPicker();
         });
         const useBtn = document.createElement("button");
-        useBtn.className = "invBtn secondary";
-        useBtn.textContent = player.activeBaitId === bait.id ? "Выбрано" : "Выбрать";
+        useBtn.className = "invBtn secondary btn--singleLine";
+        setButtonText(useBtn, player.activeBaitId === bait.id ? "Выбрано" : "Выбрать");
         useBtn.disabled = !unlocked || count <= 0;
         useBtn.addEventListener("click", () => {
           if (!unlocked) return;
@@ -4217,15 +4229,15 @@ if ("serviceWorker" in navigator) {
           ${purchasedTag}
         `;
         const btn = document.createElement("button");
-        btn.className = "invBtn";
+        btn.className = "invBtn btn--singleLine";
         if (!unlocked) {
-          btn.textContent = "Закрыто";
+          setButtonText(btn, "Закрыто");
           btn.disabled = true;
         } else if (!owned) {
-          btn.textContent = "Купить";
+          setButtonText(btn, "Купить");
           btn.disabled = player.coins < rod.price;
         } else {
-          btn.textContent = player.rodTier === rod.id ? "Выбрано" : "Выбрать";
+          setButtonText(btn, player.rodTier === rod.id ? "Выбрано" : "Выбрать");
           btn.disabled = player.rodTier === rod.id;
         }
         btn.addEventListener("click", () => {
@@ -4273,15 +4285,15 @@ if ("serviceWorker" in navigator) {
           ${purchasedTag}
         `;
         const btn = document.createElement("button");
-        btn.className = "invBtn";
+        btn.className = "invBtn btn--singleLine";
         if (!unlocked) {
-          btn.textContent = "Закрыто";
+          setButtonText(btn, "Закрыто");
           btn.disabled = true;
         } else if (!owned) {
-          btn.textContent = "Купить";
+          setButtonText(btn, "Купить");
           btn.disabled = player.coins < line.price;
         } else {
-          btn.textContent = player.lineTier === line.id ? "Выбрано" : "Выбрать";
+          setButtonText(btn, player.lineTier === line.id ? "Выбрано" : "Выбрать");
           btn.disabled = player.lineTier === line.id;
         }
         btn.addEventListener("click", () => {

@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
   <link rel="manifest" href="manifest.json?v=30" />
 
-  <link rel="stylesheet" href="style.css?v=48" />
+  <link rel="stylesheet" href="style.css?v=49" />
 </head>
 <body>
   <div id="app">
@@ -103,13 +103,13 @@
       <div id="rareBoostHud" class="rareBoostHud hidden">Редкий улов: 0/10</div>
 
       <div id="cityHud" class="hidden hud">
-        <button id="btnBackToLake" class="chipBtn">На рыбалку</button>
+        <button id="btnBackToLake" class="chipBtn btn--singleLine"><span class="btnText">На рыбалку</span></button>
       </div>
 
       <footer id="bottombar" class="bottom-bar hud bottombar">
-        <button id="btnCity" class="chipBtn" aria-label="В город">В город</button>
-        <button id="btnInventory" class="chipBtn" aria-label="Инвентарь">Инвентарь</button>
-        <button id="btnJournal" class="chipBtn" aria-label="Журнал">Журнал</button>
+        <button id="btnCity" class="chipBtn btn--singleLine" aria-label="В город"><span class="btnText">В город</span></button>
+        <button id="btnInventory" class="chipBtn btn--singleLine" aria-label="Инвентарь"><span class="btnText">Инвентарь</span></button>
+        <button id="btnJournal" class="chipBtn btn--singleLine" aria-label="Журнал"><span class="btnText">Журнал</span></button>
         <button id="btnStar" class="chipBtn iconBtn" aria-label="Скоро">
           <span class="icon" aria-hidden="true">⭐</span>
         </button>
@@ -126,8 +126,8 @@
           <div class="p" id="ovText">Тапни, чтобы начать.</div>
 
           <div class="row">
-            <button id="btnPlay">Играть</button>
-            <button id="btnReset" class="secondary">Сброс</button>
+            <button id="btnPlay"><span class="btnText">Играть</span></button>
+            <button id="btnReset" class="secondary"><span class="btnText">Сброс</span></button>
           </div>
 
           <div class="small">
@@ -139,7 +139,7 @@
       <div id="invOverlay" class="hidden modal modalOverlay">
         <div class="invCard modalCard">
           <div class="invHeader modalHeader">
-            <div class="invTitle modalTitle">Инвентарь</div>
+            <div class="invTitle modalTitle modalHeaderTitle">Инвентарь</div>
             <button id="btnInvClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="modalBody">
@@ -162,7 +162,7 @@
       <div id="trashOverlay" class="hidden modal modalOverlay">
         <div class="trashCard modalCard">
           <div class="trashHeader modalHeader">
-            <div class="trashTitle modalTitle">Журнал находок</div>
+            <div class="trashTitle modalTitle modalHeaderTitle">Журнал находок</div>
             <button id="btnTrashClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="modalBody">
@@ -190,8 +190,8 @@
             </div>
             <div id="trashGrid" class="trashGrid"></div>
             <div class="trashControls">
-              <button id="btnTrashFill" class="chipBtn secondary hidden">TEST: заполнить журнал</button>
-              <button id="btnResetCharges" class="chipBtn secondary hidden">TEST: сбросить заряды</button>
+              <button id="btnTrashFill" class="chipBtn secondary hidden btn--twoLines"><span class="btnText">TEST: заполнить журнал</span></button>
+              <button id="btnResetCharges" class="chipBtn secondary hidden btn--twoLines"><span class="btnText">TEST: сбросить заряды</span></button>
             </div>
           </div>
         </div>
@@ -224,8 +224,8 @@
             Сделать трофеем
           </label>
           <div class="row">
-            <button id="btnCatchKeep" class="secondary">В инвентарь</button>
-            <button id="btnCatchSellNow" class="danger">Продать сразу</button>
+            <button id="btnCatchKeep" class="secondary btn--twoLines"><span class="btnText">В инвентарь</span></button>
+            <button id="btnCatchSellNow" class="danger btn--twoLines"><span class="btnText">Продать сразу</span></button>
           </div>
         </div>
       </div>
@@ -233,7 +233,7 @@
       <div id="profileSetupOverlay" class="hidden modal modalOverlay modal-blocking" aria-hidden="true">
         <div class="profileCard profileCard--setup modalCard">
           <div class="profileHeader modalHeader">
-            <div class="profileTitle modalTitle">Выбор ника</div>
+            <div class="profileTitle modalTitle modalHeaderTitle">Выбор ника</div>
           </div>
           <div class="profileBody modalBody">
             <div class="profileSetupSuggested">
@@ -241,15 +241,15 @@
               <div id="profileSetupSuggested" class="profileSetupName">user1</div>
             </div>
             <div class="row">
-              <button id="btnProfileSetupAccept">Принять ник</button>
-              <button id="btnProfileSetupCustom" class="secondary">Ввести свой</button>
+              <button id="btnProfileSetupAccept" class="btn--twoLines"><span class="btnText">Принять ник</span></button>
+              <button id="btnProfileSetupCustom" class="secondary btn--twoLines"><span class="btnText">Ввести свой</span></button>
             </div>
             <div id="profileSetupCustomPanel" class="profileSetupCustom hidden">
               <label class="formLabel" for="profileSetupInput">Свой ник</label>
               <input id="profileSetupInput" class="textInput" type="text" maxlength="12" autocomplete="nickname" />
               <div id="profileSetupError" class="formHint"></div>
               <div class="row">
-                <button id="btnProfileSetupSave">Сохранить</button>
+                <button id="btnProfileSetupSave"><span class="btnText">Сохранить</span></button>
               </div>
             </div>
           </div>
@@ -261,7 +261,7 @@
           <div id="profileScreenMain" class="profileScreen">
             <div class="profileHeader modalHeader">
               <div class="profileHeaderInfo">
-                <div class="profileTitle modalTitle">Профиль</div>
+                <div class="profileTitle modalTitle modalHeaderTitle">Профиль</div>
                 <div class="profileHeaderNickRow">
                   <div id="profileName" class="profileName">user1</div>
                   <button id="btnProfileRename" class="iconButton" aria-label="Сменить ник">
@@ -279,8 +279,8 @@
 
               <section class="profileSection">
                 <div class="profileQuickActions">
-                  <button id="btnProfileStatsOpen" class="chipBtn">Статистика</button>
-                  <button id="btnProfileLeaderboardsOpen" class="chipBtn secondary">Таблица рекордов</button>
+                  <button id="btnProfileStatsOpen" class="chipBtn btn--twoLines"><span class="btnText">Статистика</span></button>
+                  <button id="btnProfileLeaderboardsOpen" class="chipBtn secondary btn--twoLines"><span class="btnText">Рекорды</span></button>
                 </div>
               </section>
 
@@ -291,21 +291,21 @@
                     <div class="profileGearLabel">Удочка</div>
                     <div id="profileRodName" class="profileGearValue">—</div>
                   </div>
-                  <button class="chipBtn profileGearToggle" data-gear="rod" type="button">Изменить</button>
+                  <button class="chipBtn profileGearToggle btn--singleLine" data-gear="rod" type="button"><span class="btnText">Изменить</span></button>
                 </div>
                 <div class="profileGearItem">
                   <div>
                     <div class="profileGearLabel">Леска</div>
                     <div id="profileLineName" class="profileGearValue">—</div>
                   </div>
-                  <button class="chipBtn profileGearToggle" data-gear="line" type="button">Изменить</button>
+                  <button class="chipBtn profileGearToggle btn--singleLine" data-gear="line" type="button"><span class="btnText">Изменить</span></button>
                 </div>
                 <div class="profileGearItem">
                   <div>
                     <div class="profileGearLabel">Наживка</div>
                     <div id="profileBaitName" class="profileGearValue">—</div>
                   </div>
-                  <button class="chipBtn profileGearToggle" data-gear="bait" type="button">Изменить</button>
+                  <button class="chipBtn profileGearToggle btn--singleLine" data-gear="bait" type="button"><span class="btnText">Изменить</span></button>
                 </div>
               </section>
             </div>
@@ -314,8 +314,8 @@
           <div id="profileScreenStats" class="profileScreen hidden">
             <div class="profileHeader modalHeader">
               <div class="modalTitleGroup">
-                <div class="profileTitle modalTitle">Статистика</div>
-                <button id="btnProfileStatsBack" class="chipBtn">Назад</button>
+                <div class="profileTitle modalTitle modalHeaderTitle">Статистика</div>
+                <button id="btnProfileStatsBack" class="chipBtn btn--singleLine"><span class="btnText">Назад</span></button>
               </div>
               <button id="btnProfileStatsClose" class="modalClose" aria-label="Закрыть">×</button>
             </div>
@@ -333,8 +333,8 @@
           <div id="profileScreenGear" class="profileScreen hidden">
             <div class="profileHeader modalHeader">
               <div class="modalTitleGroup">
-                <div id="profileGearTitle" class="profileTitle modalTitle">Выбор</div>
-                <button id="btnProfileGearBack" class="chipBtn">Назад</button>
+                <div id="profileGearTitle" class="profileTitle modalTitle modalHeaderTitle">Выбор</div>
+                <button id="btnProfileGearBack" class="chipBtn btn--singleLine"><span class="btnText">Назад</span></button>
               </div>
               <button id="btnProfileGearClose" class="modalClose" aria-label="Закрыть">×</button>
             </div>
@@ -348,7 +348,7 @@
       <div id="renameOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="renameCard modalCard">
           <div class="renameHeader modalHeader">
-            <div class="renameTitle modalTitle">Смена ника</div>
+            <div class="renameTitle modalTitle modalHeaderTitle">Смена ника</div>
             <button id="btnRenameClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="renameBody modalBody">
@@ -358,14 +358,14 @@
               <input id="renameInput" class="textInput" type="text" maxlength="12" autocomplete="nickname" />
               <div id="renameError" class="formHint"></div>
               <div class="row">
-                <button id="btnRenameSave">Сохранить</button>
+                <button id="btnRenameSave"><span class="btnText">Сохранить</span></button>
               </div>
             </div>
             <div id="renameScreenConfirm" class="renameScreen hidden">
               <div id="renameConfirmText" class="profileConfirmText"></div>
               <div class="profileConfirmActions">
-                <button id="btnRenameConfirmBack" class="chipBtn secondary">Отмена</button>
-                <button id="btnRenameConfirmSave" class="chipBtn">Подтвердить</button>
+                <button id="btnRenameConfirmBack" class="chipBtn secondary btn--singleLine"><span class="btnText">Отмена</span></button>
+                <button id="btnRenameConfirmSave" class="chipBtn btn--singleLine"><span class="btnText">Подтвердить</span></button>
               </div>
             </div>
           </div>
@@ -375,7 +375,7 @@
       <div id="travelOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="travelWrap modalCard">
           <div class="travelHeader modalHeader">
-            <div id="travelMessage" class="travelMessage" aria-live="polite"></div>
+            <div id="travelMessage" class="travelMessage travelTitle" aria-live="polite"></div>
             <div id="travelTimer" class="travelTimer">00:18</div>
           </div>
           <div class="modalBody">
@@ -397,7 +397,7 @@
       <div id="shopOverlay" class="hidden modal modalOverlay">
         <div class="shopCard modalCard">
           <div class="shopHeader modalHeader">
-            <div id="shopTitle" class="shopTitle modalTitle">Магазин</div>
+            <div id="shopTitle" class="shopTitle modalTitle modalHeaderTitle">Магазин</div>
             <button id="btnShopClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
 
@@ -407,7 +407,7 @@
             <div id="fishShopSection" class="shopSection hidden">
               <div class="shopSectionHeader">
                 <div class="shopSectionTitle">Продажа рыбы</div>
-                <button id="btnSellAll" class="invBtn primary">Продать всё</button>
+                <button id="btnSellAll" class="invBtn primary btn--twoLines"><span class="btnText">Продать всё</span></button>
               </div>
               <div id="shopInvEmpty" class="invEmpty hidden">Нет рыбы для продажи.</div>
               <div id="shopInvList" class="shopList scrollable"></div>
@@ -418,20 +418,20 @@
                 <div class="shopSectionTitle">Трофейная</div>
               </div>
               <div id="trophyHub" class="trophyHub">
-                <button id="btnTrophyQuests" class="trophyHubBtn">Задания</button>
-                <button id="btnTrophyRecords" class="trophyHubBtn secondary">Рекорды</button>
+                <button id="btnTrophyQuests" class="trophyHubBtn btn--singleLine"><span class="btnText">Задания</span></button>
+                <button id="btnTrophyRecords" class="trophyHubBtn secondary btn--singleLine"><span class="btnText">Рекорды</span></button>
               </div>
               <div id="trophyQuestPanel" class="trophyPanel hidden">
                 <div class="trophyQuestHeader">
                   <div class="shopSubTitle">Задания</div>
-                  <button id="btnTrophyBack" class="chipBtn secondary">Назад</button>
+                  <button id="btnTrophyBack" class="chipBtn secondary btn--singleLine"><span class="btnText">Назад</span></button>
                 </div>
                 <div id="trophyQuestSection">
                   <div class="shopSubTitle">Выбери сложность</div>
                   <div class="questDifficulty">
-                    <button class="difficultyBtn" data-difficulty="easy">Лёгкое</button>
-                    <button class="difficultyBtn" data-difficulty="medium">Среднее</button>
-                    <button class="difficultyBtn" data-difficulty="hard">Сложное</button>
+                    <button class="difficultyBtn btn--singleLine" data-difficulty="easy"><span class="btnText">Лёгкое</span></button>
+                    <button class="difficultyBtn btn--singleLine" data-difficulty="medium"><span class="btnText">Среднее</span></button>
+                    <button class="difficultyBtn btn--singleLine" data-difficulty="hard"><span class="btnText">Сложное</span></button>
                   </div>
                   <div class="questCard">
                     <div class="questCardTitle">Условия</div>
@@ -439,11 +439,11 @@
                     <div class="questRow"><span>Вес</span><span id="questPreviewWeight">—</span></div>
                     <div class="questRow"><span>Награда</span><span id="questPreviewReward">—</span></div>
                     <div class="questActions">
-                      <button id="btnQuestAccept" class="invBtn">Взять</button>
+                      <button id="btnQuestAccept" class="invBtn btn--singleLine"><span class="btnText">Взять</span></button>
                     </div>
                   </div>
                   <div class="questRefresh">
-                    <button id="btnQuestRefresh" class="invBtn secondary">Обновить задания</button>
+                    <button id="btnQuestRefresh" class="invBtn secondary btn--twoLines"><span class="btnText">Обновить задания</span></button>
                     <div id="questRefreshStatus" class="questRefreshStatus" aria-live="polite"></div>
                   </div>
                 </div>
@@ -456,7 +456,7 @@
                     <div class="questRow"><span>Награда</span><span id="activeQuestReward">—</span></div>
                     <div class="questStatus" id="activeQuestStatus">В процессе</div>
                     <div class="questActions">
-                      <button id="btnQuestClaim" class="invBtn">Забрать награду</button>
+                      <button id="btnQuestClaim" class="invBtn btn--twoLines"><span class="btnText">Забрать награду</span></button>
                     </div>
                   </div>
                 </div>
@@ -466,9 +466,9 @@
             <div id="gearShopSection" class="shopSection hidden">
               <div class="shopSectionTitle">Снасти</div>
               <div class="gearTabs" role="tablist" aria-label="Категории снастей">
-                <button class="gearTabBtn is-active" data-gear-tab="bait" role="tab" aria-selected="true">Наживки</button>
-                <button class="gearTabBtn" data-gear-tab="rod" role="tab" aria-selected="false">Удочки</button>
-                <button class="gearTabBtn" data-gear-tab="line" role="tab" aria-selected="false">Лески</button>
+                <button class="gearTabBtn is-active btn--singleLine" data-gear-tab="bait" role="tab" aria-selected="true"><span class="btnText">Наживки</span></button>
+                <button class="gearTabBtn btn--singleLine" data-gear-tab="rod" role="tab" aria-selected="false"><span class="btnText">Удочки</span></button>
+                <button class="gearTabBtn btn--singleLine" data-gear-tab="line" role="tab" aria-selected="false"><span class="btnText">Лески</span></button>
               </div>
               <div class="gearTabPanels">
                 <div class="gearTabPanel is-active" data-gear-panel="bait" role="tabpanel">
@@ -488,15 +488,15 @@
       <div id="leaderboardOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="leaderboardCard modalCard">
           <div class="leaderboardHeader modalHeader">
-            <div class="leaderboardTitle modalTitle">Таблица рекордов</div>
+            <div class="leaderboardTitle modalTitle modalHeaderTitle">Таблица рекордов</div>
             <button id="btnLeaderboardClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="leaderboardBody modalBody">
             <div class="leaderboardTabs" role="tablist" aria-label="Таблица рекордов">
-              <button class="leaderboardTabBtn is-active" data-leaderboard-tab="max_weight" role="tab" aria-selected="true">Вес</button>
-              <button class="leaderboardTabBtn" data-leaderboard-tab="best_rarity" role="tab" aria-selected="false">Редкость</button>
-              <button class="leaderboardTabBtn" data-leaderboard-tab="gold_earned" role="tab" aria-selected="false">Золото</button>
-              <button class="leaderboardTabBtn" data-leaderboard-tab="level" role="tab" aria-selected="false">Уровень</button>
+              <button class="leaderboardTabBtn is-active btn--singleLine" data-leaderboard-tab="max_weight" role="tab" aria-selected="true"><span class="btnText">Вес</span></button>
+              <button class="leaderboardTabBtn btn--singleLine" data-leaderboard-tab="best_rarity" role="tab" aria-selected="false"><span class="btnText">Редкость</span></button>
+              <button class="leaderboardTabBtn btn--singleLine" data-leaderboard-tab="gold_earned" role="tab" aria-selected="false"><span class="btnText">Золото</span></button>
+              <button class="leaderboardTabBtn btn--singleLine" data-leaderboard-tab="level" role="tab" aria-selected="false"><span class="btnText">Уровень</span></button>
             </div>
             <div class="leaderboardPanel">
               <div id="leaderboardYourRecord" class="leaderboardYourRecord">Твой рекорд: —</div>
@@ -523,7 +523,7 @@
     </div>
   </div>
 
-  <!-- cache-bust: main.js v74 (travel overlay sync + input lock) -->
-  <script src="main.js?v=74"></script>
+  <!-- cache-bust: main.js v75 (responsive button text) -->
+  <script src="main.js?v=75"></script>
 </body>
 </html>
