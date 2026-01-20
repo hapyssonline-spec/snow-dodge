@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
   <link rel="manifest" href="manifest.json?v=30" />
 
-  <link rel="stylesheet" href="style.css?v=50" />
+  <link rel="stylesheet" href="style.css?v=51" />
 </head>
 <body>
   <div id="app">
@@ -226,6 +226,23 @@
           <div class="row">
             <button id="btnCatchKeep" class="secondary btn--twoLines"><span class="btnText">В инвентарь</span></button>
             <button id="btnCatchSellNow" class="danger btn--twoLines"><span class="btnText">Продать сразу</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div id="findingOverlay" class="hidden modal modalOverlay">
+        <div class="findingCard">
+          <div class="findingHeader">
+            <div id="findingTitle" class="findingTitle">Выудил что-то интересное</div>
+          </div>
+          <div id="findingName" class="findingName">Находка</div>
+          <div id="findingImageSlot" class="findingImageSlot">
+            <img id="findingImage" class="findingImage" alt="">
+          </div>
+          <div id="findingStory" class="findingStory"></div>
+          <div class="row">
+            <button id="btnFindingContinue" class="secondary btn--twoLines"><span class="btnText">Продолжить</span></button>
+            <button id="btnFindingJournal" class="btn--twoLines"><span class="btnText">Журнал находок</span></button>
           </div>
         </div>
       </div>
@@ -523,7 +540,7 @@
     </div>
   </div>
 
-  <!-- cache-bust: main.js v76 (trash journal icons) -->
-  <script src="main.js?v=76"></script>
+  <!-- cache-bust: main.js v77 (finding modal) -->
+  <script src="main.js?v=77"></script>
 </body>
 </html>

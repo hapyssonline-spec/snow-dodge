@@ -718,6 +718,19 @@ img, a{
   pointer-events:auto;
 }
 
+#findingOverlay{
+  background: rgba(6,12,20,.7);
+  z-index:6;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.2s ease;
+}
+
+#findingOverlay.is-visible{
+  opacity:1;
+  pointer-events:auto;
+}
+
 #catchOverlay.is-hiding{
   opacity:0;
 }
@@ -1358,11 +1371,14 @@ img, a{
 }
 
 #app[data-effects="reduced"] #catchOverlay,
-#app[data-effects="reduced"] #catchOverlay .catchCard{
+#app[data-effects="reduced"] #catchOverlay .catchCard,
+#app[data-effects="reduced"] #findingOverlay,
+#app[data-effects="reduced"] #findingOverlay .findingCard{
   transition: none;
 }
 
-#app[data-effects="reduced"] #catchOverlay .catchCard{
+#app[data-effects="reduced"] #catchOverlay .catchCard,
+#app[data-effects="reduced"] #findingOverlay .findingCard{
   transform: scale(1);
   opacity:1;
 }
@@ -1875,7 +1891,8 @@ img, a{
   z-index:6;
 }
 
-.catchCard{
+.catchCard,
+.findingCard{
   width:min(520px, 100%);
   max-height: calc(100% - 32px);
   border-radius:20px;
@@ -1891,13 +1908,15 @@ img, a{
   transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 
-#catchOverlay.is-visible .catchCard{
+#catchOverlay.is-visible .catchCard,
+#findingOverlay.is-visible .findingCard{
   transform: scale(1);
   opacity:1;
   box-shadow: 0 24px 70px rgba(0,0,0,.46);
 }
 
-#catchOverlay.is-hiding .catchCard{
+#catchOverlay.is-hiding .catchCard,
+#findingOverlay.is-hiding .findingCard{
   transform: scale(0.98);
   opacity:0;
 }
@@ -1915,8 +1934,26 @@ img, a{
   letter-spacing:.04em;
 }
 
+.findingHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.findingTitle{
+  font-size:clamp(16px, 3.4vw, 18px);
+  font-weight:900;
+  letter-spacing:.04em;
+}
+
 .catchName{
   font-size:20px;
+  font-weight:900;
+}
+
+.findingName{
+  font-size:clamp(18px, 3.8vw, 22px);
   font-weight:900;
 }
 
@@ -1934,6 +1971,50 @@ img, a{
 
 .catchStory.hidden{
   display:none;
+}
+
+.findingImageSlot{
+  width:100%;
+  height:clamp(160px, 32vw, 200px);
+  max-height:200px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background: rgba(11,18,28,.6);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:12px;
+}
+
+.findingImageSlot.is-empty{
+  display:none;
+}
+
+.findingImage{
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  object-position:center;
+}
+
+.findingImage.hidden{
+  display:none;
+}
+
+.findingStory{
+  font-size:clamp(12px, 2.8vw, 14px);
+  color:var(--muted);
+  font-style:italic;
+}
+
+.findingStory.hidden{
+  display:none;
+}
+
+.findingCard .btnText{
+  font-size:clamp(12px, 2.8vw, 14px);
 }
 
 .catchPrices{
