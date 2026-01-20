@@ -2496,7 +2496,7 @@ button:disabled{
   --cast-y: 70%;
 
   /* Герой — слева от точки заброса */
-  --hero-x: 32%;
+  --hero-x: 25%;
   --hero-y: 66%;
   --hero-h: min(44vh, 420px);
   --hero-rod-y-offset: 0px;
@@ -2522,7 +2522,7 @@ button:disabled{
     --cast-x: 50%;
     --cast-y: 69%;
 
-    --hero-x: 30%;
+    --hero-x: 23%;
     --hero-y: 55%;
     --hero-h: min(38vh, 380px);
 
