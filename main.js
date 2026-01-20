@@ -1717,6 +1717,19 @@ if ("serviceWorker" in navigator) {
     return changed;
   }
 
+  const TRASH_ICON_PATHS = {
+    rusty_can: "./assets/findings/rusty_can.png",
+    old_boot: "./assets/findings/old_boot.png",
+    broken_barrel: "./assets/findings/broken_barrel.png",
+    torn_net: "./assets/findings/torn_net.png",
+    broken_reel: "./assets/findings/broken_reel.png",
+    bent_hook: "./assets/findings/bent_hook.png",
+    floating_plank: "./assets/findings/floating_plank.png",
+    sealed_crate: "./assets/findings/sealed_crate.png",
+    old_extinguisher: "./assets/findings/old_extinguisher.png",
+    rusty_key: "./assets/findings/rusty_key.png"
+  };
+
   const trashItems = [
     { id: "rusty_can", name: "Ржавая банка", weight: 1.0 },
     { id: "old_boot", name: "Старый ботинок", weight: 1.0 },
@@ -3121,8 +3134,10 @@ if ("serviceWorker" in navigator) {
     trashGrid.innerHTML = "";
     trashItems.forEach((item) => {
       const found = !!foundTrash[item.id];
+      const iconPath = TRASH_ICON_PATHS[item.id];
+      const showIcon = found && !!iconPath;
       const cell = document.createElement("div");
-      cell.className = `trashCell ${found ? "is-found" : "is-missing"}`;
+      cell.className = `trashCell findingTile ${found ? "is-found" : "is-missing"}`;
       cell.dataset.trashId = item.id;
       if (!found && item.id === "rusty_key") cell.classList.add("is-special");
       if (!found) {
@@ -3130,10 +3145,25 @@ if ("serviceWorker" in navigator) {
         silhouette.className = `trashSilhouette trashSilhouette--${item.id}`;
         cell.append(silhouette);
       }
-      const name = document.createElement("div");
-      name.className = "trashName";
-      name.textContent = found ? item.name : "???";
-      cell.append(name);
+      const inner = document.createElement("div");
+      inner.className = "findingTileInner";
+      if (showIcon) {
+        const icon = document.createElement("img");
+        icon.className = "findingIcon";
+        icon.src = iconPath;
+        icon.alt = item.name;
+        icon.loading = "lazy";
+        icon.decoding = "async";
+        icon.addEventListener("error", () => {
+          icon.remove();
+        });
+        inner.append(icon);
+      }
+      const label = document.createElement("div");
+      label.className = "findingLabel";
+      label.textContent = found ? item.name : "???";
+      inner.append(label);
+      cell.append(inner);
       trashGrid.append(cell);
     });
     updateTrashRewardStatus();
