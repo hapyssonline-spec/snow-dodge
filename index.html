@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=28" />
   <link rel="manifest" href="manifest.json?v=30" />
 
-  <link rel="stylesheet" href="style.css?v=46" />
+  <link rel="stylesheet" href="style.css?v=47" />
 </head>
 <body>
   <div id="app">
@@ -375,9 +375,8 @@
       <div id="travelOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="travelWrap modalCard">
           <div class="travelHeader modalHeader">
-            <div class="travelTitle modalTitle">Поездка в город</div>
+            <div id="travelMessage" class="travelMessage" aria-live="polite"></div>
             <div id="travelTimer" class="travelTimer">00:18</div>
-            <div id="travelStatus" class="travelStatus" aria-live="polite"></div>
           </div>
           <div class="modalBody">
             <div class="travelCard" role="img" aria-label="Маршрут от озера до города">
@@ -524,7 +523,7 @@
     </div>
   </div>
 
-  <!-- cache-bust: main.js v72 (modal centering + iOS viewport fixes) -->
-  <script src="main.js?v=72"></script>
+  <!-- cache-bust: main.js v73 (iOS keyboard + travel UI fixes) -->
+  <script src="main.js?v=73"></script>
 </body>
 </html>

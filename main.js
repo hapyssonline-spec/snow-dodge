@@ -82,7 +82,7 @@ if ("serviceWorker" in navigator) {
 
   const travelOverlay = document.getElementById("travelOverlay");
   const travelTimer = document.getElementById("travelTimer");
-  const travelStatus = document.getElementById("travelStatus");
+  const travelMessage = document.getElementById("travelMessage");
   const travelPathBase = document.getElementById("travelPathBase");
   const travelPathProgress = document.getElementById("travelPathProgress");
   const travelMarker = document.getElementById("travelMarker");
@@ -230,8 +230,6 @@ if ("serviceWorker" in navigator) {
   modalLayer?.addEventListener("touchmove", handleModalTouchMove, { passive: false });
 
   window.addEventListener("resize", updateVvh);
-  window.visualViewport?.addEventListener("resize", updateVvh);
-  window.visualViewport?.addEventListener("scroll", updateVvh);
   updateVvh();
 
   const blockingOverlays = [
@@ -264,11 +262,50 @@ if ("serviceWorker" in navigator) {
     document.documentElement.style.setProperty("--modal-viewport-height", `${height}px`);
   }
 
+  let renameViewportHandlersActive = false;
+
+  function updateRenameViewportInsets() {
+    const vv = window.visualViewport;
+    const keyboardInset = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+    if (modalLayer) {
+      modalLayer.style.setProperty("--modal-keyboard-inset", `${keyboardInset}px`);
+    }
+    updateVvh();
+  }
+
+  function enableRenameViewportHandlers() {
+    if (renameViewportHandlersActive) return;
+    renameViewportHandlersActive = true;
+    updateRenameViewportInsets();
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", updateRenameViewportInsets);
+      vv.addEventListener("scroll", updateRenameViewportInsets);
+    }
+    window.addEventListener("resize", updateRenameViewportInsets);
+  }
+
+  function disableRenameViewportHandlers() {
+    if (!renameViewportHandlersActive) return;
+    renameViewportHandlersActive = false;
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.removeEventListener("resize", updateRenameViewportInsets);
+      vv.removeEventListener("scroll", updateRenameViewportInsets);
+    }
+    window.removeEventListener("resize", updateRenameViewportInsets);
+    if (modalLayer) {
+      modalLayer.style.removeProperty("--modal-keyboard-inset");
+    }
+    updateVvh();
+  }
+
   function freezePageScroll() {
     if (scrollFreezeState.active) return;
     const scrollY = window.scrollY || window.pageYOffset || 0;
     scrollFreezeState.scrollY = scrollY;
     const bodyStyle = document.body.style;
+    const htmlStyle = document.documentElement.style;
     scrollFreezeState.style = {
       position: bodyStyle.position,
       top: bodyStyle.top,
@@ -276,7 +313,8 @@ if ("serviceWorker" in navigator) {
       right: bodyStyle.right,
       width: bodyStyle.width,
       overflow: bodyStyle.overflow,
-      touchAction: bodyStyle.touchAction
+      touchAction: bodyStyle.touchAction,
+      htmlOverflow: htmlStyle.overflow
     };
     bodyStyle.position = "fixed";
     bodyStyle.top = `-${scrollY}px`;
@@ -285,6 +323,7 @@ if ("serviceWorker" in navigator) {
     bodyStyle.width = "100%";
     bodyStyle.overflow = "hidden";
     bodyStyle.touchAction = "none";
+    htmlStyle.overflow = "hidden";
     document.body.classList.add("modalOpen");
     scrollFreezeState.active = true;
   }
@@ -292,6 +331,7 @@ if ("serviceWorker" in navigator) {
   function unfreezePageScroll() {
     if (!scrollFreezeState.active) return;
     const bodyStyle = document.body.style;
+    const htmlStyle = document.documentElement.style;
     const prev = scrollFreezeState.style;
     bodyStyle.position = prev.position || "";
     bodyStyle.top = prev.top || "";
@@ -300,6 +340,7 @@ if ("serviceWorker" in navigator) {
     bodyStyle.width = prev.width || "";
     bodyStyle.overflow = prev.overflow || "";
     bodyStyle.touchAction = prev.touchAction || "";
+    htmlStyle.overflow = prev.htmlOverflow || "";
     window.scrollTo(0, scrollFreezeState.scrollY || 0);
     document.body.classList.remove("modalOpen");
     scrollFreezeState.active = false;
@@ -360,6 +401,7 @@ if ("serviceWorker" in navigator) {
       renameInput.value = profile?.nickname || "";
       requestAnimationFrame(() => renameInput.focus());
     }
+    enableRenameViewportHandlers();
     freezePageScroll();
     updateModalLayerState();
     requestAnimationFrame(() => relayoutModalToViewport());
@@ -371,6 +413,7 @@ if ("serviceWorker" in navigator) {
     setProfileError(renameError, "");
     pendingRename = null;
     blurActiveInput();
+    disableRenameViewportHandlers();
     updateModalLayerState();
     const shouldReturn = returnToProfileOverride ?? renameReturnToProfile;
     renameReturnToProfile = false;
@@ -3554,12 +3597,13 @@ if ("serviceWorker" in navigator) {
   btnCity?.addEventListener("click", () => {
     if (isFighting) return;
     if (currentScene !== SCENE_LAKE) return;
-    startTravelToCity();
+    startTravel("lake", "city");
   });
 
   btnBackToLake?.addEventListener("click", () => {
-    transitionTo(SCENE_LAKE);
-    setHint("Тап: заброс", 1.2);
+    if (isFighting) return;
+    if (currentScene !== SCENE_CITY) return;
+    startTravel("city", "lake");
   });
 
   btnShopClose?.addEventListener("click", () => {
@@ -4295,13 +4339,15 @@ if ("serviceWorker" in navigator) {
   let rippleBoostUntil = 0;
 
   const travel = {
-    state: "idle",
-    startTime: 0,
-    endTime: 0,
-    durationSec: 18,
+    active: false,
+    from: "lake",
+    to: "city",
+    durationMs: 18 * 1000,
+    t0: 0,
     progress: 0,
     arrivalHandled: false,
-    toastTimer: null
+    messageText: "",
+    messageUntil: 0
   };
 
   let travelPathLength = 0;
@@ -4529,14 +4575,21 @@ if ("serviceWorker" in navigator) {
     updateModalLayerState();
   }
 
-  function setTravelStatus(text, durationMs = 700) {
-    if (!travelStatus) return;
-    if (travel.toastTimer) window.clearTimeout(travel.toastTimer);
-    travelStatus.textContent = text;
-    travelStatus.classList.add("is-visible");
-    travel.toastTimer = window.setTimeout(() => {
-      travelStatus.classList.remove("is-visible");
-    }, durationMs);
+  function renderTravelMessage(now = Date.now()) {
+    if (!travelMessage) return;
+    const isVisible = Boolean(travel.messageText) && now < travel.messageUntil;
+    if (isVisible) {
+      travelMessage.textContent = travel.messageText;
+    } else {
+      travelMessage.textContent = "";
+    }
+    travelMessage.classList.toggle("is-visible", isVisible);
+  }
+
+  function setTravelMessage(text, durationMs) {
+    travel.messageText = text;
+    travel.messageUntil = text ? Date.now() + durationMs : 0;
+    renderTravelMessage();
   }
 
   function setTravelUiLocked(locked) {
@@ -4557,11 +4610,10 @@ if ("serviceWorker" in navigator) {
   }
 
   function updateTravelUi() {
-    if (travel.state === "idle") return;
+    if (!travel.active) return;
     const now = Date.now();
-    const durationMs = travel.durationSec * 1000;
-    travel.progress = clamp((now - travel.startTime) / durationMs, 0, 1);
-    const remainingMs = Math.max(0, travel.endTime - now);
+    travel.progress = clamp((now - travel.t0) / travel.durationMs, 0, 1);
+    const remainingMs = Math.max(0, travel.durationMs - (now - travel.t0));
     const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
     if (travelTimer) {
       const m = Math.floor(remainingSec / 60).toString().padStart(2, "0");
@@ -4572,46 +4624,58 @@ if ("serviceWorker" in navigator) {
       if (!travelPathLength) {
         travelPathLength = travelPathBase.getTotalLength();
       }
-      const progressLength = travelPathLength * travel.progress;
+      const displayProgress = travel.to === "lake" ? 1 - travel.progress : travel.progress;
+      const progressLength = travelPathLength * displayProgress;
       travelPathProgress.style.strokeDasharray = `${progressLength} ${travelPathLength}`;
+      travelPathProgress.style.strokeDashoffset = travel.to === "lake" ? `${travelPathLength - progressLength}` : "0";
       const point = travelPathBase.getPointAtLength(progressLength);
       travelMarker.setAttribute("cx", point.x);
       travelMarker.setAttribute("cy", point.y);
     }
+    renderTravelMessage(now);
   }
 
-  function finishTravelToCity() {
-    if (travel.arrivalHandled) return;
+  function finishTravel() {
+    if (!travel.active || travel.arrivalHandled) return;
     travel.arrivalHandled = true;
-    setTravelStatus("Вы прибыли в город", 600);
+    const arrivalDurationMs = 2800;
     if (travelCard) {
       travelCard.classList.add("is-arriving");
       window.setTimeout(() => travelCard.classList.remove("is-arriving"), 600);
     }
+    const destination = travel.to === "city" ? SCENE_CITY : SCENE_LAKE;
+    transitionTo(destination);
+    if (destination === SCENE_LAKE) {
+      setHint("Тап: заброс", 1.2);
+    }
+    setTravelMessage("Вы прибыли", arrivalDurationMs);
     window.setTimeout(() => {
-      transitionTo(SCENE_CITY);
       setTravelOverlayVisible(false);
       setTravelUiLocked(false);
-      travel.state = "idle";
-      travel.startTime = 0;
-      travel.endTime = 0;
+      travel.active = false;
+      travel.t0 = 0;
       travel.progress = 0;
       travel.arrivalHandled = false;
-    }, 600);
+      travel.messageText = "";
+      travel.messageUntil = 0;
+      renderTravelMessage();
+    }, arrivalDurationMs);
   }
 
-  function startTravelToCity() {
+  function startTravel(from, to) {
     if (isFighting) return;
-    if (travel.state !== "idle") return;
+    if (travel.active) return;
     const now = Date.now();
-    travel.state = "toCity";
-    travel.startTime = now;
-    travel.endTime = now + travel.durationSec * 1000;
+    travel.active = true;
+    travel.from = from;
+    travel.to = to;
+    travel.t0 = now;
     travel.progress = 0;
     travel.arrivalHandled = false;
     setTravelOverlayVisible(true);
     setTravelUiLocked(true);
-    setTravelStatus("Отправляемся…", 750);
+    const message = to === "city" ? "Поездка в город" : "Возвращаемся к озеру";
+    setTravelMessage(message, 5000);
     updateTravelUi();
   }
 
@@ -5086,9 +5150,11 @@ if ("serviceWorker" in navigator) {
   function update(dt) {
     if (orientationLocked) return;
     if (pendingOrientationPause > 0) {
-      if (travel.state !== "idle") {
-        travel.startTime += pendingOrientationPause;
-        travel.endTime += pendingOrientationPause;
+      if (travel.active) {
+        travel.t0 += pendingOrientationPause;
+        if (travel.messageUntil) {
+          travel.messageUntil += pendingOrientationPause;
+        }
       }
       pendingOrientationPause = 0;
     }
@@ -5097,10 +5163,10 @@ if ("serviceWorker" in navigator) {
     game.lastTap += dt;
     if (game.msgT > 0) game.msgT -= dt;
 
-    if (travel.state !== "idle") {
+    if (travel.active) {
       updateTravelUi();
-      if (Date.now() >= travel.endTime) {
-        finishTravelToCity();
+      if (Date.now() >= travel.t0 + travel.durationMs) {
+        finishTravel();
       }
       return;
     }
