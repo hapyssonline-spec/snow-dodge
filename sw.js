@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 69 for HUD offset and hero/rod rollback.
-const CACHE_VERSION = 69;
+// CACHE_VERSION bumped to 70 for fight HUD position tweak.
+const CACHE_VERSION = 70;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 

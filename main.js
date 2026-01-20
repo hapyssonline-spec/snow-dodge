@@ -2031,7 +2031,7 @@ if ("serviceWorker" in navigator) {
     const panel = fightHud.querySelector(".fightHudPanel");
     const panelHeight = panel?.getBoundingClientRect().height || fightHud.getBoundingClientRect().height;
     const hudOffset = vp.h * 0.08;
-    const targetCenterY = vp.y + vp.h * 0.4 + hudOffset;
+    const targetCenterY = vp.y + vp.h * 0.4 + hudOffset - vp.h * 0.1;
     const top = targetCenterY - panelHeight / 2;
     fightHud.style.top = `${Math.round(top)}px`;
     fightHud.style.left = `${Math.round(vp.x + vp.w / 2)}px`;
