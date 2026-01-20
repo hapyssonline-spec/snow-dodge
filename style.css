@@ -2062,6 +2062,10 @@ img, a{
   color:var(--muted);
 }
 
+.shopItemLock{
+  font-weight:700;
+}
+
 .shopItem.is-disabled{
   opacity:0.6;
 }

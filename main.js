@@ -242,6 +242,21 @@ if ("serviceWorker" in navigator) {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + Math.random() * (b - a);
+  const randomInt = (min, max) => Math.floor(rand(min, max + 1));
+
+  const GEAR_UNLOCK_LEVELS = {
+    rods: { 1: 1, 2: 3, 3: 6 },
+    lines: { 1: 1, 2: 4, 3: 7 },
+    baits: {
+      worm: 1,
+      "sweet-dough": 2,
+      minnow: 3,
+      spinner: 4,
+      "deep-lure": 6
+    }
+  };
+
+  const BITE_DELAY_RANGE_MS = { min: 5000, max: 15000 };
   const CAUGHT_SPECIES_KEY = "caughtSpeciesSet";
 
   let reducedEffects = false;
@@ -1376,6 +1391,7 @@ if ("serviceWorker" in navigator) {
       id: "worm",
       name: "Червь",
       price: 18,
+      unlockLevel: GEAR_UNLOCK_LEVELS.baits.worm,
       boost: ["roach", "perch", "crucian"],
       note: "Любимый запах спокойной рыбы."
     },
@@ -1383,6 +1399,7 @@ if ("serviceWorker" in navigator) {
       id: "sweet-dough",
       name: "Сладкое тесто",
       price: 22,
+      unlockLevel: GEAR_UNLOCK_LEVELS.baits["sweet-dough"],
       boost: ["crucian", "bream"],
       note: "Тягучая приманка для любителей лакомства."
     },
@@ -1390,6 +1407,7 @@ if ("serviceWorker" in navigator) {
       id: "minnow",
       name: "Малёк",
       price: 30,
+      unlockLevel: GEAR_UNLOCK_LEVELS.baits.minnow,
       boost: ["pike", "zander"],
       note: "Хищники охотятся охотно."
     },
@@ -1397,6 +1415,7 @@ if ("serviceWorker" in navigator) {
       id: "spinner",
       name: "Блесна-вертушка",
       price: 36,
+      unlockLevel: GEAR_UNLOCK_LEVELS.baits.spinner,
       boost: ["trout", "zander"],
       note: "Шумит и бликует в воде."
     },
@@ -1404,22 +1423,64 @@ if ("serviceWorker" in navigator) {
       id: "deep-lure",
       name: "Глубинная приманка",
       price: 48,
+      unlockLevel: GEAR_UNLOCK_LEVELS.baits["deep-lure"],
       boost: ["catfish", "sturgeon", "moon-legend"],
       note: "Для тех, кто ищет редкие виды."
     }
   ];
 
   const rodItems = [
-    { id: 1, name: "Rod_1 «Базовая»", price: 0, reelBonus: 0.0, safeZoneBonus: 0, rareBonus: 0 },
-    { id: 2, name: "Rod_2 «Контроль»", price: 280, reelBonus: 0.03, safeZoneBonus: 0.1, rareBonus: 0 },
-    { id: 3, name: "Rod_3 «Охотник»", price: 680, reelBonus: 0.05, safeZoneBonus: 0, rareBonus: 0.07 }
+    { id: 1, name: "Rod_1 «Базовая»", price: 0, unlockLevel: GEAR_UNLOCK_LEVELS.rods[1], reelBonus: 0.0, safeZoneBonus: 0, rareBonus: 0 },
+    { id: 2, name: "Rod_2 «Контроль»", price: 280, unlockLevel: GEAR_UNLOCK_LEVELS.rods[2], reelBonus: 0.03, safeZoneBonus: 0.1, rareBonus: 0 },
+    { id: 3, name: "Rod_3 «Охотник»", price: 680, unlockLevel: GEAR_UNLOCK_LEVELS.rods[3], reelBonus: 0.05, safeZoneBonus: 0, rareBonus: 0.07 }
   ];
 
   const lineItems = [
-    { id: 1, name: "Line_1 «Базовая»", price: 0, breakThreshold: 1.0, maxKg: 4.5, tensionMult: 1.0, breakRiskMod: 1, rareBonus: 0 },
-    { id: 2, name: "Line_2 «Крепкая»", price: 220, breakThreshold: 1.12, maxKg: 9, tensionMult: 0.92, breakRiskMod: 1.07, rareBonus: 0 },
-    { id: 3, name: "Line_3 «Тонкая»", price: 540, breakThreshold: 1.22, maxKg: 18, tensionMult: 0.86, breakRiskMod: 0.95, rareBonus: 0.05 }
+    { id: 1, name: "Line_1 «Базовая»", price: 0, unlockLevel: GEAR_UNLOCK_LEVELS.lines[1], breakThreshold: 1.0, maxKg: 4.5, tensionMult: 1.0, breakRiskMod: 1, rareBonus: 0 },
+    { id: 2, name: "Line_2 «Крепкая»", price: 220, unlockLevel: GEAR_UNLOCK_LEVELS.lines[2], breakThreshold: 1.12, maxKg: 9, tensionMult: 0.92, breakRiskMod: 1.07, rareBonus: 0 },
+    { id: 3, name: "Line_3 «Тонкая»", price: 540, unlockLevel: GEAR_UNLOCK_LEVELS.lines[3], breakThreshold: 1.22, maxKg: 18, tensionMult: 0.86, breakRiskMod: 0.95, rareBonus: 0.05 }
   ];
+
+  function isUnlocked(item, level = player.playerLevel) {
+    return level >= (item?.unlockLevel ?? 1);
+  }
+
+  function getFirstUnlockedItem(items, level = player.playerLevel) {
+    return items.find((item) => isUnlocked(item, level)) || items[0];
+  }
+
+  function enforceGearUnlocks() {
+    let changed = false;
+    const level = player.playerLevel;
+    const activeRod = rodItems.find((rod) => rod.id === player.rodTier);
+    const activeLine = lineItems.find((line) => line.id === player.lineTier);
+    const fallbackRod = getFirstUnlockedItem(rodItems, level);
+    const fallbackLine = getFirstUnlockedItem(lineItems, level);
+
+    if (!activeRod || !isUnlocked(activeRod, level)) {
+      player.rodTier = fallbackRod.id;
+      if (!player.ownedRods.includes(fallbackRod.id)) {
+        player.ownedRods.push(fallbackRod.id);
+      }
+      changed = true;
+    }
+    if (!activeLine || !isUnlocked(activeLine, level)) {
+      player.lineTier = fallbackLine.id;
+      if (!player.ownedLines.includes(fallbackLine.id)) {
+        player.ownedLines.push(fallbackLine.id);
+      }
+      changed = true;
+    }
+    if (player.activeBaitId) {
+      const activeBait = baitItems.find((bait) => bait.id === player.activeBaitId);
+      if (!activeBait || !isUnlocked(activeBait, level)) {
+        const fallbackBait = getFirstUnlockedItem(baitItems, level);
+        player.activeBaitId = fallbackBait?.id || null;
+        changed = true;
+      }
+    }
+    return changed;
+  }
 
   const trashItems = [
     { id: "rusty_can", name: "Ржавая банка", weight: 1.0 },
@@ -1727,6 +1788,10 @@ if ("serviceWorker" in navigator) {
       xpToNext: player.playerXPToNext
     });
     updateLeaderboardsFromStats();
+    if (levelsGained > 0) {
+      renderGearShop();
+      refreshProfileGearPicker();
+    }
   }
 
   function buildFishCatch(rareBoostActive = false) {
@@ -2396,9 +2461,13 @@ if ("serviceWorker" in navigator) {
       if (profile?.nickname) {
         registerNickname(profile.nickname);
       }
+      const unlockAdjusted = enforceGearUnlocks();
       refreshDailyCharges();
       updateMuteButton();
       ensureQuestPreviews();
+      if (unlockAdjusted) {
+        save();
+      }
     } catch {}
   }
 
@@ -3555,12 +3624,20 @@ if ("serviceWorker" in navigator) {
     `;
   }
 
+  function createUnlockNote(level) {
+    const note = document.createElement("div");
+    note.className = "shopItemMeta shopItemLock";
+    note.textContent = `Откроется на уровне ${level}`;
+    return note;
+  }
+
   function renderProfileGearPicker(gearType) {
     if (!profileGearPickerList) return;
     profileGearPickerList.innerHTML = "";
     if (gearType === "rod") {
       const ownedRods = rodItems.filter((rod) => player.ownedRods.includes(rod.id));
       ownedRods.forEach((rod) => {
+        const unlocked = isUnlocked(rod);
         const row = document.createElement("div");
         row.className = "shopItem";
         row.innerHTML = `
@@ -3571,9 +3648,17 @@ if ("serviceWorker" in navigator) {
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
-        btn.textContent = player.rodTier === rod.id ? "Выбрано" : "Выбрать";
-        btn.disabled = player.rodTier === rod.id;
+        if (!unlocked) {
+          btn.textContent = "Закрыто";
+          btn.disabled = true;
+          row.classList.add("is-disabled");
+          row.appendChild(createUnlockNote(rod.unlockLevel));
+        } else {
+          btn.textContent = player.rodTier === rod.id ? "Выбрано" : "Выбрать";
+          btn.disabled = player.rodTier === rod.id;
+        }
         btn.addEventListener("click", () => {
+          if (!unlocked) return;
           player.rodTier = rod.id;
           save();
           updateHUD();
@@ -3590,6 +3675,7 @@ if ("serviceWorker" in navigator) {
     if (gearType === "line") {
       const ownedLines = lineItems.filter((line) => player.ownedLines.includes(line.id));
       ownedLines.forEach((line) => {
+        const unlocked = isUnlocked(line);
         const riskDelta = Math.round((1 - (line.breakRiskMod || 1)) * 100);
         const riskText = `${riskDelta > 0 ? "+" : ""}${riskDelta}%`;
         const row = document.createElement("div");
@@ -3603,9 +3689,17 @@ if ("serviceWorker" in navigator) {
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
-        btn.textContent = player.lineTier === line.id ? "Выбрано" : "Выбрать";
-        btn.disabled = player.lineTier === line.id;
+        if (!unlocked) {
+          btn.textContent = "Закрыто";
+          btn.disabled = true;
+          row.classList.add("is-disabled");
+          row.appendChild(createUnlockNote(line.unlockLevel));
+        } else {
+          btn.textContent = player.lineTier === line.id ? "Выбрано" : "Выбрать";
+          btn.disabled = player.lineTier === line.id;
+        }
         btn.addEventListener("click", () => {
+          if (!unlocked) return;
           player.lineTier = line.id;
           save();
           updateHUD();
@@ -3621,6 +3715,7 @@ if ("serviceWorker" in navigator) {
 
     if (gearType === "bait") {
       baitItems.forEach((bait) => {
+        const unlocked = isUnlocked(bait);
         const count = player.baitInventory[bait.id] || 0;
         const row = document.createElement("div");
         row.className = "shopItem";
@@ -3634,7 +3729,12 @@ if ("serviceWorker" in navigator) {
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
-        if (isActive) {
+        if (!unlocked) {
+          btn.textContent = "Закрыто";
+          btn.disabled = true;
+          row.classList.add("is-disabled");
+          row.appendChild(createUnlockNote(bait.unlockLevel));
+        } else if (isActive) {
           btn.textContent = "Выбрано";
           btn.disabled = true;
         } else if (count <= 0) {
@@ -3739,6 +3839,7 @@ if ("serviceWorker" in navigator) {
     if (baitList) {
       baitList.innerHTML = "";
       for (const bait of baitItems) {
+        const unlocked = isUnlocked(bait);
         const count = player.baitInventory[bait.id] || 0;
         const item = document.createElement("div");
         item.className = "shopItem";
@@ -3755,8 +3856,9 @@ if ("serviceWorker" in navigator) {
         const buyBtn = document.createElement("button");
         buyBtn.className = "invBtn";
         buyBtn.textContent = "Купить";
-        buyBtn.disabled = player.coins < bait.price;
+        buyBtn.disabled = !unlocked || player.coins < bait.price;
         buyBtn.addEventListener("click", () => {
+          if (!unlocked) return;
           if (player.coins < bait.price) return;
           player.coins -= bait.price;
           player.baitInventory[bait.id] = (player.baitInventory[bait.id] || 0) + 1;
@@ -3769,8 +3871,9 @@ if ("serviceWorker" in navigator) {
         const useBtn = document.createElement("button");
         useBtn.className = "invBtn secondary";
         useBtn.textContent = player.activeBaitId === bait.id ? "Выбрано" : "Выбрать";
-        useBtn.disabled = count <= 0;
+        useBtn.disabled = !unlocked || count <= 0;
         useBtn.addEventListener("click", () => {
+          if (!unlocked) return;
           if (count <= 0) return;
           player.activeBaitId = bait.id;
           save();
@@ -3780,6 +3883,10 @@ if ("serviceWorker" in navigator) {
         });
         actions.append(buyBtn, useBtn);
         item.appendChild(actions);
+        if (!unlocked) {
+          item.classList.add("is-disabled");
+          item.appendChild(createUnlockNote(bait.unlockLevel));
+        }
         baitList.appendChild(item);
       }
     }
@@ -3787,6 +3894,7 @@ if ("serviceWorker" in navigator) {
     if (rodList) {
       rodList.innerHTML = "";
       for (const rod of rodItems) {
+        const unlocked = isUnlocked(rod);
         const owned = player.ownedRods.includes(rod.id);
         const item = document.createElement("div");
         item.className = "shopItem";
@@ -3801,7 +3909,10 @@ if ("serviceWorker" in navigator) {
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
-        if (!owned) {
+        if (!unlocked) {
+          btn.textContent = "Закрыто";
+          btn.disabled = true;
+        } else if (!owned) {
           btn.textContent = "Купить";
           btn.disabled = player.coins < rod.price;
         } else {
@@ -3809,6 +3920,7 @@ if ("serviceWorker" in navigator) {
           btn.disabled = player.rodTier === rod.id;
         }
         btn.addEventListener("click", () => {
+          if (!unlocked) return;
           if (!owned) {
             if (player.coins < rod.price) return;
             player.coins -= rod.price;
@@ -3824,6 +3936,10 @@ if ("serviceWorker" in navigator) {
           refreshProfileGearPicker();
         });
         item.appendChild(btn);
+        if (!unlocked) {
+          item.classList.add("is-disabled");
+          item.appendChild(createUnlockNote(rod.unlockLevel));
+        }
         rodList.appendChild(item);
       }
     }
@@ -3831,6 +3947,7 @@ if ("serviceWorker" in navigator) {
     if (lineList) {
       lineList.innerHTML = "";
       for (const line of lineItems) {
+        const unlocked = isUnlocked(line);
         const owned = player.ownedLines.includes(line.id);
         const item = document.createElement("div");
         item.className = "shopItem";
@@ -3848,7 +3965,10 @@ if ("serviceWorker" in navigator) {
         `;
         const btn = document.createElement("button");
         btn.className = "invBtn";
-        if (!owned) {
+        if (!unlocked) {
+          btn.textContent = "Закрыто";
+          btn.disabled = true;
+        } else if (!owned) {
           btn.textContent = "Купить";
           btn.disabled = player.coins < line.price;
         } else {
@@ -3856,6 +3976,7 @@ if ("serviceWorker" in navigator) {
           btn.disabled = player.lineTier === line.id;
         }
         btn.addEventListener("click", () => {
+          if (!unlocked) return;
           if (!owned) {
             if (player.coins < line.price) return;
             player.coins -= line.price;
@@ -3871,6 +3992,10 @@ if ("serviceWorker" in navigator) {
           refreshProfileGearPicker();
         });
         item.appendChild(btn);
+        if (!unlocked) {
+          item.classList.add("is-disabled");
+          item.appendChild(createUnlockNote(line.unlockLevel));
+        }
         lineList.appendChild(item);
       }
     }
@@ -4265,6 +4390,9 @@ if ("serviceWorker" in navigator) {
   }
 
   function setScene(sceneId) {
+    if (sceneId !== SCENE_LAKE) {
+      cancelWaitingState();
+    }
     currentScene = sceneId;
     const isCityScene = [SCENE_CITY, SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId);
     if (app) app.dataset.scene = isCityScene ? "city" : "lake";
@@ -4343,7 +4471,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== Fishing logic =====
   function scheduleBite() {
-    game.biteAt = rand(1.2, 3.8);
+    game.biteAt = randomInt(BITE_DELAY_RANGE_MS.min, BITE_DELAY_RANGE_MS.max) / 1000;
   }
 
   function consumeBait() {
@@ -4397,6 +4525,16 @@ if ("serviceWorker" in navigator) {
     if (!reducedEffects) {
       nextRippleAt = scene.t + rand(1.4, 2.6);
     }
+  }
+
+  function cancelWaitingState() {
+    if (game.mode !== "WAITING") return;
+    game.mode = "IDLE";
+    game.t = 0;
+    bobber.visible = false;
+    bobber.inWater = false;
+    game.catch = null;
+    setFishing(false);
   }
 
   function enterBite() {
@@ -4519,8 +4657,16 @@ if ("serviceWorker" in navigator) {
     });
     consumeBait();
     updateHUD();
+    const unlockAdjusted = enforceGearUnlocks();
     showXPGain(xpResult);
     updateLeaderboardsFromStats();
+    if (xpResult.leveledUp) {
+      renderGearShop();
+      refreshProfileGearPicker();
+    }
+    if (unlockAdjusted) {
+      updateHUD();
+    }
     save();
     checkQuestCompletion(game.catch);
 
@@ -4569,7 +4715,7 @@ if ("serviceWorker" in navigator) {
       return;
     }
 
-    if (game.mode === "WAITING" || game.mode === "BITE") {
+    if (game.mode === "BITE") {
       triggerStrike();
     }
 
