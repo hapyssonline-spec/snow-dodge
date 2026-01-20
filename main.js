@@ -49,10 +49,6 @@ if ("serviceWorker" in navigator) {
   const btnInventory = document.getElementById("btnInventory");
   const btnJournal = document.getElementById("btnJournal");
   const btnCity = document.getElementById("btnCity");
-  const bgLayer = document.getElementById("bgLayer");
-  const bgPortraitImg = document.getElementById("bgPortraitImg");
-  const bgLandscapeImg = document.getElementById("bgLandscapeImg");
-
   const invOverlay = document.getElementById("invOverlay");
   const btnInvClose = document.getElementById("btnInvClose");
   const invSort = document.getElementById("invSort");
@@ -1884,59 +1880,6 @@ if ("serviceWorker" in navigator) {
   let W = 0, H = 0, DPR = 1;
   const HERO_ROD_Y_OFFSET_FACTOR = 0.65;
   const HERO_ROD_SAFE_PADDING = 12;
-  const GROUND_Y_NORM = 0.71;
-  const HERO_X_NORM = 0.26;
-  const ROD_X_FACTOR = 0.55;
-  const ROD_Y_FACTOR = 0.35;
-  const PORTRAIT_BG_SIZE = { w: 1054, h: 1536 };
-
-  function getActiveBackgroundImage() {
-    if (!bgPortraitImg || !bgLandscapeImg) return null;
-    const portraitVisible = getComputedStyle(bgPortraitImg).display !== "none";
-    return portraitVisible ? bgPortraitImg : bgLandscapeImg;
-  }
-
-  function getBackgroundRect() {
-    if (!bgLayer) return null;
-    const bgRect = bgLayer.getBoundingClientRect();
-    const img = getActiveBackgroundImage();
-    if (!img) return null;
-    const fallback = img === bgPortraitImg ? PORTRAIT_BG_SIZE : { w: bgRect.width, h: bgRect.height };
-    const imgW = img.naturalWidth || fallback.w;
-    const imgH = img.naturalHeight || fallback.h;
-    if (!imgW || !imgH) return null;
-    const scale = Math.max(bgRect.width / imgW, bgRect.height / imgH);
-    const drawW = imgW * scale;
-    const drawH = imgH * scale;
-    return {
-      x: bgRect.left + (bgRect.width - drawW) / 2,
-      y: bgRect.top + (bgRect.height - drawH) / 2,
-      w: drawW,
-      h: drawH
-    };
-  }
-
-  function updateHeroRodPosition() {
-    if (!heroLayer || !rodLayer) return;
-    const bg = getBackgroundRect();
-    if (!bg) return;
-    const heroRect = heroLayer.getBoundingClientRect();
-    const rodRect = rodLayer.getBoundingClientRect();
-    if (!heroRect.width || !heroRect.height || !rodRect.width || !rodRect.height) return;
-
-    const groundY = bg.y + bg.h * GROUND_Y_NORM;
-    const heroX = bg.x + bg.w * HERO_X_NORM;
-    const heroLeft = heroX;
-    const heroTop = groundY - heroRect.height;
-
-    heroLayer.style.left = `${heroLeft + heroRect.width / 2}px`;
-    heroLayer.style.top = `${heroTop + heroRect.height / 2}px`;
-
-    const rodLeft = heroLeft + heroRect.width * ROD_X_FACTOR;
-    const rodTop = heroTop + heroRect.height * ROD_Y_FACTOR;
-    rodLayer.style.left = `${rodLeft + rodRect.width / 2}px`;
-    rodLayer.style.top = `${rodTop + rodRect.height / 2}px`;
-  }
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -1997,24 +1940,12 @@ if ("serviceWorker" in navigator) {
   const layout = () => {
     setVhVar();
     resize();
-    updateHeroRodPosition();
     applyLakeRig();
     if (!bobber.visible) {
       syncBobberToRodTip();
     }
     updateLayerVisibility();
   };
-
-  [bgPortraitImg, bgLandscapeImg].forEach((img) => {
-    if (!img) return;
-    if (img.complete) {
-      updateHeroRodPosition();
-    } else {
-      img.addEventListener("load", () => {
-        updateHeroRodPosition();
-      });
-    }
-  });
 
   const handleResize = debounce(updateOrientationLock, 100);
   window.addEventListener("resize", handleResize);
