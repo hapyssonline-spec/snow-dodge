@@ -501,7 +501,7 @@ if ("serviceWorker" in navigator) {
     }
   };
 
-  const BITE_DELAY_RANGE_MS = { min: 5000, max: 15000 };
+  const BITE_DELAY_RANGE_MS = { min: 5000, max: 10000 };
   const CAUGHT_SPECIES_KEY = "caughtSpeciesSet";
 
   let reducedEffects = false;
