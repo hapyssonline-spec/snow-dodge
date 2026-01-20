@@ -59,7 +59,8 @@ img, a{
   touch-action: pan-y;
 }
 #app{
-  height:calc(var(--vh, 1vh) * 100);
+  height:100dvh;
+  height:-webkit-fill-available;
   width:100%;
   position:fixed;
   inset:0;
@@ -72,7 +73,8 @@ img, a{
   position:fixed;
   inset:0;
   width:100%;
-  height:100%;
+  height:100dvh;
+  height:-webkit-fill-available;
 }
 
 #gameLayer{
@@ -211,7 +213,8 @@ img, a{
   position:absolute;
   inset:0;
   width:100vw;
-  height:100vh;
+  height:100dvh;
+  height:-webkit-fill-available;
   overflow:hidden;
   z-index:0;
 }
@@ -581,7 +584,7 @@ img, a{
 #overlay{
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
-  padding:18px;
+  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   backdrop-filter: blur(10px);
   background: rgba(11,22,33,.55);
   z-index:6;
@@ -591,7 +594,7 @@ img, a{
 #invOverlay{
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
-  padding:18px;
+  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.68);
   z-index:6;
@@ -600,7 +603,7 @@ img, a{
 #trashOverlay{
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
-  padding:18px;
+  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.74);
   z-index:6;
@@ -620,7 +623,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:18px;
+  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   background: rgba(6,12,20,.7);
   z-index:6;
   opacity:0;
@@ -667,7 +670,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:18px;
+  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.72);
   z-index:7;
@@ -683,7 +686,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:18px;
+  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.72);
   z-index:7;
@@ -1154,7 +1157,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:18px;
+  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   background: rgba(6,12,20,.68);
   backdrop-filter: blur(10px);
   z-index:6;
@@ -1190,7 +1193,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:18px;
+  padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   background: rgba(6,12,20,.72);
   backdrop-filter: blur(8px);
   z-index:6;

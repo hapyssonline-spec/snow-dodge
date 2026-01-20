@@ -686,8 +686,48 @@ if ("serviceWorker" in navigator) {
     }
   }
 
-  function setVhVar() {
-    document.documentElement.style.setProperty("--vh", `${window.innerHeight * 0.01}px`);
+  let safeAreaProbe = null;
+
+  function getSafeAreaInsets() {
+    if (!safeAreaProbe) {
+      safeAreaProbe = document.createElement("div");
+      safeAreaProbe.style.position = "fixed";
+      safeAreaProbe.style.top = "0";
+      safeAreaProbe.style.left = "0";
+      safeAreaProbe.style.width = "0";
+      safeAreaProbe.style.height = "0";
+      safeAreaProbe.style.padding = "env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)";
+      safeAreaProbe.style.pointerEvents = "none";
+      safeAreaProbe.style.visibility = "hidden";
+      document.body.appendChild(safeAreaProbe);
+    }
+    const style = getComputedStyle(safeAreaProbe);
+    return {
+      top: Number.parseFloat(style.paddingTop) || 0,
+      right: Number.parseFloat(style.paddingRight) || 0,
+      bottom: Number.parseFloat(style.paddingBottom) || 0,
+      left: Number.parseFloat(style.paddingLeft) || 0
+    };
+  }
+
+  function getGameViewportRect() {
+    const appRect = app?.getBoundingClientRect() || document.documentElement.getBoundingClientRect();
+    const vv = window.visualViewport;
+    const w = vv?.width ?? appRect.width;
+    const h = vv?.height ?? appRect.height;
+    const ox = vv?.offsetLeft ?? 0;
+    const oy = vv?.offsetTop ?? 0;
+    const safe = getSafeAreaInsets();
+    return {
+      x: appRect.left + ox,
+      y: appRect.top + oy,
+      w,
+      h,
+      safeTopPx: safe.top,
+      safeBottomPx: safe.bottom,
+      safeLeftPx: safe.left,
+      safeRightPx: safe.right
+    };
   }
 
   let lakeState = "idle";
@@ -1978,13 +2018,53 @@ if ("serviceWorker" in navigator) {
     updateModalLayerState();
   }
 
+  function applyViewportToLayer(layer, vp) {
+    if (!layer) return;
+    layer.style.top = `${vp.y}px`;
+    layer.style.left = `${vp.x}px`;
+    layer.style.width = `${vp.w}px`;
+    layer.style.height = `${vp.h}px`;
+  }
+
+  function positionFightHud(vp) {
+    if (!fightHud) return;
+    const panel = fightHud.querySelector(".fightHudPanel");
+    const panelHeight = panel?.getBoundingClientRect().height || fightHud.getBoundingClientRect().height;
+    const targetCenterY = vp.y + vp.h * 0.4;
+    const minTop = vp.y + vp.safeTopPx + 12;
+    const maxTop = vp.y + vp.h - vp.safeBottomPx - 12 - panelHeight;
+    const clampedMax = Math.max(minTop, maxTop);
+    const top = clamp(targetCenterY - panelHeight / 2, minTop, clampedMax);
+    fightHud.style.top = `${Math.round(top)}px`;
+    fightHud.style.left = `${Math.round(vp.x + vp.w / 2)}px`;
+  }
+
+  function positionRareBoostHud(vp) {
+    if (!rareBoostHud) return;
+    const topBarHeight = topBar?.getBoundingClientRect().height ?? 0;
+    const top = vp.y + topBarHeight + 12;
+    rareBoostHud.style.top = `${Math.round(top)}px`;
+    rareBoostHud.style.right = `${Math.round(vp.safeRightPx + 14)}px`;
+    rareBoostHud.style.left = "auto";
+  }
+
+  function positionCityHud(vp) {
+    if (!cityHud) return;
+    cityHud.style.left = `${Math.round(vp.x + vp.w / 2)}px`;
+    cityHud.style.bottom = `${Math.round(vp.safeBottomPx + 16)}px`;
+  }
+
   const layout = () => {
-    setVhVar();
+    const vp = getGameViewportRect();
+    applyViewportToLayer(modalLayer, vp);
     resize();
     applyLakeRig();
     if (!bobber.visible) {
       syncBobberToRodTip();
     }
+    positionFightHud(vp);
+    positionRareBoostHud(vp);
+    positionCityHud(vp);
     updateLayerVisibility();
   };
 
@@ -1992,6 +2072,10 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("resize", handleResize);
   window.addEventListener("orientationchange", updateOrientationLock);
   orientationQuery?.addEventListener?.("change", updateOrientationLock);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", layout, { passive: true });
+    window.visualViewport.addEventListener("scroll", layout, { passive: true });
+  }
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
