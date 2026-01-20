@@ -80,6 +80,15 @@ if ("serviceWorker" in navigator) {
   const btnCatchKeep = document.getElementById("btnCatchKeep");
   const btnCatchSellNow = document.getElementById("btnCatchSellNow");
 
+  const findingOverlay = document.getElementById("findingOverlay");
+  const findingTitle = document.getElementById("findingTitle");
+  const findingName = document.getElementById("findingName");
+  const findingImageSlot = document.getElementById("findingImageSlot");
+  const findingImage = document.getElementById("findingImage");
+  const findingStory = document.getElementById("findingStory");
+  const btnFindingContinue = document.getElementById("btnFindingContinue");
+  const btnFindingJournal = document.getElementById("btnFindingJournal");
+
   const travelOverlay = document.getElementById("travelOverlay");
   const travelTimer = document.getElementById("travelTimer");
   const travelMessage = document.getElementById("travelMessage");
@@ -260,6 +269,7 @@ if ("serviceWorker" in navigator) {
     invOverlay,
     trashOverlay,
     catchOverlay,
+    findingOverlay,
     profileSetupOverlay,
     profileOverlay,
     renameOverlay,
@@ -1306,6 +1316,7 @@ if ("serviceWorker" in navigator) {
 
   const SCENE_LAKE = "SCENE_LAKE";
   const SCENE_CATCH_MODAL = "SCENE_CATCH_MODAL";
+  const SCENE_FINDING_MODAL = "SCENE_FINDING_MODAL";
   const SCENE_CITY = "SCENE_CITY";
   const SCENE_BUILDING_FISHSHOP = "SCENE_BUILDING_FISHSHOP";
   const SCENE_BUILDING_TROPHY = "SCENE_BUILDING_TROPHY";
@@ -1730,6 +1741,59 @@ if ("serviceWorker" in navigator) {
     rusty_key: "./assets/findings/rusty_key.png"
   };
 
+  const TRASH_DETAILS = {
+    rusty_can: {
+      titleRu: "Ржавая банка",
+      storyRu: "Подо льдом звякнула банка, будто кто-то из старых рыбаков оставил знак. Холодное железо хранит шёпот прошлых зим.",
+      iconPath: TRASH_ICON_PATHS.rusty_can
+    },
+    old_boot: {
+      titleRu: "Старый ботинок",
+      storyRu: "Промёрзший ботинок помнит долгую дорогу по льду. Говорят, такая находка приносит удачу на следующей лунке.",
+      iconPath: TRASH_ICON_PATHS.old_boot
+    },
+    broken_barrel: {
+      titleRu: "Разбитая бочка",
+      storyRu: "Осколки бочки пахнут старыми складами на берегу. Лёд шлифовал дерево, будто скрывал тайну.",
+      iconPath: TRASH_ICON_PATHS.broken_barrel
+    },
+    torn_net: {
+      titleRu: "Рваная сеть",
+      storyRu: "Сеть из нитей, переживших не одну стужу. Она напоминает о тех, кто искал улов до рассвета.",
+      iconPath: TRASH_ICON_PATHS.torn_net
+    },
+    broken_reel: {
+      titleRu: "Сломанная катушка",
+      storyRu: "Катушка скрипит даже в руках — видно, билась с настоящим гигантом. Теперь это лишь память о том рывке.",
+      iconPath: TRASH_ICON_PATHS.broken_reel
+    },
+    bent_hook: {
+      titleRu: "Погнутый крючок",
+      storyRu: "Крючок согнулся, словно уступил сильному рывку. Бывает, не рыбака ловит рыбу, а рыба — рыбака.",
+      iconPath: TRASH_ICON_PATHS.bent_hook
+    },
+    floating_plank: {
+      titleRu: "Плавающая доска",
+      storyRu: "Доска, вылизанная водой и льдом, плыла как маленькая льдина. На ней будто остался след от костра.",
+      iconPath: TRASH_ICON_PATHS.floating_plank
+    },
+    sealed_crate: {
+      titleRu: "Запечатанный ящик",
+      storyRu: "Ящик плотно запечатан, холод держит его секреты. Может, внутри чья-то зимняя история.",
+      iconPath: TRASH_ICON_PATHS.sealed_crate
+    },
+    old_extinguisher: {
+      titleRu: "Старый огнетушитель",
+      storyRu: "Старый огнетушитель выглядит нелепо среди льда. Но даже в мороз здесь когда-то кипела жизнь.",
+      iconPath: TRASH_ICON_PATHS.old_extinguisher
+    },
+    rusty_key: {
+      titleRu: "Ржавый ключ",
+      storyRu: "Ржавый ключ звякнул о край лунки. Говорят, такие находки ведут к забытым дверям на берегу.",
+      iconPath: TRASH_ICON_PATHS.rusty_key
+    }
+  };
+
   const trashItems = [
     { id: "rusty_can", name: "Ржавая банка", weight: 1.0 },
     { id: "old_boot", name: "Старый ботинок", weight: 1.0 },
@@ -2068,20 +2132,23 @@ if ("serviceWorker" in navigator) {
 
   function buildTrashCatch() {
     const item = pickTrashItem(foundTrash);
+    const details = TRASH_DETAILS[item.id];
+    const name = details?.titleRu || item.name;
     const weightKg = Math.round(rand(0.2, 1.6) * 100) / 100;
     const weightG = Math.round(weightKg * 1000);
     const power = clamp(0.24 + weightKg * 0.06, 0.22, 0.45);
     return {
       catchType: "trash",
       trashId: item.id,
-      name: item.name,
+      name,
       rarity: "trash",
       rarityLabel: rarityLabels.trash,
       weightKg,
       weightG,
       pricePerKg: 0,
       sellValue: 0,
-      story: "",
+      story: details?.storyRu || "",
+      iconPath: details?.iconPath || TRASH_ICON_PATHS[item.id],
       power
     };
   }
@@ -2446,6 +2513,7 @@ if ("serviceWorker" in navigator) {
   let selectedGearTab = "bait";
   let currentScene = SCENE_LAKE;
   let pendingCatch = null;
+  let pendingFinding = null;
   let foundTrash = {};
   let collectorRodUnlocked = false;
   let dailyRareBoostCharges = 0;
@@ -3134,7 +3202,7 @@ if ("serviceWorker" in navigator) {
     trashGrid.innerHTML = "";
     trashItems.forEach((item) => {
       const found = !!foundTrash[item.id];
-      const iconPath = TRASH_ICON_PATHS[item.id];
+      const iconPath = TRASH_DETAILS[item.id]?.iconPath || TRASH_ICON_PATHS[item.id];
       const showIcon = found && !!iconPath;
       const cell = document.createElement("div");
       cell.className = `trashCell findingTile ${found ? "is-found" : "is-missing"}`;
@@ -3684,6 +3752,20 @@ if ("serviceWorker" in navigator) {
     transitionTo(SCENE_LAKE);
     showToast("Продано со скидкой -30%.");
     setHint("Тап: заброс", 1.2);
+  });
+
+  btnFindingContinue?.addEventListener("click", () => {
+    if (!pendingFinding) return;
+    pendingFinding = null;
+    transitionTo(SCENE_LAKE);
+    setHint("Тап: заброс", 1.2);
+  });
+
+  btnFindingJournal?.addEventListener("click", () => {
+    if (!pendingFinding) return;
+    pendingFinding = null;
+    transitionTo(SCENE_LAKE);
+    openTrashJournal();
   });
 
   btnSellAll?.addEventListener("click", () => {
@@ -4745,6 +4827,8 @@ if ("serviceWorker" in navigator) {
 
   let catchOverlayVisible = false;
   let catchOverlayHideTimer = null;
+  let findingOverlayVisible = false;
+  let findingOverlayHideTimer = null;
 
   function setCatchOverlayVisible(visible) {
     if (!catchOverlay) return;
@@ -4771,6 +4855,31 @@ if ("serviceWorker" in navigator) {
     }, 220);
   }
 
+  function setFindingOverlayVisible(visible) {
+    if (!findingOverlay) return;
+    if (findingOverlayVisible === visible) return;
+    findingOverlayVisible = visible;
+    if (findingOverlayHideTimer) window.clearTimeout(findingOverlayHideTimer);
+    if (visible) {
+      findingOverlay.classList.remove("hidden");
+      findingOverlay.classList.remove("is-hiding");
+      requestAnimationFrame(() => {
+        findingOverlay.classList.add("is-visible");
+      });
+      updateModalLayerState();
+      return;
+    }
+    findingOverlay.classList.remove("is-visible");
+    findingOverlay.classList.add("is-hiding");
+    findingOverlayHideTimer = window.setTimeout(() => {
+      if (!findingOverlayVisible) {
+        findingOverlay.classList.add("hidden");
+        findingOverlay.classList.remove("is-hiding");
+        updateModalLayerState();
+      }
+    }, 220);
+  }
+
   function setScene(sceneId) {
     if (sceneId !== SCENE_LAKE) {
       cancelWaitingState();
@@ -4785,6 +4894,7 @@ if ("serviceWorker" in navigator) {
     clearCityTooltipTimers();
     clearCityTooltip();
     setCatchOverlayVisible(sceneId === SCENE_CATCH_MODAL);
+    setFindingOverlayVisible(sceneId === SCENE_FINDING_MODAL);
     cityHud?.classList.toggle("hidden", sceneId !== SCENE_CITY);
     shopOverlay?.classList.toggle("hidden", ![SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_GEARSHOP, SCENE_BUILDING_TROPHY].includes(sceneId));
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
@@ -5015,18 +5125,47 @@ if ("serviceWorker" in navigator) {
     transitionTo(SCENE_CATCH_MODAL);
   }
 
+  function openFindingModal(catchData) {
+    if (!catchData) return;
+    const details = TRASH_DETAILS[catchData.trashId] || {};
+    const iconPath = catchData.iconPath || details.iconPath || TRASH_ICON_PATHS[catchData.trashId];
+    const name = details.titleRu || catchData.name || "Находка";
+    pendingFinding = catchData;
+    if (findingTitle) findingTitle.textContent = "Выудил что-то интересное";
+    if (findingName) findingName.textContent = name;
+    if (findingStory) {
+      const story = (details.storyRu || catchData.story || "").trim();
+      findingStory.textContent = story;
+      findingStory.classList.toggle("hidden", !story);
+    }
+    if (findingImage) {
+      if (iconPath) {
+        findingImage.src = iconPath;
+        findingImage.alt = name;
+        findingImage.classList.remove("hidden");
+      } else {
+        findingImage.removeAttribute("src");
+        findingImage.classList.add("hidden");
+      }
+    }
+    if (findingImageSlot) findingImageSlot.classList.toggle("is-empty", !iconPath);
+    transitionTo(SCENE_FINDING_MODAL);
+  }
+
   function land() {
     if (!game.catch) return;
     setFightState(false);
 
     if (game.catch.catchType === "trash") {
+      const trashCatch = game.catch;
       game.mode = "LANDED";
       game.t = 0;
       beep(660, 0.08, 0.06);
       setMsg(`Нашёл: ${game.catch.name}.`, 1.8);
       revealSystem.reset();
       scheduleRevealHintHide(260);
-      awardTrashCatch(game.catch);
+      awardTrashCatch(trashCatch);
+      openFindingModal(trashCatch);
       game.catch = null;
       return;
     }
@@ -5236,7 +5375,7 @@ if ("serviceWorker" in navigator) {
       return;
     }
 
-    if (currentScene !== SCENE_LAKE && currentScene !== SCENE_CATCH_MODAL) {
+    if (currentScene !== SCENE_LAKE && currentScene !== SCENE_CATCH_MODAL && currentScene !== SCENE_FINDING_MODAL) {
       return;
     }
 
