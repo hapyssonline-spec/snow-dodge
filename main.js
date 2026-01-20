@@ -2030,11 +2030,9 @@ if ("serviceWorker" in navigator) {
     if (!fightHud) return;
     const panel = fightHud.querySelector(".fightHudPanel");
     const panelHeight = panel?.getBoundingClientRect().height || fightHud.getBoundingClientRect().height;
-    const targetCenterY = vp.y + vp.h * 0.4;
-    const minTop = vp.y + vp.safeTopPx + 12;
-    const maxTop = vp.y + vp.h - vp.safeBottomPx - 12 - panelHeight;
-    const clampedMax = Math.max(minTop, maxTop);
-    const top = clamp(targetCenterY - panelHeight / 2, minTop, clampedMax);
+    const hudOffset = vp.h * 0.08;
+    const targetCenterY = vp.y + vp.h * 0.4 + hudOffset;
+    const top = targetCenterY - panelHeight / 2;
     fightHud.style.top = `${Math.round(top)}px`;
     fightHud.style.left = `${Math.round(vp.x + vp.w / 2)}px`;
   }
