@@ -3248,13 +3248,11 @@ if ("serviceWorker" in navigator) {
   function awardTrashCatch(catchData) {
     if (!catchData) return;
     const alreadyFound = !!foundTrash[catchData.trashId];
+    const bonus = alreadyFound ? (DEV_TRASH_TEST ? 25 : 6) : 0;
     if (!alreadyFound) {
       foundTrash[catchData.trashId] = true;
-      showToast(`Найдено: ${catchData.name}.`);
     } else {
-      const bonus = DEV_TRASH_TEST ? 25 : 6;
       awardCoins(bonus);
-      showToast(`Повтор: ${catchData.name}. +${bonus} монет.`);
     }
     if (getFoundTrashCount() >= trashItems.length) {
       unlockCollectorRod();
@@ -3262,6 +3260,10 @@ if ("serviceWorker" in navigator) {
     updateHUD();
     renderTrashJournal();
     save();
+    return {
+      alreadyFound,
+      bonus
+    };
   }
 
   function openInventory() {
@@ -5125,18 +5127,22 @@ if ("serviceWorker" in navigator) {
     transitionTo(SCENE_CATCH_MODAL);
   }
 
-  function openFindingModal(catchData) {
+  function openFindingModal(catchData, { alreadyFound = false, bonus = 0 } = {}) {
     if (!catchData) return;
     const details = TRASH_DETAILS[catchData.trashId] || {};
     const iconPath = catchData.iconPath || details.iconPath || TRASH_ICON_PATHS[catchData.trashId];
     const name = details.titleRu || catchData.name || "Находка";
     pendingFinding = catchData;
-    if (findingTitle) findingTitle.textContent = "Выудил что-то интересное";
+    if (findingTitle) {
+      findingTitle.textContent = alreadyFound ? "Повторная находка" : "Выудил что-то интересное";
+    }
     if (findingName) findingName.textContent = name;
     if (findingStory) {
       const story = (details.storyRu || catchData.story || "").trim();
-      findingStory.textContent = story;
-      findingStory.classList.toggle("hidden", !story);
+      const bonusLine = bonus > 0 ? `Бонус: +${bonus} монет.` : "";
+      const nextStory = [story, bonusLine].filter(Boolean).join(" ");
+      findingStory.textContent = nextStory;
+      findingStory.classList.toggle("hidden", !nextStory);
     }
     if (findingImage) {
       if (iconPath) {
@@ -5164,8 +5170,8 @@ if ("serviceWorker" in navigator) {
       setMsg(`Нашёл: ${game.catch.name}.`, 1.8);
       revealSystem.reset();
       scheduleRevealHintHide(260);
-      awardTrashCatch(trashCatch);
-      openFindingModal(trashCatch);
+      const awardDetails = awardTrashCatch(trashCatch) || {};
+      openFindingModal(trashCatch, awardDetails);
       game.catch = null;
       return;
     }
