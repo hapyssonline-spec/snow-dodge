@@ -1404,15 +1404,19 @@ img, a{
 }
 
 #travelOverlay{
-  position:absolute;
+  position:fixed;
   inset:0;
+  width:100%;
+  min-height:100dvh;
   display:flex;
   align-items:center;
   justify-content:center;
   padding:calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
   background: rgba(6,12,20,.72);
   backdrop-filter: blur(8px);
-  z-index:6;
+  z-index:120;
+  pointer-events:auto;
+  touch-action:none;
 }
 
 #app[data-effects="reduced"] #travelOverlay{
@@ -1421,6 +1425,7 @@ img, a{
 }
 
 .travelWrap{
+  text-align:center;
   justify-items:center;
   gap:16px;
 }
@@ -1487,7 +1492,6 @@ img, a{
   stroke:#b8e1ff;
   stroke-width:6;
   stroke-linecap:round;
-  transition: stroke-dasharray 0.15s linear;
 }
 
 #travelMarker{

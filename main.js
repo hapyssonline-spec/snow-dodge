@@ -229,6 +229,17 @@ if ("serviceWorker" in navigator) {
   modalLayer?.addEventListener("focusin", handleModalBodyFocus);
   modalLayer?.addEventListener("touchmove", handleModalTouchMove, { passive: false });
 
+  const blockTravelInteraction = (event) => {
+    if (!travel.active) return;
+    stopUiEvent(event);
+  };
+
+  travelOverlay?.addEventListener("pointerdown", blockTravelInteraction, { passive: false });
+  travelOverlay?.addEventListener("pointerup", blockTravelInteraction, { passive: false });
+  travelOverlay?.addEventListener("click", blockTravelInteraction, { passive: false });
+  travelOverlay?.addEventListener("touchstart", blockTravelInteraction, { passive: false });
+  travelOverlay?.addEventListener("touchmove", blockTravelInteraction, { passive: false });
+
   window.addEventListener("resize", updateVvh);
   updateVvh();
 
@@ -4606,6 +4617,12 @@ if ("serviceWorker" in navigator) {
         delete control.dataset.travelLocked;
       }
     });
+    if (uiLayer) {
+      uiLayer.style.pointerEvents = locked ? "none" : "";
+    }
+    if (gameLayer) {
+      gameLayer.style.pointerEvents = locked ? "none" : "";
+    }
     app.classList.toggle("travel-lock", locked);
   }
 
@@ -4620,6 +4637,17 @@ if ("serviceWorker" in navigator) {
       const s = Math.floor(remainingSec % 60).toString().padStart(2, "0");
       travelTimer.textContent = `${m}:${s}`;
     }
+    if (travelMessage) {
+      const arrivalText = travel.to === "city" ? "Вы прибыли в город" : "Вы прибыли к озеру";
+      let message = "";
+      if (remainingMs > 0 && remainingMs <= 2000) {
+        message = arrivalText;
+      } else if (travel.messageText && now < travel.messageUntil) {
+        message = travel.messageText;
+      }
+      travelMessage.textContent = message;
+      travelMessage.classList.toggle("is-visible", Boolean(message));
+    }
     if (travelPathBase && travelPathProgress && travelMarker) {
       if (!travelPathLength) {
         travelPathLength = travelPathBase.getTotalLength();
@@ -4627,39 +4655,33 @@ if ("serviceWorker" in navigator) {
       const displayProgress = travel.to === "lake" ? 1 - travel.progress : travel.progress;
       const progressLength = travelPathLength * displayProgress;
       travelPathProgress.style.strokeDasharray = `${progressLength} ${travelPathLength}`;
-      travelPathProgress.style.strokeDashoffset = travel.to === "lake" ? `${travelPathLength - progressLength}` : "0";
+      travelPathProgress.style.strokeDashoffset = "0";
       const point = travelPathBase.getPointAtLength(progressLength);
       travelMarker.setAttribute("cx", point.x);
       travelMarker.setAttribute("cy", point.y);
     }
-    renderTravelMessage(now);
   }
 
   function finishTravel() {
     if (!travel.active || travel.arrivalHandled) return;
     travel.arrivalHandled = true;
-    const arrivalDurationMs = 2800;
-    if (travelCard) {
-      travelCard.classList.add("is-arriving");
-      window.setTimeout(() => travelCard.classList.remove("is-arriving"), 600);
-    }
     const destination = travel.to === "city" ? SCENE_CITY : SCENE_LAKE;
     transitionTo(destination);
     if (destination === SCENE_LAKE) {
       setHint("Тап: заброс", 1.2);
     }
-    setTravelMessage("Вы прибыли", arrivalDurationMs);
-    window.setTimeout(() => {
-      setTravelOverlayVisible(false);
-      setTravelUiLocked(false);
-      travel.active = false;
-      travel.t0 = 0;
-      travel.progress = 0;
-      travel.arrivalHandled = false;
-      travel.messageText = "";
-      travel.messageUntil = 0;
-      renderTravelMessage();
-    }, arrivalDurationMs);
+    setTravelOverlayVisible(false);
+    setTravelUiLocked(false);
+    travel.active = false;
+    travel.t0 = 0;
+    travel.progress = 0;
+    travel.arrivalHandled = false;
+    travel.messageText = "";
+    travel.messageUntil = 0;
+    if (travelMessage) {
+      travelMessage.textContent = "";
+      travelMessage.classList.remove("is-visible");
+    }
   }
 
   function startTravel(from, to) {
@@ -5164,9 +5186,10 @@ if ("serviceWorker" in navigator) {
     if (game.msgT > 0) game.msgT -= dt;
 
     if (travel.active) {
-      updateTravelUi();
       if (Date.now() >= travel.t0 + travel.durationMs) {
         finishTravel();
+      } else {
+        updateTravelUi();
       }
       return;
     }
