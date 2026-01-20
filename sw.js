@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 77 for travel overlay sync + input lock.
-const CACHE_VERSION = 77;
+// CACHE_VERSION bumped to 78 to force full cache refresh.
+const CACHE_VERSION = 78;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
@@ -34,6 +34,8 @@ self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))));
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(ASSETS);
     self.clients.claim();
   })());
 });
