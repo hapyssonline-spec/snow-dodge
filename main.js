@@ -2026,17 +2026,6 @@ if ("serviceWorker" in navigator) {
     layer.style.height = `${vp.h}px`;
   }
 
-  function positionFightHud(vp) {
-    if (!fightHud) return;
-    const panel = fightHud.querySelector(".fightHudPanel");
-    const panelHeight = panel?.getBoundingClientRect().height || fightHud.getBoundingClientRect().height;
-    const hudOffset = vp.h * 0.08;
-    const targetCenterY = vp.y + vp.h * 0.4 + hudOffset - vp.h * 0.1;
-    const top = targetCenterY - panelHeight / 2;
-    fightHud.style.top = `${Math.round(top)}px`;
-    fightHud.style.left = `${Math.round(vp.x + vp.w / 2)}px`;
-  }
-
   function positionRareBoostHud(vp) {
     if (!rareBoostHud) return;
     const topBarHeight = topBar?.getBoundingClientRect().height ?? 0;
@@ -2060,7 +2049,6 @@ if ("serviceWorker" in navigator) {
     if (!bobber.visible) {
       syncBobberToRodTip();
     }
-    positionFightHud(vp);
     positionRareBoostHud(vp);
     positionCityHud(vp);
     updateLayerVisibility();
