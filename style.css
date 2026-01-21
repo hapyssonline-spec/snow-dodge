@@ -2651,18 +2651,52 @@ img, a{
   background: rgba(8,14,22,.55);
 }
 
-.invDetailImage{
-  width:64px;
-  height:64px;
-  object-fit:contain;
-  border-radius:10px;
+.invDetailThumb{
+  width:72px;
+  height:72px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  border-radius:12px;
   background: rgba(14,22,32,.8);
+  overflow:hidden;
+}
+
+.invDetailLoader{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  border:3px solid rgba(255,255,255,.25);
+  border-top-color: rgba(255,255,255,.9);
+  animation: invDetailSpin 0.9s linear infinite;
+}
+
+.invDetailLoader.is-hidden{
+  opacity:0;
+}
+
+.invDetailImage{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  opacity:0;
+  transition: opacity 0.2s ease;
+}
+
+.invDetailImage.is-loaded{
+  opacity:1;
 }
 
 .invDetailMediaInfo{
   display:flex;
   flex-direction:column;
   gap:4px;
+}
+
+@keyframes invDetailSpin{
+  from{ transform: rotate(0deg); }
+  to{ transform: rotate(360deg); }
 }
 
 .invDetailRow strong{
