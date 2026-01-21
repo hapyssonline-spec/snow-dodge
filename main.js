@@ -73,6 +73,8 @@ if ("serviceWorker" in navigator) {
   const catchRarity = document.getElementById("catchRarity");
   const catchWeight = document.getElementById("catchWeight");
   const catchStory = document.getElementById("catchStory");
+  const catchImageSlot = document.getElementById("catchImageSlot");
+  const catchImage = document.getElementById("catchImage");
   const catchFullPrice = document.getElementById("catchFullPrice");
   const catchDiscountPrice = document.getElementById("catchDiscountPrice");
   const catchTrophyWrap = document.getElementById("catchTrophyWrap");
@@ -503,6 +505,18 @@ if ("serviceWorker" in navigator) {
 
   const BITE_DELAY_RANGE_MS = { min: 5000, max: 10000 };
   const CAUGHT_SPECIES_KEY = "caughtSpeciesSet";
+  const fishIdAliases = {
+    roach: "plotva",
+    perch: "okun",
+    crucian: "karas_serebryanyy",
+    bream: "lesh",
+    pike: "shchuka",
+    zander: "sudak",
+    trout: "forel_raduzhnaya",
+    catfish: "som",
+    sturgeon: "osetr",
+    "moon-legend": "pozhiratel_lunok"
+  };
 
   let reducedEffects = false;
   const effectsLevel = {
@@ -529,11 +543,26 @@ if ("serviceWorker" in navigator) {
     applyReducedEffects(event.matches, "prefers-reduced-motion");
   });
 
+  function normalizeSpeciesId(value) {
+    if (!value) return value;
+    return fishIdAliases[value] || value;
+  }
+
   function readCaughtSpecies() {
     try {
       const raw = localStorage.getItem(CAUGHT_SPECIES_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
-      return new Set(Array.isArray(parsed) ? parsed : []);
+      const normalized = new Set();
+      let changed = false;
+      (Array.isArray(parsed) ? parsed : []).forEach((entry) => {
+        const normalizedId = normalizeSpeciesId(entry);
+        if (normalizedId) normalized.add(normalizedId);
+        if (normalizedId !== entry) changed = true;
+      });
+      if (changed) {
+        writeCaughtSpecies(normalized);
+      }
+      return normalized;
     } catch {
       return new Set();
     }
@@ -1323,9 +1352,22 @@ if ("serviceWorker" in navigator) {
   const SCENE_BUILDING_GEARSHOP = "SCENE_BUILDING_GEARSHOP";
 
   // ===== Fish table =====
+  const fishIcons = {
+    som: "assets/fish/som.png",
+    forel_raduzhnaya: "assets/fish/forel_raduzhnaya.png",
+    sudak: "assets/fish/sudak.png",
+    plotva: "assets/fish/plotva.png",
+    okun: "assets/fish/okun.png",
+    shchuka: "assets/fish/shchuka.png",
+    lesh: "assets/fish/lesh.png",
+    karas_serebryanyy: "assets/fish/karas_serebryanyy.png",
+    osetr: "assets/fish/osetr.png",
+    pozhiratel_lunok: "assets/fish/pozhiratel_lunok.png"
+  };
+
   const fishSpeciesTable = [
     {
-      id: "roach",
+      id: "plotva",
       name: "Плотва",
       rarity: "common",
       chance: 0.3,
@@ -1334,10 +1376,11 @@ if ("serviceWorker" in navigator) {
       modeKg: 0.35,
       pricePerKg: 45,
       story: "Серебристая тень у кромки льда. Говорят, плотва первая проверяет приманку и первая же выдаёт рыбака.",
-      minRodTier: 1
+      minRodTier: 1,
+      icon: fishIcons.plotva
     },
     {
-      id: "perch",
+      id: "okun",
       name: "Окунь",
       rarity: "common",
       chance: 0.22,
@@ -1346,10 +1389,11 @@ if ("serviceWorker" in navigator) {
       modeKg: 0.6,
       pricePerKg: 55,
       story: "Полосатый разбойник. Часто идёт стаей и любит короткие резкие рывки.",
-      minRodTier: 1
+      minRodTier: 1,
+      icon: fishIcons.okun
     },
     {
-      id: "crucian",
+      id: "karas_serebryanyy",
       name: "Карась",
       rarity: "common",
       chance: 0.16,
@@ -1358,10 +1402,11 @@ if ("serviceWorker" in navigator) {
       modeKg: 1.0,
       pricePerKg: 50,
       story: "Упрямый и терпеливый. Старики говорят: карась клюёт тогда, когда ты уже почти ушёл.",
-      minRodTier: 1
+      minRodTier: 1,
+      icon: fishIcons.karas_serebryanyy
     },
     {
-      id: "bream",
+      id: "lesh",
       name: "Лещ",
       rarity: "uncommon",
       chance: 0.09,
@@ -1370,10 +1415,11 @@ if ("serviceWorker" in navigator) {
       modeKg: 1.8,
       pricePerKg: 70,
       story: "Тяжёлый, ‘плоский’ и молчаливый. Вытаскивать его — как поднимать мокрую доску.",
-      minRodTier: 1
+      minRodTier: 1,
+      icon: fishIcons.lesh
     },
     {
-      id: "pike",
+      id: "shchuka",
       name: "Щука",
       rarity: "uncommon",
       chance: 0.12,
@@ -1382,10 +1428,11 @@ if ("serviceWorker" in navigator) {
       modeKg: 3.0,
       pricePerKg: 85,
       story: "Северная торпеда. Может стоять неподвижно минутами, а потом ударить как молния.",
-      minRodTier: 1
+      minRodTier: 1,
+      icon: fishIcons.shchuka
     },
     {
-      id: "zander",
+      id: "sudak",
       name: "Судак",
       rarity: "rare",
       chance: 0.06,
@@ -1394,10 +1441,11 @@ if ("serviceWorker" in navigator) {
       modeKg: 2.5,
       pricePerKg: 95,
       story: "Ночной охотник. У него холодный взгляд и характер — будто лёд под сапогом.",
-      minRodTier: 2
+      minRodTier: 2,
+      icon: fishIcons.sudak
     },
     {
-      id: "trout",
+      id: "forel_raduzhnaya",
       name: "Форель",
       rarity: "rare",
       chance: 0.03,
@@ -1406,10 +1454,11 @@ if ("serviceWorker" in navigator) {
       modeKg: 1.5,
       pricePerKg: 120,
       story: "Чистая вода, быстрые струи. Форель будто создана для побега — её надо ‘переиграть’.",
-      minRodTier: 2
+      minRodTier: 2,
+      icon: fishIcons.forel_raduzhnaya
     },
     {
-      id: "catfish",
+      id: "som",
       name: "Сом",
       rarity: "epic",
       chance: 0.015,
@@ -1418,10 +1467,11 @@ if ("serviceWorker" in navigator) {
       modeKg: 6.0,
       pricePerKg: 140,
       story: "Дно его дом. Если сом клюнул — ты почувствуешь, как будто за леску держится сама глубина.",
-      minRodTier: 2
+      minRodTier: 2,
+      icon: fishIcons.som
     },
     {
-      id: "sturgeon",
+      id: "osetr",
       name: "Осётр",
       rarity: "epic",
       chance: 0.0045,
@@ -1430,11 +1480,12 @@ if ("serviceWorker" in navigator) {
       modeKg: 10.0,
       pricePerKg: 220,
       story: "Реликт прошлого. Осётр — рыба, которая помнит ‘до льда’, и не любит торопливых.",
-      minRodTier: 3
+      minRodTier: 3,
+      icon: fishIcons.osetr
     },
     {
-      id: "moon-legend",
-      name: "Белорыбица ‘Легенда Лунки’",
+      id: "pozhiratel_lunok",
+      name: "Пожиратель лунок",
       rarity: "legendary",
       chance: 0.0005,
       minKg: 5.0,
@@ -1442,21 +1493,22 @@ if ("serviceWorker" in navigator) {
       modeKg: 12.0,
       pricePerKg: 600,
       story: "Её видели единицы. Говорят, она выходит на свет луны и берёт приманку только у тех, кто умеет ждать.",
-      minRodTier: 3
+      minRodTier: 3,
+      icon: fishIcons.pozhiratel_lunok
     }
   ];
 
   const FISH_WEIGHT_LIMITS = {
-    roach: { min: 0.1, max: 1.2 },
-    perch: { min: 0.15, max: 2.0 },
-    crucian: { min: 0.2, max: 3.5 },
-    bream: { min: 0.5, max: 6.0 },
-    pike: { min: 0.7, max: 12.0 },
-    zander: { min: 0.8, max: 8.0 },
-    trout: { min: 0.4, max: 5.0 },
-    catfish: { min: 1.0, max: 30.0 },
-    sturgeon: { min: 2.0, max: 60.0 },
-    "moon-legend": { min: 5.0, max: 25.0 }
+    plotva: { min: 0.1, max: 1.2 },
+    okun: { min: 0.15, max: 2.0 },
+    karas_serebryanyy: { min: 0.2, max: 3.5 },
+    lesh: { min: 0.5, max: 6.0 },
+    shchuka: { min: 0.7, max: 12.0 },
+    sudak: { min: 0.8, max: 8.0 },
+    forel_raduzhnaya: { min: 0.4, max: 5.0 },
+    som: { min: 1.0, max: 30.0 },
+    osetr: { min: 2.0, max: 60.0 },
+    pozhiratel_lunok: { min: 5.0, max: 25.0 }
   };
 
   const QUEST_DIFFICULTIES = {
@@ -1495,10 +1547,10 @@ if ("serviceWorker" in navigator) {
   };
 
   const confusionGroups = [
-    ["roach", "crucian", "bream"],
-    ["perch", "zander"],
-    ["pike", "trout"],
-    ["catfish", "sturgeon"]
+    ["plotva", "karas_serebryanyy", "lesh"],
+    ["okun", "sudak"],
+    ["shchuka", "forel_raduzhnaya"],
+    ["som", "osetr"]
   ];
 
   const rarityLabels = {
@@ -1638,7 +1690,7 @@ if ("serviceWorker" in navigator) {
       name: "Червь",
       price: 18,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits.worm,
-      boost: ["roach", "perch", "crucian"],
+      boost: ["plotva", "okun", "karas_serebryanyy"],
       note: "Любимый запах спокойной рыбы."
     },
     {
@@ -1646,7 +1698,7 @@ if ("serviceWorker" in navigator) {
       name: "Сладкое тесто",
       price: 22,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits["sweet-dough"],
-      boost: ["crucian", "bream"],
+      boost: ["karas_serebryanyy", "lesh"],
       note: "Тягучая приманка для любителей лакомства."
     },
     {
@@ -1654,7 +1706,7 @@ if ("serviceWorker" in navigator) {
       name: "Малёк",
       price: 30,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits.minnow,
-      boost: ["pike", "zander"],
+      boost: ["shchuka", "sudak"],
       note: "Хищники охотятся охотно."
     },
     {
@@ -1662,7 +1714,7 @@ if ("serviceWorker" in navigator) {
       name: "Блесна-вертушка",
       price: 36,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits.spinner,
-      boost: ["trout", "zander"],
+      boost: ["forel_raduzhnaya", "sudak"],
       note: "Шумит и бликует в воде."
     },
     {
@@ -1670,7 +1722,7 @@ if ("serviceWorker" in navigator) {
       name: "Глубинная приманка",
       price: 48,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits["deep-lure"],
-      boost: ["catfish", "sturgeon", "moon-legend"],
+      boost: ["som", "osetr", "pozhiratel_lunok"],
       note: "Для тех, кто ищет редкие виды."
     }
   ];
@@ -1868,7 +1920,7 @@ if ("serviceWorker" in navigator) {
 
   function sanitizeQuest(data) {
     if (!data || typeof data !== "object" || data.claimed) return null;
-    const speciesId = data.speciesId;
+    const speciesId = normalizeSpeciesId(data.speciesId);
     const species = fishSpeciesTable.find((entry) => entry.id === speciesId);
     if (!species) return null;
     const limits = FISH_WEIGHT_LIMITS[speciesId] || { min: species.minKg, max: species.maxKg };
@@ -2126,6 +2178,7 @@ if ("serviceWorker" in navigator) {
       pricePerKg: species.pricePerKg,
       sellValue,
       story: species.story,
+      iconPath: species.icon,
       power
     };
   }
@@ -2676,6 +2729,23 @@ if ("serviceWorker" in navigator) {
 
   const leaderboardProvider = new LocalLeaderboardProvider();
 
+  function normalizeInventoryEntry(entry) {
+    if (!entry || entry.catchType === "trash") return entry;
+    const normalizedId = normalizeSpeciesId(entry.speciesId);
+    if (normalizedId && normalizedId !== entry.speciesId) {
+      entry.speciesId = normalizedId;
+      const species = fishSpeciesTable.find((item) => item.id === normalizedId);
+      if (species) {
+        entry.name = species.name;
+        entry.rarity = species.rarity;
+      }
+    }
+    if (!entry.iconPath && normalizedId && fishIcons[normalizedId]) {
+      entry.iconPath = fishIcons[normalizedId];
+    }
+    return entry;
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -2711,7 +2781,7 @@ if ("serviceWorker" in navigator) {
         leaderboardProvider.load(obj.leaderboards);
       }
       if (obj.storageVersion >= 2 && Array.isArray(obj.inventory)) {
-        inventory = obj.inventory;
+        inventory = obj.inventory.map((entry) => normalizeInventoryEntry(entry));
       }
       if (obj.storageVersion >= 3) {
         const savedPlayer = obj.player || {};
@@ -5116,6 +5186,21 @@ if ("serviceWorker" in navigator) {
       }
       catchStory.textContent = nextStory;
       catchStory.classList.toggle("hidden", !nextStory);
+    }
+    if (catchImage) {
+      const speciesId = normalizeSpeciesId(catchData.speciesId);
+      const iconPath = !isTrash ? (catchData.iconPath || fishIcons[speciesId]) : null;
+      if (iconPath) {
+        catchImage.src = iconPath;
+        catchImage.alt = catchData.name;
+        catchImage.classList.remove("hidden");
+      } else {
+        catchImage.removeAttribute("src");
+        catchImage.classList.add("hidden");
+      }
+      if (catchImageSlot) {
+        catchImageSlot.classList.toggle("is-empty", !iconPath);
+      }
     }
     if (catchFullPrice) catchFullPrice.textContent = formatCoins(catchData.sellValue);
     const discounted = Math.round(catchData.sellValue * 0.7);
