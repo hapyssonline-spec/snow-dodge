@@ -50,13 +50,15 @@
       <header id="topbar" class="hud topbar">
         <div class="topbarSlot topbarSlot-left">
           <button id="btnProfile" class="profileButton" aria-label="Профиль">
-            <span class="profileAvatar" aria-hidden="true">
-              <svg viewBox="0 0 48 48" role="presentation" focusable="false">
-                <circle cx="24" cy="18" r="8"></circle>
-                <path d="M10 38c2.2-8.5 9-12 14-12s11.8 3.5 14 12"></path>
-              </svg>
+            <span class="profileWrap" aria-hidden="true">
+              <span class="profileAvatar">
+                <svg viewBox="0 0 48 48" role="presentation" focusable="false">
+                  <circle cx="24" cy="18" r="8"></circle>
+                  <path d="M10 38c2.2-8.5 9-12 14-12s11.8 3.5 14 12"></path>
+                </svg>
+              </span>
+              <span id="profileLevelBadge" class="profileLevelBadge">1</span>
             </span>
-            <span id="profileLevelBadge" class="profileLevelBadge">1</span>
           </button>
         </div>
 
