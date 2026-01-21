@@ -4030,7 +4030,9 @@ if ("serviceWorker" in navigator) {
       detail.innerHTML = `
         ${iconPath ? `
           <div class="invDetailMedia">
-            <img class="invDetailImage" src="${iconPath}" alt="${item.name}" loading="lazy">
+            <div class="invDetailThumb" data-icon="${iconPath}">
+              <div class="invDetailLoader" aria-hidden="true"></div>
+            </div>
             <div class="invDetailMediaInfo">
               <div class="invDetailRow"><strong>Шанс поимки:</strong> ${chanceText}</div>
             </div>
@@ -4045,12 +4047,36 @@ if ("serviceWorker" in navigator) {
         <div class="invDetailRow"><strong>Итог продажи:</strong> ${formatCoins(item.sellValue)}</div>
       `;
 
+      const ensureDetailImage = () => {
+        if (!iconPath || detail.dataset.imageLoaded === "true") return;
+        const thumb = detail.querySelector(".invDetailThumb");
+        if (!thumb) return;
+        const loader = thumb.querySelector(".invDetailLoader");
+        const image = document.createElement("img");
+        image.className = "invDetailImage";
+        image.alt = item.name;
+        image.addEventListener("load", () => {
+          thumb.classList.add("is-loaded");
+          image.classList.add("is-loaded");
+          loader?.classList.add("is-hidden");
+        }, { once: true });
+        image.addEventListener("error", () => {
+          loader?.classList.add("is-hidden");
+        }, { once: true });
+        image.src = iconPath;
+        thumb.appendChild(image);
+        detail.dataset.imageLoaded = "true";
+      };
+
       const btnDetails = document.createElement("button");
       btnDetails.className = "invBtn secondary btn--singleLine";
       setButtonText(btnDetails, "Подробнее");
       btnDetails.addEventListener("click", (event) => {
         event.stopPropagation();
         const isHidden = detail.classList.toggle("hidden");
+        if (!isHidden) {
+          ensureDetailImage();
+        }
         setButtonText(btnDetails, isHidden ? "Подробнее" : "Скрыть");
       });
 
@@ -4087,6 +4113,9 @@ if ("serviceWorker" in navigator) {
 
       card.addEventListener("click", () => {
         const isHidden = detail.classList.toggle("hidden");
+        if (!isHidden) {
+          ensureDetailImage();
+        }
         setButtonText(btnDetails, isHidden ? "Подробнее" : "Скрыть");
       });
 
