@@ -600,6 +600,17 @@ if ("serviceWorker" in navigator) {
   }
 
   const formatKg = (value) => `${value.toFixed(2)} кг`;
+  const formatChancePercent = (value) => {
+    if (!Number.isFinite(value)) return "—";
+    const percent = value * 100;
+    let digits = 0;
+    if (percent > 0 && percent < 1) {
+      digits = 2;
+    } else if (percent < 10) {
+      digits = 1;
+    }
+    return `${percent.toFixed(digits)}%`;
+  };
   const formatWeightFromGrams = (grams) => {
     const kg = Math.max(0, Number(grams) || 0) / 1000;
     return `${kg.toFixed(2)} кг`;
@@ -4013,7 +4024,20 @@ if ("serviceWorker" in navigator) {
 
       const detail = document.createElement("div");
       detail.className = "invDetails hidden";
+      const species = fishSpeciesTable.find((entry) => entry.id === item.speciesId);
+      const chanceText = formatChancePercent(species?.chance);
+      const iconPath = item.iconPath || species?.icon;
       detail.innerHTML = `
+        ${iconPath ? `
+          <div class="invDetailMedia">
+            <img class="invDetailImage" src="${iconPath}" alt="${item.name}" loading="lazy">
+            <div class="invDetailMediaInfo">
+              <div class="invDetailRow"><strong>Шанс поимки:</strong> ${chanceText}</div>
+            </div>
+          </div>
+        ` : `
+          <div class="invDetailRow"><strong>Шанс поимки:</strong> ${chanceText}</div>
+        `}
         <div class="invDetailRow"><strong>История:</strong> ${item.story}</div>
         <div class="invDetailRow"><strong>Дата:</strong> ${formatDate(item.caughtAt)}</div>
         <div class="invDetailRow"><strong>Цена за кг:</strong> ${formatCoins(item.pricePerKg)}</div>
@@ -4081,6 +4105,7 @@ if ("serviceWorker" in navigator) {
       pricePerKg: catchData.pricePerKg,
       sellValue: catchData.sellValue,
       story: catchData.story,
+      iconPath: catchData.iconPath,
       caughtAt: new Date().toISOString(),
       isTrophy,
       canBeTrophy: catchData.weightKg >= 5.0

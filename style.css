@@ -2641,6 +2641,30 @@ img, a{
   color:var(--muted);
 }
 
+.invDetailMedia{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:8px;
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  background: rgba(8,14,22,.55);
+}
+
+.invDetailImage{
+  width:64px;
+  height:64px;
+  object-fit:contain;
+  border-radius:10px;
+  background: rgba(14,22,32,.8);
+}
+
+.invDetailMediaInfo{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
 .invDetailRow strong{
   color:var(--text);
 }
