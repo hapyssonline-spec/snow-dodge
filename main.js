@@ -4031,7 +4031,9 @@ if ("serviceWorker" in navigator) {
         ${iconPath ? `
           <div class="invDetailMedia">
             <div class="invDetailThumb" data-icon="${iconPath}">
-              <div class="invDetailLoader" aria-hidden="true"></div>
+              <div class="invDetailThumbInner">
+                <div class="invDetailLoader" aria-hidden="true"></div>
+              </div>
             </div>
           </div>
         ` : ""}
@@ -4047,7 +4049,9 @@ if ("serviceWorker" in navigator) {
         if (!iconPath || detail.dataset.imageLoaded === "true") return;
         const thumb = detail.querySelector(".invDetailThumb");
         if (!thumb) return;
-        const loader = thumb.querySelector(".invDetailLoader");
+        const inner = thumb.querySelector(".invDetailThumbInner");
+        const loader = inner?.querySelector(".invDetailLoader");
+        if (!inner) return;
         const image = document.createElement("img");
         image.className = "invDetailImage";
         image.alt = item.name;
@@ -4060,7 +4064,7 @@ if ("serviceWorker" in navigator) {
           loader?.classList.add("is-hidden");
         }, { once: true });
         image.src = iconPath;
-        thumb.appendChild(image);
+        inner.appendChild(image);
         detail.dataset.imageLoaded = "true";
       };
 
