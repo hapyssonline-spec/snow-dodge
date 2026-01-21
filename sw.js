@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 81 to force full cache refresh.
-const CACHE_VERSION = 81;
+// CACHE_VERSION bumped to 82 to force full cache refresh.
+const CACHE_VERSION = 82;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
@@ -19,7 +19,17 @@ const ASSETS = [
   "./rod.png",
   "./icon-180.png",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./assets/fish/som.png",
+  "./assets/fish/forel_raduzhnaya.png",
+  "./assets/fish/sudak.png",
+  "./assets/fish/plotva.png",
+  "./assets/fish/okun.png",
+  "./assets/fish/shchuka.png",
+  "./assets/fish/lesh.png",
+  "./assets/fish/karas_serebryanyy.png",
+  "./assets/fish/osetr.png",
+  "./assets/fish/pozhiratel_lunok.png"
 ];
 
 self.addEventListener("install", (event) => {
