@@ -4030,8 +4030,8 @@ if ("serviceWorker" in navigator) {
       detail.innerHTML = `
         ${iconPath ? `
           <div class="invDetailMedia">
-            <div class="invDetailThumb" data-icon="${iconPath}">
-              <div class="invDetailThumbInner">
+            <div class="invDetailThumb fish-preview-banner" data-icon="${iconPath}">
+              <div class="invDetailThumbInner fish-preview-center">
                 <div class="invDetailLoader" aria-hidden="true"></div>
               </div>
             </div>
@@ -4053,7 +4053,7 @@ if ("serviceWorker" in navigator) {
         const loader = inner?.querySelector(".invDetailLoader");
         if (!inner) return;
         const image = document.createElement("img");
-        image.className = "invDetailImage";
+        image.className = "invDetailImage fish-preview-img";
         image.alt = item.name;
         image.addEventListener("load", () => {
           thumb.classList.add("is-loaded");
