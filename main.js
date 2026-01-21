@@ -1360,7 +1360,7 @@ if ("serviceWorker" in navigator) {
     okun: "assets/fish/okun.png",
     shchuka: "assets/fish/shchuka.png",
     lesh: "assets/fish/lesh.png",
-    karas_serebryanyy: "assets/fish/karas_serebryanyy.png",
+    karas_serebryanyy: "assets/fish/karas.png",
     osetr: "assets/fish/osetr.png",
     pozhiratel_lunok: "assets/fish/pozhiratel_lunok.png"
   };
