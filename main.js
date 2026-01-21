@@ -4033,14 +4033,10 @@ if ("serviceWorker" in navigator) {
             <div class="invDetailThumb" data-icon="${iconPath}">
               <div class="invDetailLoader" aria-hidden="true"></div>
             </div>
-            <div class="invDetailMediaInfo">
-              <div class="invDetailRow"><strong>Шанс поимки:</strong> ${chanceText}</div>
-            </div>
           </div>
-        ` : `
-          <div class="invDetailRow"><strong>Шанс поимки:</strong> ${chanceText}</div>
-        `}
+        ` : ""}
         <div class="invDetailRow"><strong>История:</strong> ${item.story}</div>
+        <div class="invDetailRow"><strong>Шанс поимки:</strong> ${chanceText}</div>
         <div class="invDetailRow"><strong>Дата:</strong> ${formatDate(item.caughtAt)}</div>
         <div class="invDetailRow"><strong>Цена за кг:</strong> ${formatCoins(item.pricePerKg)}</div>
         <div class="invDetailRow"><strong>Вес:</strong> ${formatItemWeight(item)}</div>
