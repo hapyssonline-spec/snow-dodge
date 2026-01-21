@@ -2668,9 +2668,7 @@ img, a{
 }
 
 .invDetailMedia{
-  display:flex;
-  align-items:center;
-  gap:12px;
+  width:100%;
   padding:8px;
   border:1px solid var(--stroke);
   border-radius:12px;
@@ -2678,8 +2676,8 @@ img, a{
 }
 
 .invDetailThumb{
-  width:72px;
-  height:72px;
+  width:100%;
+  height:clamp(120px, 24vw, 160px);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -2703,8 +2701,10 @@ img, a{
 }
 
 .invDetailImage{
-  width:70%;
-  height:70%;
+  max-width:70%;
+  max-height:70%;
+  width:auto;
+  height:auto;
   object-fit:contain;
   object-position:center;
   display:block;
