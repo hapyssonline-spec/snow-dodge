@@ -171,6 +171,14 @@ img, a{
   padding:0;
   backdrop-filter: blur(8px);
   box-shadow: inset 0 0 0 1px rgba(120,160,255,.08);
+  overflow:visible;
+}
+.profileWrap{
+  position:relative;
+  width:100%;
+  height:100%;
+  display:block;
+  overflow:visible;
 }
 .profileWrap{
   position:relative;
