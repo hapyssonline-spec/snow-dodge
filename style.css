@@ -1383,6 +1383,11 @@ img, a{
   opacity:1;
 }
 
+#app[data-effects="reduced"] #catchOverlay.is-intro .catchCard,
+#app[data-effects="reduced"] #findingOverlay.is-intro .findingCard{
+  animation: none;
+}
+
 #shopOverlay{
   position:absolute;
   inset:0;
@@ -1915,10 +1920,31 @@ img, a{
   box-shadow: 0 24px 70px rgba(0,0,0,.46);
 }
 
+#catchOverlay.is-intro .catchCard,
+#findingOverlay.is-intro .findingCard{
+  animation: catchIntro 2s ease;
+  animation-fill-mode: both;
+}
+
 #catchOverlay.is-hiding .catchCard,
 #findingOverlay.is-hiding .findingCard{
   transform: scale(0.98);
   opacity:0;
+}
+
+@keyframes catchIntro{
+  0%{
+    transform: scale(0.92);
+    opacity:0;
+  }
+  60%{
+    transform: scale(1.02);
+    opacity:1;
+  }
+  100%{
+    transform: scale(1);
+    opacity:1;
+  }
 }
 
 .catchHeader{

@@ -4953,8 +4953,30 @@ if ("serviceWorker" in navigator) {
 
   let catchOverlayVisible = false;
   let catchOverlayHideTimer = null;
+  let catchOverlayIntroTimer = null;
   let findingOverlayVisible = false;
   let findingOverlayHideTimer = null;
+  let findingOverlayIntroTimer = null;
+
+  function setOverlayControlsDisabled(overlayEl, disabled) {
+    if (!overlayEl) return;
+    const controls = overlayEl.querySelectorAll("button, input, select, textarea");
+    controls.forEach((control) => {
+      control.disabled = disabled;
+    });
+  }
+
+  function startOverlayIntro(overlayEl, timerRefSetter) {
+    if (!overlayEl) return;
+    overlayEl.classList.add("is-intro");
+    setOverlayControlsDisabled(overlayEl, true);
+    const timerId = window.setTimeout(() => {
+      overlayEl.classList.remove("is-intro");
+      setOverlayControlsDisabled(overlayEl, false);
+      timerRefSetter(null);
+    }, 2000);
+    timerRefSetter(timerId);
+  }
 
   function setCatchOverlayVisible(visible) {
     if (!catchOverlay) return;
@@ -5263,6 +5285,10 @@ if ("serviceWorker" in navigator) {
       catchTrophyWrap.classList.toggle("hidden", isTrash || !catchData.weightKg || catchData.weightKg < 5.0);
     }
     if (catchTrophyToggle) catchTrophyToggle.checked = false;
+    if (catchOverlayIntroTimer) window.clearTimeout(catchOverlayIntroTimer);
+    startOverlayIntro(catchOverlay, (timerId) => {
+      catchOverlayIntroTimer = timerId;
+    });
     transitionTo(SCENE_CATCH_MODAL);
   }
 
@@ -5294,6 +5320,10 @@ if ("serviceWorker" in navigator) {
       }
     }
     if (findingImageSlot) findingImageSlot.classList.toggle("is-empty", !iconPath);
+    if (findingOverlayIntroTimer) window.clearTimeout(findingOverlayIntroTimer);
+    startOverlayIntro(findingOverlay, (timerId) => {
+      findingOverlayIntroTimer = timerId;
+    });
     transitionTo(SCENE_FINDING_MODAL);
   }
 
