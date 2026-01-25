@@ -490,6 +490,9 @@ if ("serviceWorker" in navigator) {
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + Math.random() * (b - a);
   const randomInt = (min, max) => Math.floor(rand(min, max + 1));
+  const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+  const easeInOutQuad = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
   const GEAR_UNLOCK_LEVELS = {
     rods: { 1: 1, 2: 3, 3: 6 },
@@ -1031,7 +1034,6 @@ if ("serviceWorker" in navigator) {
   }
 
   let lakeState = "idle";
-  let bobberAnimation = null;
   let biteTimer = null;
   let strikeTimer = null;
 
@@ -1113,9 +1115,10 @@ if ("serviceWorker" in navigator) {
   function applyLakeRig() {
     if (!lakeScene) return;
     lakeScene.classList.toggle("is-idle", lakeState === "idle");
-    lakeScene.classList.toggle("is-fishing", ["fishing", "bite", "strike"].includes(lakeState));
+    lakeScene.classList.toggle("is-fishing", ["fishing", "bite", "strike", "casting"].includes(lakeState));
     lakeScene.classList.toggle("is-bite", lakeState === "bite");
     lakeScene.classList.toggle("is-strike", lakeState === "strike");
+    lakeScene.classList.toggle("is-casting", lakeState === "casting");
   }
 
   function setLakeState(state) {
@@ -1131,13 +1134,71 @@ if ("serviceWorker" in navigator) {
     { once: true }
   );
 
+  function parseTransformOrigin(originValue, width, height) {
+    const parts = originValue.split(" ").filter(Boolean);
+    const parsePart = (value, size) => {
+      if (!value) return size * 0.5;
+      if (value.endsWith("%")) return (Number.parseFloat(value) / 100) * size;
+      if (value.endsWith("px")) return Number.parseFloat(value);
+      const numeric = Number.parseFloat(value);
+      return Number.isNaN(numeric) ? size * 0.5 : numeric;
+    };
+    return {
+      x: parsePart(parts[0], width),
+      y: parsePart(parts[1] || parts[0], height)
+    };
+  }
+
+  function getRodAngleFromElement() {
+    if (!rodLayer) return 0;
+    const transform = getComputedStyle(rodLayer).transform;
+    if (!transform || transform === "none") return 0;
+    const matrix = new DOMMatrixReadOnly(transform);
+    return Math.atan2(matrix.b, matrix.a);
+  }
+
+  function getRodGeometryFromElement() {
+    if (!rodLayer) return null;
+    const style = getComputedStyle(rodLayer);
+    const rect = rodLayer.getBoundingClientRect();
+    const width = rodLayer.offsetWidth || rect.width;
+    const height = rodLayer.offsetHeight || rect.height;
+    const origin = parseTransformOrigin(style.transformOrigin, width, height);
+    return {
+      width,
+      height,
+      originX: origin.x,
+      originY: origin.y,
+      tipX: width,
+      tipY: height * 0.1
+    };
+  }
+
+  function computeRodTipFromPose(baseX, baseY, angle, geometry) {
+    const dx = geometry.tipX - geometry.originX;
+    const dy = geometry.tipY - geometry.originY;
+    return {
+      x: baseX + dx * Math.cos(angle) - dy * Math.sin(angle),
+      y: baseY + dx * Math.sin(angle) + dy * Math.cos(angle)
+    };
+  }
+
   function getRodTipPoint() {
     if (!rodLayer) return null;
+    if (castController?.active && castController.rodTip) {
+      return castController.rodTip;
+    }
+    const geometry = getRodGeometryFromElement();
+    if (!geometry) return null;
     const rect = rodLayer.getBoundingClientRect();
-    return {
-      x: rect.right,
-      y: rect.top
-    };
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const angle = getRodAngleFromElement();
+    const originOffsetX = geometry.originX - geometry.width / 2;
+    const originOffsetY = geometry.originY - geometry.height / 2;
+    const baseX = centerX + originOffsetX * Math.cos(angle) - originOffsetY * Math.sin(angle);
+    const baseY = centerY + originOffsetX * Math.sin(angle) + originOffsetY * Math.cos(angle);
+    return computeRodTipFromPose(baseX, baseY, angle, geometry);
   }
 
   function getCastPoint() {
@@ -1183,37 +1244,6 @@ if ("serviceWorker" in navigator) {
     placeBobberAt(rodTip.x, rodTip.y);
   }
 
-  function animateCastToHole() {
-    if (!bobberLayer) return;
-    const rodTip = getRodTipPoint();
-    const castPoint = getCastPoint();
-    if (!rodTip || !castPoint) return;
-
-    setLakeState("fishing");
-    const scale = getBobberScale();
-    const dx = rodTip.x - castPoint.x;
-    const dy = rodTip.y - castPoint.y;
-
-    if (bobberAnimation) bobberAnimation.cancel();
-    bobberLayer.style.animation = "none";
-    bobberLayer.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
-    bobberAnimation = bobberLayer.animate(
-      [
-        { transform: `translate3d(${dx}px, ${dy}px, 0) scale(${scale})` },
-        { transform: `translate3d(0px, 0px, 0) scale(${scale})` }
-      ],
-      { duration: 450, easing: "cubic-bezier(.2,.8,.2,1)" }
-    );
-    bobberAnimation.onfinish = () => {
-      bobberLayer.style.transform = "";
-      bobberLayer.style.animation = "";
-    };
-    bobberAnimation.oncancel = () => {
-      bobberLayer.style.transform = "";
-      bobberLayer.style.animation = "";
-    };
-  }
-
   function setFishing(active) {
     setLakeState(active ? "fishing" : "idle");
     if (!active && !bobber.visible) {
@@ -1225,6 +1255,7 @@ if ("serviceWorker" in navigator) {
     if (!lakeScene) return;
     if (biteTimer) window.clearTimeout(biteTimer);
     setLakeState("bite");
+    bobber.settled = false;
     if (!reducedEffects) {
       rippleBoostUntil = scene.t + 0.8;
       spawnRipple(1.3);
@@ -4593,6 +4624,180 @@ if ("serviceWorker" in navigator) {
     visible: false,
     inWater: false,
     wave: 0,
+    settled: false,
+  };
+
+  // CastAnimator: replaces the old CSS/WebAnimation + ballistic timers with a single timed controller.
+  const CAST_DURATION = 3.0;
+  const CAST_PHASES = {
+    A_END: 0.9,
+    B_END: 1.4,
+    C_START: 1.0,
+    C_END: 2.4,
+    D_END: 3.0
+  };
+
+  const castController = {
+    active: false,
+    elapsed: 0,
+    targetX: 0,
+    targetY: 0,
+    rodBase: { x: 0, y: 0 },
+    rodBaseOffset: { x: 0, y: 0 },
+    rodAngle: 0,
+    rodStartAngle: 0,
+    rodBackAngle: 0,
+    rodForwardAngle: 0,
+    rodBackOffset: { x: 0, y: 0 },
+    rodForwardOffset: { x: 0, y: 0 },
+    rodGeometry: null,
+    rodTip: null,
+    flightStart: null,
+    floatTarget: null,
+    reset() {
+      this.active = false;
+      this.elapsed = 0;
+      this.flightStart = null;
+      this.rodTip = null;
+      this.floatTarget = null;
+      if (rodLayer) {
+        rodLayer.style.transform = "";
+      }
+      if (lakeState === "casting") {
+        setLakeState("idle");
+      }
+    },
+    startCast(targetX) {
+      if (this.active) return false;
+      if (!rodLayer) return false;
+      const geometry = getRodGeometryFromElement();
+      if (!geometry) return false;
+      const rect = rodLayer.getBoundingClientRect();
+      const baseX = rect.left + rect.width * (geometry.originX / geometry.width);
+      const baseY = rect.top + rect.height * (geometry.originY / geometry.height);
+      const angle = getRodAngleFromElement();
+
+      this.active = true;
+      this.elapsed = 0;
+      this.rodGeometry = geometry;
+      this.rodBase = { x: baseX, y: baseY };
+      this.rodStartAngle = angle;
+      this.rodBackAngle = angle - (12 * Math.PI) / 180;
+      this.rodForwardAngle = angle + (8 * Math.PI) / 180;
+      this.rodBackOffset = { x: -W * 0.045, y: -H * 0.045 };
+      this.rodForwardOffset = { x: W * 0.04, y: H * 0.01 };
+      this.flightStart = null;
+      this.targetX = clamp(targetX, W * 0.40, W * 0.92);
+      this.targetY = scene.lakeY + 18;
+      this.floatTarget = { x: this.targetX, y: this.targetY };
+
+      setLakeState("casting");
+
+      bobber.visible = true;
+      bobber.inWater = false;
+      bobber.settled = false;
+      bobber.wave = 0;
+
+      this.update(0);
+      bobber.x = this.rodTip.x;
+      bobber.y = this.rodTip.y;
+      placeBobberAt(bobber.x, bobber.y);
+      return true;
+    },
+    getPhase(t) {
+      if (t < CAST_PHASES.A_END) return "A";
+      if (t < CAST_PHASES.B_END) return "B";
+      if (t < CAST_PHASES.C_END) return "C";
+      return "D";
+    },
+    updateRodPose(t) {
+      let offset = { x: 0, y: 0 };
+      let angle = this.rodStartAngle;
+
+      if (t <= CAST_PHASES.A_END) {
+        const p = easeInOutCubic(t / CAST_PHASES.A_END);
+        offset = {
+          x: lerp(0, this.rodBackOffset.x, p),
+          y: lerp(0, this.rodBackOffset.y, p)
+        };
+        angle = lerp(this.rodStartAngle, this.rodBackAngle, p);
+      } else if (t <= CAST_PHASES.B_END) {
+        const p = easeOutCubic((t - CAST_PHASES.A_END) / (CAST_PHASES.B_END - CAST_PHASES.A_END));
+        offset = {
+          x: lerp(this.rodBackOffset.x, this.rodForwardOffset.x, p),
+          y: lerp(this.rodBackOffset.y, this.rodForwardOffset.y, p)
+        };
+        angle = lerp(this.rodBackAngle, this.rodForwardAngle, p);
+      } else {
+        const settleWindow = Math.max(0.01, CAST_PHASES.C_END - CAST_PHASES.B_END);
+        const p = easeInOutCubic(clamp((t - CAST_PHASES.B_END) / settleWindow, 0, 1));
+        offset = {
+          x: lerp(this.rodForwardOffset.x, 0, p),
+          y: lerp(this.rodForwardOffset.y, 0, p)
+        };
+        angle = lerp(this.rodForwardAngle, this.rodStartAngle, p);
+      }
+
+      this.rodBaseOffset = offset;
+      this.rodAngle = angle;
+
+      const baseX = this.rodBase.x + offset.x;
+      const baseY = this.rodBase.y + offset.y;
+      this.rodTip = computeRodTipFromPose(baseX, baseY, angle, this.rodGeometry);
+      if (rodLayer) {
+        rodLayer.style.transform = `translate(-50%, -50%) translate(${offset.x.toFixed(2)}px, ${offset.y.toFixed(2)}px) rotate(${(angle * 180) / Math.PI}deg)`;
+      }
+    },
+    update(dt) {
+      if (!this.active) return;
+      this.elapsed = clamp(this.elapsed + dt, 0, CAST_DURATION);
+      const t = this.elapsed;
+
+      this.updateRodPose(t);
+
+      if (t < CAST_PHASES.C_START) {
+        bobber.x = this.rodTip.x;
+        bobber.y = this.rodTip.y;
+      } else if (t <= CAST_PHASES.C_END) {
+        if (!this.flightStart) {
+          this.flightStart = { x: this.rodTip.x, y: this.rodTip.y };
+        }
+        const p = easeInOutQuad((t - CAST_PHASES.C_START) / (CAST_PHASES.C_END - CAST_PHASES.C_START));
+        const midX = (this.flightStart.x + this.floatTarget.x) * 0.5;
+        const peakY = Math.min(this.flightStart.y, this.floatTarget.y) - H * 0.14;
+        const oneMinus = 1 - p;
+        bobber.x = oneMinus * oneMinus * this.flightStart.x + 2 * oneMinus * p * midX + p * p * this.floatTarget.x;
+        bobber.y = oneMinus * oneMinus * this.flightStart.y + 2 * oneMinus * p * peakY + p * p * this.floatTarget.y;
+      } else {
+        const p = clamp((t - CAST_PHASES.C_END) / (CAST_PHASES.D_END - CAST_PHASES.C_END), 0, 1);
+        const cycles = 1.6;
+        const damping = 4.2;
+        const amplitude = 7;
+        const wobble = Math.sin(2 * Math.PI * cycles * p) * Math.exp(-damping * p);
+        bobber.x = this.floatTarget.x;
+        bobber.y = this.floatTarget.y + wobble * amplitude;
+      }
+
+      placeBobberAt(bobber.x, bobber.y);
+
+      if (this.elapsed >= CAST_DURATION) {
+        this.finish();
+      }
+    },
+    finish() {
+      this.active = false;
+      bobber.inWater = true;
+      bobber.visible = true;
+      bobber.settled = true;
+      bobber.wave = 0;
+      bobber.x = this.targetX;
+      bobber.y = this.targetY;
+      placeBobberAt(bobber.x, bobber.y);
+      if (rodLayer) {
+        rodLayer.style.transform = "";
+      }
+      enterWaiting();
+    }
   };
 
   const ripples = [];
@@ -5086,8 +5291,10 @@ if ("serviceWorker" in navigator) {
     setFightState(false);
     game.mode = "IDLE";
     game.t = 0;
+    castController.reset();
     bobber.visible = false;
     bobber.inWater = false;
+    bobber.settled = false;
     setFishing(false);
     revealSystem.reset();
     refreshDailyCharges();
@@ -5130,27 +5337,20 @@ if ("serviceWorker" in navigator) {
   }
 
   function castTo(x, y) {
+    if (castController.active) return;
     game.mode = "CASTING";
     game.t = 0;
     idleHintShown = true;
     game.rareBoostActive = spendRareBoostCharge();
     updateHUD();
     save();
-    animateCastToHole();
-
-    bobber.visible = true;
-    bobber.inWater = false;
-    bobber.wave = 0;
-    const rodTip = getRodTipPoint();
-    bobber.x = rodTip ? rodTip.x : rod.tipX;
-    bobber.y = rodTip ? rodTip.y : rod.tipY;
-
-    const tx = clamp(x, W * 0.40, W * 0.92);
-    const ty = scene.lakeY + 18;
-
-    const flight = 0.55;
-    bobber.vx = (tx - bobber.x) / flight;
-    bobber.vy = (ty - bobber.y) / flight - 230;
+    // Replaces old animateCastToHole + velocity-based flight with timed cast phases.
+    const started = castController.startCast(x);
+    if (!started) {
+      game.mode = "IDLE";
+      game.t = 0;
+      return;
+    }
 
     beep(440, 0.06, 0.04);
     setMsg("Заброс.", 0.7);
@@ -5173,6 +5373,7 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     bobber.visible = false;
     bobber.inWater = false;
+    bobber.settled = false;
     game.catch = null;
     setFishing(false);
   }
@@ -5554,21 +5755,11 @@ if ("serviceWorker" in navigator) {
       return;
     }
 
-    // bobber physics
-    if (bobber.visible) {
-      if (game.mode === "CASTING") {
-        bobber.x += bobber.vx * dt;
-        bobber.y += bobber.vy * dt;
-        bobber.vy += 620 * dt;
-
-        if (bobber.y >= scene.lakeY + 18) {
-          bobber.y = scene.lakeY + 18;
-          bobber.vx *= 0.12;
-          bobber.vy = 0;
-          bobber.inWater = true;
-          enterWaiting();
-        }
-      } else if (bobber.inWater) {
+    // bobber physics (casting handled only by CastAnimator to avoid double-updates)
+    if (castController.active) {
+      castController.update(dt);
+    } else if (bobber.visible) {
+      if (bobber.inWater) {
         const motionScale = reducedEffects ? 0.35 : 1;
         let amp = (game.mode === "BITE") ? 4.6 : (game.mode === "REELING" ? 2.2 : 1.4);
         let waveSpeed = 1.4 + game.fishPower * 0.7;
@@ -5594,10 +5785,14 @@ if ("serviceWorker" in navigator) {
           }
         }
 
-        bobber.wave += dt * waveSpeed * (reducedEffects ? 0.6 : 1);
-        bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * amp * motionScale + jiggle;
-        if (game.mode !== "REELING") {
-          bobber.x += Math.sin(bobber.wave * 1.2) * 0.25 * motionScale;
+        if (game.mode === "WAITING" && bobber.settled) {
+          bobber.y = scene.lakeY + 18;
+        } else {
+          bobber.wave += dt * waveSpeed * (reducedEffects ? 0.6 : 1);
+          bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * amp * motionScale + jiggle;
+          if (game.mode !== "REELING") {
+            bobber.x += Math.sin(bobber.wave * 1.2) * 0.25 * motionScale;
+          }
         }
       }
       placeBobberAt(bobber.x, bobber.y);
@@ -5861,8 +6056,19 @@ if ("serviceWorker" in navigator) {
         ctx.beginPath();
         ctx.moveTo(rodTip.x, rodTip.y);
         const midX = (rodTip.x + bobber.x) * 0.5;
-        const midY = (rodTip.y + bobber.y) * 0.5 + 30;
-        ctx.quadraticCurveTo(midX, midY, bobber.x, bobber.y);
+        const midY = (rodTip.y + bobber.y) * 0.5;
+        let controlY = midY + 30;
+        if (castController.active) {
+          const phase = castController.getPhase(castController.elapsed);
+          if (phase === "A" || phase === "B") {
+            controlY = midY + 26;
+          } else if (phase === "C") {
+            controlY = midY - 32;
+          } else {
+            controlY = midY + 8;
+          }
+        }
+        ctx.quadraticCurveTo(midX, controlY, bobber.x, bobber.y);
         ctx.stroke();
       }
     }
