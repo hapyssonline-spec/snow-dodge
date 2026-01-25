@@ -5239,7 +5239,10 @@ if ("serviceWorker" in navigator) {
     }
     currentScene = sceneId;
     const isCityScene = [SCENE_CITY, SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId);
-    if (app) app.dataset.scene = isCityScene ? "city" : "lake";
+    if (app) {
+      app.dataset.scene = isCityScene ? "city" : "lake";
+      app.dataset.snow = sceneId === SCENE_LAKE ? "lake" : sceneId === SCENE_CITY ? "city" : "none";
+    }
     if (cityScene) {
       cityScene.setAttribute("aria-hidden", isCityScene ? "false" : "true");
       cityScene.style.pointerEvents = sceneId === SCENE_CITY ? "auto" : "none";
