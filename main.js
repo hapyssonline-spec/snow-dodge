@@ -49,6 +49,9 @@ if ("serviceWorker" in navigator) {
   const btnInventory = document.getElementById("btnInventory");
   const btnJournal = document.getElementById("btnJournal");
   const btnCity = document.getElementById("btnCity");
+  const btnSoundToggle = document.getElementById("btnSoundToggle");
+  const sfxVolumeInput = document.getElementById("sfxVolume");
+  const sfxVolumeValue = document.getElementById("sfxVolumeValue");
   const invOverlay = document.getElementById("invOverlay");
   const btnInvClose = document.getElementById("btnInvClose");
   const invSort = document.getElementById("invSort");
@@ -2434,53 +2437,62 @@ if ("serviceWorker" in navigator) {
   let bgGain = null;
   let bgShouldPlay = false;
 
-  const sfxExtension = audio?.getSupportedExtension?.(["ogg", "mp3"]) || "ogg";
-  const sfxFile = (name) => `assets/sfx/${name}.${sfxExtension}`;
   const sfxManifest = {
     ui_click: {
-      files: [sfxFile("ui_click_1"), sfxFile("ui_click_2"), sfxFile("ui_click_3")],
       volume: 0.2,
-      cooldownMs: 70,
-      pitchRange: 0.03
+      cooldownRangeMs: [60, 80],
+      pitchRange: [0.02, 0.04],
+      variants: [
+        { type: "click", freq: 950, decay: 0.045, noise: 0.22, filter: 1800, wave: "square" },
+        { type: "click", freq: 780, decay: 0.05, noise: 0.18, filter: 1500, wave: "triangle" },
+        { type: "click", freq: 1080, decay: 0.04, noise: 0.14, filter: 2200, wave: "sawtooth" }
+      ]
     },
     inventory_open: {
-      files: [sfxFile("inventory_open")],
-      volume: 0.25
+      volume: 0.24,
+      variants: [{ type: "sweep", start: 420, end: 1320, duration: 0.18, wave: "triangle" }]
     },
     inventory_close: {
-      files: [sfxFile("inventory_close")],
-      volume: 0.24
+      volume: 0.24,
+      variants: [{ type: "sweep", start: 1200, end: 420, duration: 0.16, wave: "triangle" }]
     },
     cast_whoosh: {
-      files: [sfxFile("cast_whoosh")],
-      volume: 0.32
+      volume: 0.3,
+      variants: [{ type: "whoosh", start: 240, end: 1280, duration: 0.36, q: 0.8 }]
     },
     reel_spin: {
-      files: [sfxFile("reel_spin_loop")],
       volume: 0.22,
       loop: true,
-      rate: 0.96
+      rate: 0.96,
+      cooldownRangeMs: [120, 160],
+      variants: [{ type: "reel_loop", lowpass: 800, highpass: 90, humFreq: 120, humGain: 0.2, noiseGain: 0.55 }]
     },
     bobber_splash: {
-      files: [sfxFile("bobber_splash_1"), sfxFile("bobber_splash_2")],
-      volume: 0.34
+      volume: 0.34,
+      variants: [
+        { type: "splash", filter: 520, duration: 0.28, thump: 190 },
+        { type: "splash", filter: 620, duration: 0.24, thump: 170 }
+      ]
     },
     shop_sell_coins: {
-      files: [sfxFile("shop_sell_coins_1"), sfxFile("shop_sell_coins_2")],
       volume: 0.26,
-      pitchRange: 0.03
+      pitchRange: [0.02, 0.04],
+      variants: [
+        { type: "coin", notes: [1200, 1600, 2100], duration: 0.1, interval: 0.035 },
+        { type: "coin", notes: [980, 1400, 1900], duration: 0.12, interval: 0.04 }
+      ]
     },
     shop_buy_cash: {
-      files: [sfxFile("shop_buy_cash")],
-      volume: 0.26
+      volume: 0.25,
+      variants: [{ type: "cash", start: 920, end: 560, duration: 0.22, wave: "square" }]
     },
     quest_accept: {
-      files: [sfxFile("quest_accept")],
-      volume: 0.34
+      volume: 0.32,
+      variants: [{ type: "chime", notes: [620, 940, 1240], duration: 0.22, interval: 0.05 }]
     },
     quest_complete: {
-      files: [sfxFile("quest_complete")],
-      volume: 0.38
+      volume: 0.36,
+      variants: [{ type: "chime", notes: [660, 990, 1320, 1760], duration: 0.3, interval: 0.06 }]
     }
   };
 
@@ -2571,13 +2583,19 @@ if ("serviceWorker" in navigator) {
   }
 
   function updateMuteButton() {
-    if (!btnMute) return;
-    btnMute.classList.toggle("is-muted", muted);
-    const label = muted ? "Звук: выкл" : "Звук: вкл";
-    btnMute.setAttribute("aria-label", label);
-    btnMute.setAttribute("title", label);
-    const icon = btnMute.querySelector(".icon");
-    if (icon) icon.textContent = muted ? "🔇" : "🔊";
+    if (btnMute) {
+      btnMute.classList.toggle("is-muted", muted);
+      const label = muted ? "Звук: выкл" : "Звук: вкл";
+      btnMute.setAttribute("aria-label", label);
+      btnMute.setAttribute("title", label);
+      const icon = btnMute.querySelector(".icon");
+      if (icon) icon.textContent = muted ? "🔇" : "🔊";
+    }
+    if (btnSoundToggle) {
+      btnSoundToggle.classList.toggle("is-muted", muted);
+      btnSoundToggle.setAttribute("aria-pressed", muted ? "true" : "false");
+      setButtonText(btnSoundToggle, muted ? "Выключен" : "Включен");
+    }
     audio?.setMuted(muted);
     if (muted) {
       stopBackgroundMusic();
@@ -2586,12 +2604,32 @@ if ("serviceWorker" in navigator) {
     }
   }
 
-  btnMute?.addEventListener("click", () => {
+  function updateSfxVolumeUi() {
+    if (!sfxVolumeInput) return;
+    const value = Math.round(clamp(sfxVolume, 0, 1) * 100);
+    sfxVolumeInput.value = String(value);
+    if (sfxVolumeValue) {
+      sfxVolumeValue.textContent = `${value}%`;
+    }
+  }
+
+  sfxVolumeInput?.addEventListener("input", () => {
+    const next = clamp(Number(sfxVolumeInput.value) / 100, 0, 1);
+    sfxVolume = next;
+    audio?.setSfxVolume(sfxVolume);
+    updateSfxVolumeUi();
+    save();
+  });
+
+  const toggleMuteState = () => {
     if (isFighting) return;
     muted = !muted;
     updateMuteButton();
     save();
-  });
+  };
+
+  btnMute?.addEventListener("click", toggleMuteState);
+  btnSoundToggle?.addEventListener("click", toggleMuteState);
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
@@ -3079,6 +3117,7 @@ if ("serviceWorker" in navigator) {
       refreshDailyCharges();
       audio?.setSfxVolume(sfxVolume);
       updateMuteButton();
+      updateSfxVolumeUi();
       ensureQuestPreviews();
       if (unlockAdjusted) {
         save();
