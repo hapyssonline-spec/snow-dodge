@@ -142,12 +142,6 @@ if ("serviceWorker" in navigator) {
   const activeQuestReward = document.getElementById("activeQuestReward");
   const activeQuestStatus = document.getElementById("activeQuestStatus");
   const btnQuestClaim = document.getElementById("btnQuestClaim");
-  disableUiClickSfx(btnInventory);
-  disableUiClickSfx(btnInvClose);
-  disableUiClickSfx(btnQuestAccept);
-  disableUiClickSfx(btnQuestClaim);
-  disableUiClickSfx(btnSellAll);
-  disableUiClickSfx(btnCatchSellNow);
   const gearShopSection = document.getElementById("gearShopSection");
   const gearTabButtons = Array.from(document.querySelectorAll(".gearTabBtn"));
   const gearTabPanels = Array.from(document.querySelectorAll(".gearTabPanel"));
