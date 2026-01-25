@@ -3093,7 +3093,7 @@ button:disabled{
   /* Герой — слева от точки заброса */
   --hero-x: 32%;
   --hero-y: 66%;
-  --hero-h: min(17.6vh, 168px);
+  --hero-h: min(14.08vh, 134.4px);
   --hero-rod-y-offset: 0px;
 
   /* Удочка — строго в руках героя */
@@ -3119,7 +3119,7 @@ button:disabled{
 
     --hero-x: 30%;
     --hero-y: 55%;
-    --hero-h: min(15.2vh, 152px);
+    --hero-h: min(12.16vh, 121.6px);
 
     --rod-dx: 10%;
     --rod-dx-fishing: var(--rod-dx);
