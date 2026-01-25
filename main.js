@@ -2398,6 +2398,18 @@ if ("serviceWorker" in navigator) {
   // ===== Audio (optional, simple beeps via WebAudio) =====
   let audioCtx = null;
   let muted = false;
+  const bgAudio = new Audio("background-music.mp3");
+  bgAudio.loop = true;
+  bgAudio.preload = "auto";
+  bgAudio.volume = 0.35;
+  let bgStarted = false;
+
+  function startBackgroundMusic() {
+    if (!bgAudio) return;
+    bgStarted = true;
+    if (muted) return;
+    bgAudio.play().catch(() => {});
+  }
 
   function beep(freq = 440, dur = 0.06, vol = 0.06) {
     if (muted) return;
@@ -2423,6 +2435,11 @@ if ("serviceWorker" in navigator) {
     btnMute.setAttribute("aria-label", muted ? "Звук выключен" : "Звук включен");
     const icon = btnMute.querySelector(".icon");
     if (icon) icon.textContent = muted ? "🔇" : "🔊";
+    if (muted) {
+      bgAudio.pause();
+    } else if (bgStarted) {
+      bgAudio.play().catch(() => {});
+    }
   }
 
   btnMute?.addEventListener("click", () => {
@@ -5316,6 +5333,7 @@ if ("serviceWorker" in navigator) {
   btnPlay?.addEventListener("click", () => {
     // iOS: аудио можно стартовать только после жеста
     beep(520, 0.05, 0.04);
+    startBackgroundMusic();
     startGame();
   });
 
