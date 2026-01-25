@@ -3093,7 +3093,7 @@ button:disabled{
   /* Герой — слева от точки заброса */
   --hero-x: 32%;
   --hero-y: 66%;
-  --hero-h: min(44vh, 420px);
+  --hero-h: min(8.8vh, 84px);
   --hero-rod-y-offset: 0px;
 
   /* Удочка — строго в руках героя */
@@ -3102,13 +3102,13 @@ button:disabled{
   --rod-dx-bite: var(--rod-dx);
   --rod-dx-current: var(--rod-dx);
   --rod-dy: 1.5%;
-  --rod-h:  min(28vh, 280px);
+  --rod-h:  min(5.6vh, 56px);
   --rod-rot: -18deg;
 
   /* Поплавок — в точке заброса */
   --bobber-x: var(--cast-x);
   --bobber-y: calc(var(--cast-y) - 1.6%);
-  --bobber-w: min(3.6vw, 46px);
+  --bobber-w: min(0.72vw, 9.2px);
   --bobber-scale: 1.9;
 }
 
@@ -3119,17 +3119,17 @@ button:disabled{
 
     --hero-x: 30%;
     --hero-y: 55%;
-    --hero-h: min(38vh, 380px);
+    --hero-h: min(7.6vh, 76px);
 
     --rod-dx: 10%;
     --rod-dx-fishing: var(--rod-dx);
     --rod-dx-bite: var(--rod-dx);
     --rod-dy: 1.2%;
-    --rod-h:  min(24vh, 240px);
+    --rod-h:  min(4.8vh, 48px);
     --rod-rot: -22deg;
 
     --bobber-y: calc(var(--cast-y) - 1.0%);
-    --bobber-w: min(5.2vw, 54px);
+    --bobber-w: min(1.04vw, 10.8px);
     --bobber-scale: 2.1;
   }
 }
