@@ -292,6 +292,49 @@ img, a{
   transition: opacity 0.25s ease;
 }
 
+#snowLayer{
+  position:absolute;
+  inset:-20% 0 0 0;
+  z-index:3;
+  pointer-events:none;
+  opacity:0;
+  transition: opacity 0.3s ease;
+}
+
+#snowLayer::before,
+#snowLayer::after{
+  content:"";
+  position:absolute;
+  inset:-30% 0 0 0;
+  background-image:
+    radial-gradient(2px 2px at 30px 40px, rgba(255,255,255,0.55) 50%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 120px 140px, rgba(255,255,255,0.45) 50%, transparent 60%),
+    radial-gradient(1.8px 1.8px at 210px 90px, rgba(255,255,255,0.5) 50%, transparent 60%),
+    radial-gradient(1.4px 1.4px at 60px 180px, rgba(255,255,255,0.4) 50%, transparent 60%),
+    radial-gradient(2px 2px at 170px 30px, rgba(255,255,255,0.5) 50%, transparent 60%);
+  background-size: 220px 220px;
+  animation: snowFall 18s linear infinite;
+  opacity:0.7;
+}
+
+#snowLayer::after{
+  background-image:
+    radial-gradient(1.2px 1.2px at 40px 50px, rgba(255,255,255,0.45) 50%, transparent 60%),
+    radial-gradient(1px 1px at 90px 120px, rgba(255,255,255,0.35) 50%, transparent 60%),
+    radial-gradient(1.4px 1.4px at 160px 90px, rgba(255,255,255,0.4) 50%, transparent 60%),
+    radial-gradient(1.1px 1.1px at 200px 30px, rgba(255,255,255,0.32) 50%, transparent 60%),
+    radial-gradient(1.3px 1.3px at 20px 180px, rgba(255,255,255,0.38) 50%, transparent 60%);
+  background-size: 200px 200px;
+  animation-duration: 14s;
+  opacity:0.55;
+  filter: blur(0.2px);
+}
+
+@keyframes snowFall{
+  from{ transform: translate3d(0,-10%,0); }
+  to{ transform: translate3d(0,60%,0); }
+}
+
 #cityTooltip{
   position:absolute;
   padding:6px 10px;
@@ -374,6 +417,11 @@ img, a{
   opacity:1;
   pointer-events:auto;
   display:block;
+}
+
+#app[data-snow="lake"] #snowLayer,
+#app[data-snow="city"] #snowLayer{
+  opacity:1;
 }
 
 #app[data-scene="city"] #bgLayer,
