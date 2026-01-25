@@ -67,6 +67,7 @@ if ("serviceWorker" in navigator) {
   const btnTrashFill = document.getElementById("btnTrashFill");
   const btnResetCharges = document.getElementById("btnResetCharges");
 
+
   const catchOverlay = document.getElementById("catchOverlay");
   const catchTitle = document.getElementById("catchTitle");
   const catchName = document.getElementById("catchName");
@@ -220,6 +221,18 @@ if ("serviceWorker" in navigator) {
   const breakHint = document.getElementById("breakHint");
   const fishHintText = document.getElementById("fishHintText");
   const rareBoostHud = document.getElementById("rareBoostHud");
+  const audio = window.audioManager;
+
+  const disableUiClickSfx = (button) => {
+    if (button) button.dataset.sfx = "none";
+  };
+
+  disableUiClickSfx(btnInventory);
+  disableUiClickSfx(btnInvClose);
+  disableUiClickSfx(btnQuestAccept);
+  disableUiClickSfx(btnQuestClaim);
+  disableUiClickSfx(btnSellAll);
+  disableUiClickSfx(btnCatchSellNow);
 
   // Fix for accidental scene -> shop routing: isolate UI/game layers and stop UI click bubbling.
   const stopUiEvent = (event) => {
@@ -243,6 +256,20 @@ if ("serviceWorker" in navigator) {
     }
   };
 
+  const playUiClickSfx = (event) => {
+    const button = event?.target?.closest?.("button");
+    if (!button || button.disabled) return;
+    const sfx = button.dataset.sfx;
+    if (sfx === "none") return;
+    if (sfx) {
+      audio?.play(sfx);
+      return;
+    }
+    audio?.play("ui_click");
+  };
+
+  uiLayer?.addEventListener("pointerdown", playUiClickSfx, { capture: true });
+  modalLayer?.addEventListener("pointerdown", playUiClickSfx, { capture: true });
   uiLayer?.addEventListener("pointerdown", guardUiClick);
   uiLayer?.addEventListener("click", guardUiClick);
   modalLayer?.addEventListener("pointerdown", guardUiClick);
@@ -2395,15 +2422,73 @@ if ("serviceWorker" in navigator) {
     };
   }
 
-  // ===== Audio (optional, simple beeps via WebAudio) =====
+  // ===== Audio (SFX + background music) =====
   let audioCtx = null;
   let muted = false;
+  const DEFAULT_SFX_VOLUME = 0.35;
+  let sfxVolume = DEFAULT_SFX_VOLUME;
   let bgStarted = false;
   let bgBuffer = null;
   let bgLoading = null;
   let bgSource = null;
   let bgGain = null;
   let bgShouldPlay = false;
+
+  const sfxExtension = audio?.getSupportedExtension?.(["ogg", "mp3"]) || "ogg";
+  const sfxFile = (name) => `assets/sfx/${name}.${sfxExtension}`;
+  const sfxManifest = {
+    ui_click: {
+      files: [sfxFile("ui_click_1"), sfxFile("ui_click_2"), sfxFile("ui_click_3")],
+      volume: 0.2,
+      cooldownMs: 70,
+      pitchRange: 0.03
+    },
+    inventory_open: {
+      files: [sfxFile("inventory_open")],
+      volume: 0.25
+    },
+    inventory_close: {
+      files: [sfxFile("inventory_close")],
+      volume: 0.24
+    },
+    cast_whoosh: {
+      files: [sfxFile("cast_whoosh")],
+      volume: 0.32
+    },
+    reel_spin: {
+      files: [sfxFile("reel_spin_loop")],
+      volume: 0.22,
+      loop: true,
+      rate: 0.96
+    },
+    bobber_splash: {
+      files: [sfxFile("bobber_splash_1"), sfxFile("bobber_splash_2")],
+      volume: 0.34
+    },
+    shop_sell_coins: {
+      files: [sfxFile("shop_sell_coins_1"), sfxFile("shop_sell_coins_2")],
+      volume: 0.26,
+      pitchRange: 0.03
+    },
+    shop_buy_cash: {
+      files: [sfxFile("shop_buy_cash")],
+      volume: 0.26
+    },
+    quest_accept: {
+      files: [sfxFile("quest_accept")],
+      volume: 0.34
+    },
+    quest_complete: {
+      files: [sfxFile("quest_complete")],
+      volume: 0.38
+    }
+  };
+
+  audio?.init();
+  audio?.load(sfxManifest);
+  audio?.setSfxVolume(sfxVolume);
+  audio?.setMusicVolume(0.35);
+  audio?.setMuted(muted);
 
   function ensureAudioContext() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2488,9 +2573,12 @@ if ("serviceWorker" in navigator) {
   function updateMuteButton() {
     if (!btnMute) return;
     btnMute.classList.toggle("is-muted", muted);
-    btnMute.setAttribute("aria-label", muted ? "Звук выключен" : "Звук включен");
+    const label = muted ? "Звук: выкл" : "Звук: вкл";
+    btnMute.setAttribute("aria-label", label);
+    btnMute.setAttribute("title", label);
     const icon = btnMute.querySelector(".icon");
     if (icon) icon.textContent = muted ? "🔇" : "🔊";
+    audio?.setMuted(muted);
     if (muted) {
       stopBackgroundMusic();
     } else if (bgStarted && !document.hidden) {
@@ -2502,7 +2590,7 @@ if ("serviceWorker" in navigator) {
     if (isFighting) return;
     muted = !muted;
     updateMuteButton();
-    if (!muted) beep(660, 0.06, 0.05);
+    save();
   });
 
   document.addEventListener("visibilitychange", () => {
@@ -2518,6 +2606,15 @@ if ("serviceWorker" in navigator) {
       startBackgroundMusic();
     }
   });
+
+  const unlockAudioOnce = () => {
+    audio?.unlock();
+    if (audioCtx?.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+  };
+  document.addEventListener("pointerdown", unlockAudioOnce, { once: true, capture: true });
+  document.addEventListener("touchstart", unlockAudioOnce, { once: true, capture: true, passive: true });
 
   // ===== DPI / Resize =====
   let W = 0, H = 0, DPR = 1;
@@ -2891,6 +2988,7 @@ if ("serviceWorker" in navigator) {
       stats.bestRarityFishWeightG = Number(obj.bestRarityFishWeightG ?? 0);
       stats.totalPlayTimeMs = Number(obj.totalPlayTimeMs ?? 0);
       muted = !!obj.muted;
+      sfxVolume = clamp(Number(obj.sfxVolume ?? DEFAULT_SFX_VOLUME), 0, 1);
       if (obj.profile && typeof obj.profile === "object") {
         const canRename = obj.profile.canRename !== false;
         const renameFreeUsed = obj.profile.renameFreeUsed !== undefined
@@ -2979,6 +3077,7 @@ if ("serviceWorker" in navigator) {
       }
       const unlockAdjusted = enforceGearUnlocks();
       refreshDailyCharges();
+      audio?.setSfxVolume(sfxVolume);
       updateMuteButton();
       ensureQuestPreviews();
       if (unlockAdjusted) {
@@ -3003,6 +3102,7 @@ if ("serviceWorker" in navigator) {
         bestRarityFishWeightG: stats.bestRarityFishWeightG,
         totalPlayTimeMs: stats.totalPlayTimeMs,
         muted,
+        sfxVolume,
         inventory,
         foundTrash,
         collectorRodUnlocked,
@@ -3471,11 +3571,13 @@ if ("serviceWorker" in navigator) {
     if (invSort) invSort.value = inventorySort;
     renderInventory();
     updateModalLayerState();
+    audio?.play("inventory_open");
   }
 
   function closeInventory() {
     invOverlay?.classList.add("hidden");
     updateModalLayerState();
+    audio?.play("inventory_close");
   }
 
   function openTrashJournal() {
@@ -3949,6 +4051,7 @@ if ("serviceWorker" in navigator) {
     stats.bestCoin = Math.max(stats.bestCoin, discounted);
     updateHUD();
     save();
+    audio?.play("shop_sell_coins");
     pendingCatch = null;
     transitionTo(SCENE_LAKE);
     showToast("Продано со скидкой -30%.");
@@ -3981,6 +4084,7 @@ if ("serviceWorker" in navigator) {
     stats.bestCoin = Math.max(stats.bestCoin, total);
     updateHUD();
     save();
+    audio?.play("shop_sell_coins");
     renderFishShopInventory();
     renderInventory();
     showToast(`Продано: +${total} монет`);
@@ -4038,6 +4142,7 @@ if ("serviceWorker" in navigator) {
     save();
     updateQuestReminder();
     renderTrophyQuest();
+    audio?.play("quest_accept");
   });
 
   btnQuestClaim?.addEventListener("click", () => {
@@ -4051,6 +4156,7 @@ if ("serviceWorker" in navigator) {
     save();
     renderTrophyQuest();
     updateQuestReminder();
+    audio?.play("quest_complete");
     showToast("Награда получена.");
   });
 
@@ -4476,6 +4582,7 @@ if ("serviceWorker" in navigator) {
 
       const btnSell = document.createElement("button");
       btnSell.className = "invBtn btn--singleLine";
+      btnSell.dataset.sfx = "none";
       setButtonText(btnSell, "Продать");
       btnSell.addEventListener("click", () => {
         executeSale(item);
@@ -4492,6 +4599,7 @@ if ("serviceWorker" in navigator) {
     stats.bestCoin = Math.max(stats.bestCoin, item.sellValue);
     updateHUD();
     save();
+    audio?.play("shop_sell_coins");
     renderFishShopInventory();
     renderInventory();
     showToast(`Продано: +${item.sellValue} монет`);
@@ -4532,6 +4640,7 @@ if ("serviceWorker" in navigator) {
         actions.className = "shopControls";
         const buyBtn = document.createElement("button");
         buyBtn.className = "invBtn btn--singleLine";
+        buyBtn.dataset.sfx = "none";
         setButtonText(buyBtn, "Купить");
         buyBtn.disabled = !unlocked || player.coins < bait.price;
         buyBtn.addEventListener("click", () => {
@@ -4539,6 +4648,7 @@ if ("serviceWorker" in navigator) {
           if (player.coins < bait.price) return;
           player.coins -= bait.price;
           player.baitInventory[bait.id] = (player.baitInventory[bait.id] || 0) + 1;
+          audio?.play("shop_buy_cash");
           save();
           renderGearShop();
           updateHUD();
@@ -4592,6 +4702,7 @@ if ("serviceWorker" in navigator) {
         } else if (!owned) {
           setButtonText(btn, "Купить");
           btn.disabled = player.coins < rod.price;
+          btn.dataset.sfx = "none";
         } else {
           setButtonText(btn, player.rodTier === rod.id ? "Выбрано" : "Выбрать");
           btn.disabled = player.rodTier === rod.id;
@@ -4604,6 +4715,7 @@ if ("serviceWorker" in navigator) {
             if (!player.ownedRods.includes(rod.id)) {
               player.ownedRods.push(rod.id);
             }
+            audio?.play("shop_buy_cash");
           }
           player.rodTier = rod.id;
           save();
@@ -4648,6 +4760,7 @@ if ("serviceWorker" in navigator) {
         } else if (!owned) {
           setButtonText(btn, "Купить");
           btn.disabled = player.coins < line.price;
+          btn.dataset.sfx = "none";
         } else {
           setButtonText(btn, player.lineTier === line.id ? "Выбрано" : "Выбрать");
           btn.disabled = player.lineTier === line.id;
@@ -4660,6 +4773,7 @@ if ("serviceWorker" in navigator) {
             if (!player.ownedLines.includes(line.id)) {
               player.ownedLines.push(line.id);
             }
+            audio?.play("shop_buy_cash");
           }
           player.lineTier = line.id;
           save();
@@ -4724,6 +4838,14 @@ if ("serviceWorker" in navigator) {
     D_END: 3.0
   };
 
+  const REEL_LOOP_ID = "reel_spin_loop";
+  const startReelSpinLoop = () => {
+    audio?.play("reel_spin", { loop: true, loopId: REEL_LOOP_ID, fadeInMs: 80 });
+  };
+  const stopReelSpinLoop = () => {
+    audio?.stopLoop(REEL_LOOP_ID, 160);
+  };
+
   const castController = {
     active: false,
     elapsed: 0,
@@ -4741,12 +4863,15 @@ if ("serviceWorker" in navigator) {
     rodTip: null,
     flightStart: null,
     floatTarget: null,
+    reelLoopStarted: false,
     reset() {
       this.active = false;
       this.elapsed = 0;
       this.flightStart = null;
       this.rodTip = null;
       this.floatTarget = null;
+      this.reelLoopStarted = false;
+      stopReelSpinLoop();
       if (rodLayer) {
         rodLayer.style.transform = "";
       }
@@ -4777,6 +4902,7 @@ if ("serviceWorker" in navigator) {
       this.targetX = clamp(targetX, W * 0.40, W * 0.92);
       this.targetY = scene.lakeY + 18;
       this.floatTarget = { x: this.targetX, y: this.targetY };
+      this.reelLoopStarted = false;
 
       setLakeState("casting");
 
@@ -4789,6 +4915,7 @@ if ("serviceWorker" in navigator) {
       bobber.x = this.rodTip.x;
       bobber.y = this.rodTip.y;
       placeBobberAt(bobber.x, bobber.y);
+      audio?.play("cast_whoosh");
       return true;
     },
     getPhase(t) {
@@ -4846,6 +4973,10 @@ if ("serviceWorker" in navigator) {
         bobber.x = this.rodTip.x;
         bobber.y = this.rodTip.y;
       } else if (t <= CAST_PHASES.C_END) {
+        if (!this.reelLoopStarted) {
+          this.reelLoopStarted = true;
+          startReelSpinLoop();
+        }
         if (!this.flightStart) {
           this.flightStart = { x: this.rodTip.x, y: this.rodTip.y };
         }
@@ -4873,6 +5004,8 @@ if ("serviceWorker" in navigator) {
     },
     finish() {
       this.active = false;
+      stopReelSpinLoop();
+      audio?.play("bobber_splash");
       bobber.inWater = true;
       bobber.visible = true;
       bobber.settled = true;
@@ -5402,7 +5535,7 @@ if ("serviceWorker" in navigator) {
 
   btnPlay?.addEventListener("click", () => {
     // iOS: аудио можно стартовать только после жеста
-    beep(520, 0.05, 0.04);
+    audio?.unlock();
     startBackgroundMusic();
     startGame();
   });
