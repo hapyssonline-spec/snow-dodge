@@ -2398,17 +2398,73 @@ if ("serviceWorker" in navigator) {
   // ===== Audio (optional, simple beeps via WebAudio) =====
   let audioCtx = null;
   let muted = false;
-  const bgAudio = new Audio("background-music.mp3");
-  bgAudio.loop = true;
-  bgAudio.preload = "auto";
-  bgAudio.volume = 0.35;
   let bgStarted = false;
+  let bgBuffer = null;
+  let bgLoading = null;
+  let bgSource = null;
+  let bgGain = null;
+  let bgShouldPlay = false;
+
+  function ensureAudioContext() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!bgGain) {
+      bgGain = audioCtx.createGain();
+      bgGain.gain.value = 0.35;
+      bgGain.connect(audioCtx.destination);
+    }
+  }
+
+  function loadBackgroundBuffer() {
+    if (bgBuffer) return Promise.resolve(bgBuffer);
+    if (bgLoading) return bgLoading;
+    ensureAudioContext();
+    bgLoading = fetch("background-music.mp3")
+      .then((res) => res.arrayBuffer())
+      .then((data) => audioCtx.decodeAudioData(data))
+      .then((buffer) => {
+        bgBuffer = buffer;
+        bgLoading = null;
+        return buffer;
+      })
+      .catch(() => {
+        bgLoading = null;
+        return null;
+      });
+    return bgLoading;
+  }
+
+  function stopBackgroundMusic() {
+    bgShouldPlay = false;
+    if (bgSource) {
+      try {
+        bgSource.stop(0);
+      } catch {}
+      bgSource = null;
+    }
+  }
 
   function startBackgroundMusic() {
-    if (!bgAudio) return;
     bgStarted = true;
-    if (muted) return;
-    bgAudio.play().catch(() => {});
+    bgShouldPlay = true;
+    if (muted || document.hidden) return;
+    ensureAudioContext();
+    audioCtx.resume().catch(() => {});
+    loadBackgroundBuffer().then((buffer) => {
+      if (!buffer || !bgShouldPlay || muted || document.hidden || bgSource) return;
+      bgSource = audioCtx.createBufferSource();
+      bgSource.buffer = buffer;
+      bgSource.loop = true;
+      bgSource.connect(bgGain);
+      bgSource.onended = () => {
+        bgSource = null;
+        if (bgShouldPlay && !muted && !document.hidden) startBackgroundMusic();
+      };
+      try {
+        bgSource.start(0);
+      } catch {
+        bgSource = null;
+      }
+    });
   }
 
   function beep(freq = 440, dur = 0.06, vol = 0.06) {
@@ -2436,9 +2492,9 @@ if ("serviceWorker" in navigator) {
     const icon = btnMute.querySelector(".icon");
     if (icon) icon.textContent = muted ? "🔇" : "🔊";
     if (muted) {
-      bgAudio.pause();
-    } else if (bgStarted) {
-      bgAudio.play().catch(() => {});
+      stopBackgroundMusic();
+    } else if (bgStarted && !document.hidden) {
+      startBackgroundMusic();
     }
   }
 
@@ -2447,6 +2503,20 @@ if ("serviceWorker" in navigator) {
     muted = !muted;
     updateMuteButton();
     if (!muted) beep(660, 0.06, 0.05);
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopBackgroundMusic();
+      audioCtx?.suspend?.().catch(() => {});
+      return;
+    }
+    if (audioCtx?.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+    if (bgStarted && !muted) {
+      startBackgroundMusic();
+    }
   });
 
   // ===== DPI / Resize =====
