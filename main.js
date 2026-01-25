@@ -233,6 +233,13 @@ if ("serviceWorker" in navigator) {
     if (button) button.dataset.sfx = "none";
   };
 
+  disableUiClickSfx(btnInventory);
+  disableUiClickSfx(btnInvClose);
+  disableUiClickSfx(btnQuestAccept);
+  disableUiClickSfx(btnQuestClaim);
+  disableUiClickSfx(btnSellAll);
+  disableUiClickSfx(btnCatchSellNow);
+
   // Fix for accidental scene -> shop routing: isolate UI/game layers and stop UI click bubbling.
   const stopUiEvent = (event) => {
     if (!event) return;
