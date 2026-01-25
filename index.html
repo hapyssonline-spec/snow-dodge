@@ -308,6 +308,21 @@
                 </div>
               </section>
 
+              <section class="profileSection soundSettings">
+                <div class="sectionTitle">Звук</div>
+                <div class="soundSettingRow">
+                  <span>Отключить звук</span>
+                  <button id="btnSoundToggle" class="chipBtn btn--singleLine" type="button" aria-pressed="false">
+                    <span class="btnText">Включен</span>
+                  </button>
+                </div>
+                <label class="soundSettingRow soundSettingSlider">
+                  <span>Громкость эффектов</span>
+                  <input id="sfxVolume" type="range" min="0" max="100" step="1" value="35" />
+                  <span id="sfxVolumeValue" class="soundSettingValue">35%</span>
+                </label>
+              </section>
+
               <section class="profileSection">
                 <div class="sectionTitle">Снаряжение</div>
                 <div class="profileGearItem">
