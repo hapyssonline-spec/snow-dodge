@@ -13,10 +13,10 @@
   <title>Рыбалка — мини-игра</title>
 
   <!-- Иконки (можешь оставить свои текущие icon-*.png в репозитории) -->
-  <link rel="apple-touch-icon" href="icon-180.png?v=28" />
-  <link rel="manifest" href="manifest.json?v=30" />
+  <link rel="apple-touch-icon" href="icon-180.png?v=29" />
+  <link rel="manifest" href="manifest.json?v=31" />
 
-  <link rel="stylesheet" href="style.css?v=51" />
+  <link rel="stylesheet" href="style.css?v=52" />
 </head>
 <body>
   <div id="app">
@@ -24,8 +24,8 @@
       <main id="stage">
         <div id="sceneRoot">
           <div id="bgLayer">
-            <img id="bgPortraitImg" src="./bg_lake_portrait.png?v=28" alt="" draggable="false">
-            <img id="bgLandscapeImg" src="./bg_lake_landscape.png?v=28" alt="" draggable="false">
+            <img id="bgPortraitImg" src="./bg_lake_portrait.png?v=29" alt="" draggable="false">
+            <img id="bgLandscapeImg" src="./bg_lake_landscape.png?v=29" alt="" draggable="false">
           </div>
 
           <div id="cityScene" aria-hidden="true">
@@ -40,9 +40,9 @@
           <canvas id="game" tabindex="-1"></canvas>
 
           <div id="lakeScene" aria-hidden="true">
-            <img id="heroLayer" class="layer hero" src="./hero.png?v=28" alt="" draggable="false">
-            <img id="rodLayer" class="layer rod" src="./rod.png?v=28" alt="" draggable="false">
-            <img id="bobberLayer" class="layer bobber" src="./bobber.png?v=28" alt="" draggable="false">
+            <img id="heroLayer" class="layer hero" src="./hero.png?v=29" alt="" draggable="false">
+            <img id="rodLayer" class="layer rod" src="./rod.png?v=29" alt="" draggable="false">
+            <img id="bobberLayer" class="layer bobber" src="./bobber.png?v=29" alt="" draggable="false">
           </div>
         </div>
       </main>
@@ -177,7 +177,7 @@
                 <span id="trashFoundTotal" class="trashRewardTotal">/10.</span>
                 <span class="trashRewardLabel">Награда:</span>
                 <span class="trashRewardRod">
-                  <img class="trashRewardIcon" src="./rod.png?v=28" alt="" aria-hidden="true">
+                  <img class="trashRewardIcon" src="./rod.png?v=29" alt="" aria-hidden="true">
                   <span class="trashRewardRodName">Удочка «Собиратель».</span>
                 </span>
               </div>
@@ -547,8 +547,8 @@
     </div>
   </div>
 
-  <!-- cache-bust: audio manager + main.js v78 (sfx integration) -->
-  <script src="audio/AudioManager.js?v=1"></script>
-  <script src="main.js?v=78"></script>
+  <!-- cache-bust: audio manager + main.js v79 (cache refresh) -->
+  <script src="audio/AudioManager.js?v=2"></script>
+  <script src="main.js?v=79"></script>
 </body>
 </html>
