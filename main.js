@@ -2457,8 +2457,12 @@ if ("serviceWorker" in navigator) {
       variants: [{ type: "sweep", start: 1200, end: 420, duration: 0.16, wave: "triangle" }]
     },
     cast_whoosh: {
-      volume: 0.3,
-      variants: [{ type: "whoosh", start: 240, end: 1280, duration: 0.36, q: 0.8 }]
+      volume: 0.32,
+      pitchRange: [0.02, 0.05],
+      variants: [
+        { type: "whoosh", start: 180, end: 1500, duration: 0.42, q: 0.9 },
+        { type: "whoosh", start: 220, end: 1350, duration: 0.38, q: 0.75 }
+      ]
     },
     reel_spin: {
       volume: 0.22,
@@ -2468,10 +2472,12 @@ if ("serviceWorker" in navigator) {
       variants: [{ type: "reel_loop", lowpass: 800, highpass: 90, humFreq: 120, humGain: 0.2, noiseGain: 0.55 }]
     },
     bobber_splash: {
-      volume: 0.34,
+      volume: 0.36,
+      pitchRange: [0.01, 0.04],
       variants: [
-        { type: "splash", filter: 520, duration: 0.28, thump: 190 },
-        { type: "splash", filter: 620, duration: 0.24, thump: 170 }
+        { type: "splash", filter: 420, duration: 0.32, thump: 160 },
+        { type: "splash", filter: 520, duration: 0.3, thump: 180 },
+        { type: "splash", filter: 640, duration: 0.26, thump: 150 }
       ]
     },
     shop_sell_coins: {
@@ -2483,8 +2489,12 @@ if ("serviceWorker" in navigator) {
       ]
     },
     shop_buy_cash: {
-      volume: 0.25,
-      variants: [{ type: "cash", start: 920, end: 560, duration: 0.22, wave: "square" }]
+      volume: 0.28,
+      pitchRange: [0.02, 0.05],
+      variants: [
+        { type: "cash", start: 1200, end: 520, duration: 0.24, wave: "triangle" },
+        { type: "coin", notes: [900, 1300, 1700], duration: 0.11, interval: 0.03 }
+      ]
     },
     quest_accept: {
       volume: 0.32,
