@@ -3188,12 +3188,19 @@ button:disabled{
   opacity: 1;
   animation: bobber-jerk 0.18s ease-in-out 5, bobber-sway 3s ease-in-out infinite;
 }
+#lakeScene.is-casting #bobberLayer{
+  opacity: 1;
+  animation: none;
+}
 
 #lakeScene.is-fishing #rodLayer{
   animation: rod-sway 2.6s ease-in-out infinite;
 }
 #lakeScene.is-strike #rodLayer{
   animation: rod-strike-up 0.22s ease-out;
+}
+#lakeScene.is-casting #rodLayer{
+  animation: none;
 }
 
 #lakeScene.is-fishing #heroLayer{
@@ -3202,6 +3209,9 @@ button:disabled{
 #lakeScene.is-bite #heroLayer,
 #lakeScene.is-strike #heroLayer{
   animation: hero-sway-strong 2.8s ease-in-out infinite;
+}
+#lakeScene.is-casting #heroLayer{
+  animation: none;
 }
 
 #app[data-effects="reduced"] #lakeScene .layer{
