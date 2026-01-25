@@ -2456,45 +2456,12 @@ if ("serviceWorker" in navigator) {
       volume: 0.24,
       variants: [{ type: "sweep", start: 1200, end: 420, duration: 0.16, wave: "triangle" }]
     },
-    cast_whoosh: {
-      volume: 0.32,
-      pitchRange: [0.02, 0.05],
-      variants: [
-        { type: "whoosh", start: 180, end: 1500, duration: 0.42, q: 0.9 },
-        { type: "whoosh", start: 220, end: 1350, duration: 0.38, q: 0.75 }
-      ]
-    },
     reel_spin: {
       volume: 0.22,
       loop: true,
       rate: 0.96,
       cooldownRangeMs: [120, 160],
       variants: [{ type: "reel_loop", lowpass: 800, highpass: 90, humFreq: 120, humGain: 0.2, noiseGain: 0.55 }]
-    },
-    bobber_splash: {
-      volume: 0.36,
-      pitchRange: [0.01, 0.04],
-      variants: [
-        { type: "splash", filter: 420, duration: 0.32, thump: 160 },
-        { type: "splash", filter: 520, duration: 0.3, thump: 180 },
-        { type: "splash", filter: 640, duration: 0.26, thump: 150 }
-      ]
-    },
-    shop_sell_coins: {
-      volume: 0.26,
-      pitchRange: [0.02, 0.04],
-      variants: [
-        { type: "coin", notes: [1200, 1600, 2100], duration: 0.1, interval: 0.035 },
-        { type: "coin", notes: [980, 1400, 1900], duration: 0.12, interval: 0.04 }
-      ]
-    },
-    shop_buy_cash: {
-      volume: 0.28,
-      pitchRange: [0.02, 0.05],
-      variants: [
-        { type: "cash", start: 1200, end: 520, duration: 0.24, wave: "triangle" },
-        { type: "coin", notes: [900, 1300, 1700], duration: 0.11, interval: 0.03 }
-      ]
     },
     quest_accept: {
       volume: 0.32,
@@ -4100,7 +4067,6 @@ if ("serviceWorker" in navigator) {
     stats.bestCoin = Math.max(stats.bestCoin, discounted);
     updateHUD();
     save();
-    audio?.play("shop_sell_coins");
     pendingCatch = null;
     transitionTo(SCENE_LAKE);
     showToast("Продано со скидкой -30%.");
@@ -4133,7 +4099,6 @@ if ("serviceWorker" in navigator) {
     stats.bestCoin = Math.max(stats.bestCoin, total);
     updateHUD();
     save();
-    audio?.play("shop_sell_coins");
     renderFishShopInventory();
     renderInventory();
     showToast(`Продано: +${total} монет`);
@@ -4648,7 +4613,6 @@ if ("serviceWorker" in navigator) {
     stats.bestCoin = Math.max(stats.bestCoin, item.sellValue);
     updateHUD();
     save();
-    audio?.play("shop_sell_coins");
     renderFishShopInventory();
     renderInventory();
     showToast(`Продано: +${item.sellValue} монет`);
@@ -4697,7 +4661,6 @@ if ("serviceWorker" in navigator) {
           if (player.coins < bait.price) return;
           player.coins -= bait.price;
           player.baitInventory[bait.id] = (player.baitInventory[bait.id] || 0) + 1;
-          audio?.play("shop_buy_cash");
           save();
           renderGearShop();
           updateHUD();
@@ -4764,7 +4727,6 @@ if ("serviceWorker" in navigator) {
             if (!player.ownedRods.includes(rod.id)) {
               player.ownedRods.push(rod.id);
             }
-            audio?.play("shop_buy_cash");
           }
           player.rodTier = rod.id;
           save();
@@ -4822,7 +4784,6 @@ if ("serviceWorker" in navigator) {
             if (!player.ownedLines.includes(line.id)) {
               player.ownedLines.push(line.id);
             }
-            audio?.play("shop_buy_cash");
           }
           player.lineTier = line.id;
           save();
@@ -4964,7 +4925,6 @@ if ("serviceWorker" in navigator) {
       bobber.x = this.rodTip.x;
       bobber.y = this.rodTip.y;
       placeBobberAt(bobber.x, bobber.y);
-      audio?.play("cast_whoosh");
       return true;
     },
     getPhase(t) {
@@ -5054,7 +5014,6 @@ if ("serviceWorker" in navigator) {
     finish() {
       this.active = false;
       stopReelSpinLoop();
-      audio?.play("bobber_splash");
       bobber.inWater = true;
       bobber.visible = true;
       bobber.settled = true;
