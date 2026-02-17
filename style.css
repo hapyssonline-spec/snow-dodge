@@ -175,8 +175,8 @@ img, a{
   pointer-events:none;
 }
 .profileButton{
-  width:88px;
-  height:88px;
+  width:176px;
+  height:176px;
   border-radius:50%;
   border:1px solid var(--ui-stroke);
   background: var(--ui-surface);
@@ -226,16 +226,16 @@ img, a{
 }
 .profileLevelBadge{
   position:absolute;
-  right:-8px;
-  bottom:-8px;
-  width:28px;
-  height:28px;
-  min-width:28px;
+  right:-16px;
+  bottom:-16px;
+  width:56px;
+  height:56px;
+  min-width:56px;
   border-radius:999px;
   background: linear-gradient(180deg, #263446, #1b2736);
   border:2px solid rgba(220,238,255,.38);
   color:#e9ecf1;
-  font-size:12px;
+  font-size:24px;
   font-weight:800;
   display:flex;
   align-items:center;
@@ -252,19 +252,19 @@ img, a{
 .stat-compact{
   display:flex;
   align-items:center;
-  gap:6px;
-  padding:8px 12px;
+  gap:12px;
+  padding:16px 24px;
   border-radius:999px;
   background: rgba(10,20,30,.5);
   border:1px solid rgba(243,206,107,.28);
   box-shadow: 0 6px 14px rgba(7,14,24,.24);
 }
 .statIcon{
-  font-size:17px;
+  font-size:34px;
   opacity:1;
   filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
 }
-.value{font-size:19px; font-weight:900; color:#ffe3a2; text-shadow:0 1px 2px rgba(0,0,0,.34)}
+.value{font-size:38px; font-weight:900; color:#ffe3a2; text-shadow:0 1px 2px rgba(0,0,0,.34)}
 .center{flex:1; text-align:center}
 .title{
   font-weight:900;
@@ -2324,6 +2324,22 @@ img, a{
   left:50%;
   transform:translateX(-50%);
   z-index:6;
+}
+
+#btnBackToLake{
+  min-height:var(--hud-icon-button-size);
+  min-width:var(--hud-icon-button-size);
+  padding:10px 16px;
+  font-size:20px;
+}
+
+.locationLabel{
+  font-weight:900;
+  letter-spacing:.12em;
+  font-size:26px;
+  text-transform:uppercase;
+  color:#f2f7ff;
+  text-shadow: 0 1px 2px rgba(2,8,14,.7), 0 0 16px rgba(180,220,255,.18);
 }
 
 .questReminder{
