@@ -3829,7 +3829,7 @@ if ("serviceWorker" in navigator) {
   btnStar?.addEventListener("click", () => {
     if (isFighting) return;
     if (currentScene !== SCENE_LAKE) return;
-    showToast("Скоро.");
+    showToast("Раздел в разработке.");
   });
 
   btnProfile?.addEventListener("click", () => {
@@ -6294,6 +6294,8 @@ if ("serviceWorker" in navigator) {
   function drawLake() {
     ctx.clearRect(0, 0, W, H);
 
+    drawGameplayFocus();
+    drawWaterMidPlane();
     drawWaterSheen();
 
     if (!reducedEffects && ripples.length) {
@@ -6334,6 +6336,64 @@ if ("serviceWorker" in navigator) {
       }
     }
 
+  }
+
+  function drawGameplayFocus() {
+    if (!scene.lakeY) return;
+    const focusX = W * 0.34;
+    const focusY = H * 0.68;
+
+    ctx.save();
+    const radial = ctx.createRadialGradient(focusX, focusY, W * 0.04, focusX, focusY, W * 0.5);
+    radial.addColorStop(0, "rgba(210, 235, 255, 0.20)");
+    radial.addColorStop(0.52, "rgba(126, 194, 235, 0.08)");
+    radial.addColorStop(1, "rgba(11, 26, 40, 0)");
+    ctx.fillStyle = radial;
+    ctx.fillRect(0, scene.lakeY, W, H - scene.lakeY);
+
+    const warmAccent = ctx.createRadialGradient(W * 0.84, scene.lakeY + 28, 2, W * 0.84, scene.lakeY + 28, W * 0.22);
+    warmAccent.addColorStop(0, "rgba(255, 206, 122, 0.15)");
+    warmAccent.addColorStop(1, "rgba(255, 206, 122, 0)");
+    ctx.fillStyle = warmAccent;
+    ctx.fillRect(0, scene.lakeY - 8, W, H - scene.lakeY + 8);
+    ctx.restore();
+  }
+
+  function drawWaterMidPlane() {
+    if (reducedEffects || !scene.lakeY) return;
+    const horizonY = scene.lakeY + H * 0.08;
+    const t = scene.t;
+
+    ctx.save();
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i += 1) {
+      const y = horizonY + i * 16 + Math.sin(t * 0.38 + i * 1.7) * 2;
+      const alpha = 0.13 - i * 0.02;
+      const grad = ctx.createLinearGradient(W * 0.08, y, W * 0.92, y);
+      grad.addColorStop(0, `rgba(198, 224, 246, 0)`);
+      grad.addColorStop(0.5, `rgba(198, 224, 246, ${Math.max(0.04, alpha)})`);
+      grad.addColorStop(1, `rgba(198, 224, 246, 0)`);
+      ctx.strokeStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.08, y);
+      ctx.lineTo(W * 0.92, y);
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < 5; i += 1) {
+      const progress = ((t * 0.018 + i * 0.21) % 1);
+      const x = W * (0.18 + progress * 0.64);
+      const y = scene.lakeY + H * (0.18 + ((i % 2) * 0.05)) + Math.sin(t * 0.8 + i * 2.1) * 1.5;
+      const w = W * 0.06;
+      const h = 4;
+      const floe = ctx.createLinearGradient(x - w, y, x + w, y);
+      floe.addColorStop(0, "rgba(210, 231, 248, 0)");
+      floe.addColorStop(0.5, "rgba(210, 231, 248, 0.16)");
+      floe.addColorStop(1, "rgba(210, 231, 248, 0)");
+      ctx.fillStyle = floe;
+      ctx.fillRect(x - w, y, w * 2, h);
+    }
+    ctx.restore();
   }
 
   function drawWaterSheen() {
