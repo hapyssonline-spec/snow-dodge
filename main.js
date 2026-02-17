@@ -884,17 +884,20 @@ if ("serviceWorker" in navigator) {
     setSpotlightRect(rect) {
       if (!tutorialSpotlight) return;
       if (!rect) {
+        tutorialSpotlight.style.left = "0px";
+        tutorialSpotlight.style.top = "0px";
         tutorialSpotlight.style.width = "0px";
         tutorialSpotlight.style.height = "0px";
         this.allowedRect = null;
         return;
       }
-      const pad = Math.max(16, Math.round(20 * viewportScale));
+      const pad = 20;
+      const topLeft = viewportToGamePoint(rect.left, rect.top);
       const next = {
-        left: rect.left - pad,
-        top: rect.top - pad,
-        width: rect.width + pad * 2,
-        height: rect.height + pad * 2
+        left: topLeft.x - pad,
+        top: topLeft.y - pad,
+        width: rect.width / viewportScale + pad * 2,
+        height: rect.height / viewportScale + pad * 2
       };
       this.allowedRect = next;
       tutorialSpotlight.style.left = `${next.left}px`;
@@ -932,7 +935,8 @@ if ("serviceWorker" in navigator) {
     pointInAllowedRect(clientX, clientY) {
       const r = this.allowedRect;
       if (!r) return false;
-      return clientX >= r.left && clientX <= r.left + r.width && clientY >= r.top && clientY <= r.top + r.height;
+      const p = viewportToGamePoint(clientX, clientY);
+      return p.x >= r.left && p.x <= r.left + r.width && p.y >= r.top && p.y <= r.top + r.height;
     }
 
     onNext() {
