@@ -6157,7 +6157,11 @@ if ("serviceWorker" in navigator) {
       game.tensionVel += reel.fishForce * dt;
       game.tensionVel -= relax * TENSION_RELAX_MULT * dt;
       game.tensionVel = clamp(game.tensionVel, -1.4, 1.8);
-      game.tensionVel *= (0.92 - reel.overload * 0.08);
+      // FPS-independent damping: keep the same "feel" regardless of refresh rate.
+      // Base value is tuned for 60 FPS, then converted to a time-based factor.
+      const frameDamping60 = clamp(0.92 - reel.overload * 0.08, 0.01, 0.999);
+      const damping = Math.pow(frameDamping60, dt * 60);
+      game.tensionVel *= damping;
       game.tension = clamp(game.tension + game.tensionVel * dt, 0, TENSION_MAX);
 
       const prevSlack = reel.slackRisk;
