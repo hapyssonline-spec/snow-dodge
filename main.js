@@ -242,6 +242,12 @@ if ("serviceWorker" in navigator) {
   const breakHint = document.getElementById("breakHint");
   const fishHintText = document.getElementById("fishHintText");
   const rareBoostHud = document.getElementById("rareBoostHud");
+  const tutorialOverlay = document.getElementById("tutorialOverlay");
+  const tutorialSpotlight = document.getElementById("tutorialSpotlight");
+  const tutorialTitle = document.getElementById("tutorialTitle");
+  const tutorialText = document.getElementById("tutorialText");
+  const tutorialNextBtn = document.getElementById("tutorialNextBtn");
+  const tutorialSwipeHint = document.getElementById("tutorialSwipeHint");
   const audio = window.audioManager;
 
   const disableUiClickSfx = (button) => {
@@ -800,6 +806,299 @@ if ("serviceWorker" in navigator) {
     isFighting = nextState;
     setUiLocked(isFighting);
   }
+
+  const TUTORIAL_TEST_SPECIES_ID = "karas_serebryanyy";
+  const TUTORIAL_TEST_WEIGHT_KG = 1.5;
+
+  function setTutorialPause(enabled) {
+    tutorialPauseGameplay = !!enabled;
+  }
+
+  class TutorialManager {
+    constructor() {
+      this.active = false;
+      this.step = "idle";
+      this.allowedRect = null;
+      this.waitingForBiteDemo = false;
+      this.practiceMode = false;
+      this.swipeStart = null;
+      this.pendingRetry = false;
+      this.bind();
+    }
+
+    bind() {
+      tutorialNextBtn?.addEventListener("click", () => this.onNext());
+      tutorialOverlay?.addEventListener("pointerdown", (event) => this.onPointerDown(event), { passive: false });
+      tutorialOverlay?.addEventListener("pointermove", (event) => this.onPointerMove(event), { passive: false });
+      tutorialOverlay?.addEventListener("pointerup", (event) => this.onPointerUp(event), { passive: false });
+      window.addEventListener("resize", () => this.refreshSpotlight());
+    }
+
+    shouldStart() {
+      return !tutorialCompleted;
+    }
+
+    start() {
+      if (!this.shouldStart()) return;
+      this.active = true;
+      tutorialActive = true;
+      this.step = "delay";
+      setTutorialPause(true);
+      setTimeout(() => {
+        if (!this.active) return;
+        this.showOverlay();
+        this.showCard("Обучение началось", "Сейчас быстро разберёмся с управлением, и ты сразу поймаешь первую рыбу.", "Начать");
+        this.step = "intro";
+      }, 3000);
+    }
+
+    resetForDev() {
+      tutorialCompleted = false;
+      this.finish(true);
+      save();
+    }
+
+    showOverlay() {
+      if (!tutorialOverlay) return;
+      tutorialOverlay.classList.remove("hidden");
+      tutorialOverlay.setAttribute("aria-hidden", "false");
+      requestAnimationFrame(() => tutorialOverlay.classList.add("is-visible"));
+    }
+
+    hideOverlay() {
+      if (!tutorialOverlay) return;
+      tutorialOverlay.classList.remove("is-visible");
+      tutorialOverlay.setAttribute("aria-hidden", "true");
+      setTimeout(() => tutorialOverlay.classList.add("hidden"), 220);
+    }
+
+    showCard(title, text, buttonText = "Далее", showButton = true) {
+      if (tutorialTitle) tutorialTitle.textContent = title;
+      if (tutorialText) tutorialText.textContent = text;
+      if (tutorialNextBtn) {
+        tutorialNextBtn.classList.toggle("hidden", !showButton);
+        if (showButton) setButtonText(tutorialNextBtn, buttonText);
+      }
+    }
+
+    setSpotlightRect(rect) {
+      if (!tutorialSpotlight) return;
+      if (!rect) {
+        tutorialSpotlight.style.width = "0px";
+        tutorialSpotlight.style.height = "0px";
+        this.allowedRect = null;
+        return;
+      }
+      const pad = Math.max(16, Math.round(20 * viewportScale));
+      const next = {
+        left: rect.left - pad,
+        top: rect.top - pad,
+        width: rect.width + pad * 2,
+        height: rect.height + pad * 2
+      };
+      this.allowedRect = next;
+      tutorialSpotlight.style.left = `${next.left}px`;
+      tutorialSpotlight.style.top = `${next.top}px`;
+      tutorialSpotlight.style.width = `${next.width}px`;
+      tutorialSpotlight.style.height = `${next.height}px`;
+    }
+
+    refreshSpotlight() {
+      if (!this.active) return;
+      if (this.step === "hero") this.highlightHero();
+      if (this.step === "cast") this.highlightWaterRight();
+      if (this.step === "fight-help") this.highlightFightHud();
+    }
+
+    highlightHero() {
+      this.setSpotlightRect(heroLayer?.getBoundingClientRect() || null);
+    }
+
+    highlightWaterRight() {
+      const rect = canvas.getBoundingClientRect();
+      const heroRect = heroLayer?.getBoundingClientRect();
+      if (!rect || !heroRect) return;
+      const waterTop = rect.top + scene.lakeY * viewportScale;
+      const left = Math.max(rect.left + rect.width * 0.52, heroRect.right + 8);
+      const width = Math.max(120, rect.width * 0.34);
+      const height = Math.max(120, rect.height * 0.28);
+      this.setSpotlightRect({ left, top: waterTop + 10, width, height });
+    }
+
+    highlightFightHud() {
+      this.setSpotlightRect(fightHud?.getBoundingClientRect() || null);
+    }
+
+    pointInAllowedRect(clientX, clientY) {
+      const r = this.allowedRect;
+      if (!r) return false;
+      return clientX >= r.left && clientX <= r.left + r.width && clientY >= r.top && clientY <= r.top + r.height;
+    }
+
+    onNext() {
+      if (!this.active) return;
+      if (this.step === "intro") {
+        this.step = "hero";
+        this.highlightHero();
+        this.showCard("Это ты", "Это твой персонаж. Отсюда начинается рыбалка.", "Далее");
+        return;
+      }
+      if (this.step === "hero") {
+        this.step = "cast";
+        this.highlightWaterRight();
+        this.showCard("Заброс", "Нажми на воду справа — произойдёт заброс удочки. Нажми сейчас.", "Ожидаю тап", false);
+        return;
+      }
+      if (this.step === "bite-info") {
+        this.waitingForBiteDemo = true;
+        this.showCard("Поклёвка", "Смотри на поплавок. Через мгновение он поплывёт вправо.", "Наблюдаю", false);
+        setTutorialPause(false);
+        return;
+      }
+      if (this.step === "fight-help") {
+        this.step = "practice";
+        this.practiceMode = true;
+        this.waitingForBiteDemo = false;
+        this.hideOverlay();
+        setTutorialPause(false);
+        return;
+      }
+      if (this.step === "retry") {
+        this.pendingRetry = false;
+        this.startPracticeCycle();
+        return;
+      }
+      if (this.step === "done") {
+        tutorialCompleted = true;
+        this.finish(false);
+        save();
+      }
+    }
+
+    onPointerDown(event) {
+      if (!this.active) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (this.step === "cast") {
+        if (!this.pointInAllowedRect(event.clientX, event.clientY)) return;
+        const p = mapPointerToGame(event.clientX, event.clientY);
+        const y = clamp(p.y, scene.lakeY - 10, H - 20);
+        castTo(p.x, y);
+        this.step = "bite-info";
+        this.setSpotlightRect(bobberLayer?.getBoundingClientRect() || null);
+        this.showCard("Поклёвка", "Когда поплавок начинает плыть правее — это поклёвка.", "Показать");
+        return;
+      }
+      if (this.step === "swipe") {
+        this.swipeStart = { x: event.clientX, y: event.clientY };
+      }
+    }
+
+    onPointerMove(event) {
+      if (!this.active || this.step !== "swipe" || !this.swipeStart) return;
+      event.preventDefault();
+      const dx = event.clientX - this.swipeStart.x;
+      const dy = event.clientY - this.swipeStart.y;
+      if (dy < -70 && Math.abs(dx) < 110) {
+        this.swipeStart = null;
+        this.handleSwipeSuccess();
+      }
+    }
+
+    onPointerUp(event) {
+      if (!this.active || this.step !== "swipe" || !this.swipeStart) return;
+      event.preventDefault();
+      const dx = event.clientX - this.swipeStart.x;
+      const dy = event.clientY - this.swipeStart.y;
+      this.swipeStart = null;
+      if (dy < -70 && Math.abs(dx) < 110) {
+        this.handleSwipeSuccess();
+      }
+    }
+
+    handleSwipeSuccess() {
+      tutorialSwipeHint?.classList.add("hidden");
+      setTutorialPause(false);
+      hook();
+      setTimeout(() => {
+        if (!this.active) return;
+        setTutorialPause(true);
+        this.step = "fight-help";
+        this.highlightFightHud();
+        this.showOverlay();
+        this.showCard("Борьба с рыбой", "Держись ближе к центру зоны натяжения — так быстрее растёт прогресс. На краях выше риск срыва.", "Попробовать выудить");
+      }, 320);
+    }
+
+    onEnterWaiting() {
+      if (!this.active) return false;
+      return this.waitingForBiteDemo || this.practiceMode;
+    }
+
+    onBiteShown() {
+      if (!this.active) return;
+      if (!this.waitingForBiteDemo && !this.practiceMode) return;
+      this.waitingForBiteDemo = false;
+      setTimeout(() => {
+        if (!this.active || game.mode !== "BITE") return;
+        setTutorialPause(true);
+        this.step = "swipe";
+        this.showOverlay();
+        this.setSpotlightRect(null);
+        tutorialSwipeHint?.classList.remove("hidden");
+        this.showCard("Рыба клюнула!", "Чтобы подсечь — проведи пальцем снизу вверх.", "", false);
+      }, 700);
+    }
+
+    onPracticeSuccess() {
+      if (!this.active || !this.practiceMode) return;
+      this.practiceMode = false;
+      setTutorialPause(true);
+      this.showOverlay();
+      this.step = "done";
+      this.setSpotlightRect(null);
+      tutorialSwipeHint?.classList.add("hidden");
+      this.showCard("Отлично!", "Ты поймал рыбу. Обучение завершено.", "Готово", true);
+    }
+
+    onPracticeFail() {
+      if (!this.active || !this.practiceMode) return;
+      setTutorialPause(true);
+      this.showOverlay();
+      this.step = "retry";
+      tutorialSwipeHint?.classList.add("hidden");
+      this.highlightFightHud();
+      this.showCard("Ничего страшного", "Попробуй ещё раз — всё получится!", "Повторить", true);
+    }
+
+    startPracticeCycle() {
+      this.practiceMode = true;
+      this.waitingForBiteDemo = true;
+      this.step = "practice-cast";
+      this.hideOverlay();
+      setTutorialPause(false);
+      cancelWaitingState();
+      game.mode = "IDLE";
+      game.t = 0;
+      const targetX = W * 0.76;
+      castTo(targetX, scene.lakeY + 24);
+    }
+
+    finish(forReset = false) {
+      this.active = false;
+      tutorialActive = false;
+      this.waitingForBiteDemo = false;
+      this.practiceMode = false;
+      tutorialSwipeHint?.classList.add("hidden");
+      this.hideOverlay();
+      setTutorialPause(false);
+      if (!forReset) {
+        setHint("Обучение завершено.", 1.4);
+      }
+    }
+  }
+
+  let tutorialManager = null;
 
   class RevealSystem {
     constructor(options) {
@@ -2248,6 +2547,29 @@ if ("serviceWorker" in navigator) {
     }
   }
 
+  function buildTutorialFishCatch() {
+    const species = fishSpeciesTable.find((entry) => entry.id === TUTORIAL_TEST_SPECIES_ID) || fishSpeciesTable[0];
+    const weightKg = TUTORIAL_TEST_WEIGHT_KG;
+    const weightG = Math.round(weightKg * 1000);
+    const sellValue = Math.round(weightKg * species.pricePerKg);
+    const weightRatio = (weightKg - species.minKg) / Math.max(0.001, (species.maxKg - species.minKg));
+    const power = clamp(0.32 + weightRatio * 0.48 + (rarityPower[species.rarity] || 0), 0.25, 0.9);
+    return {
+      catchType: "fish",
+      speciesId: species.id,
+      name: species.name,
+      rarity: species.rarity,
+      rarityLabel: rarityLabels[species.rarity] || species.rarity,
+      weightKg,
+      weightG,
+      pricePerKg: species.pricePerKg,
+      sellValue,
+      story: species.story,
+      iconPath: species.icon,
+      power
+    };
+  }
+
   function buildFishCatch(rareBoostActive = false) {
     const species = rollFish(rareBoostActive);
     const rawWeight = triangular(species.minKg, species.modeKg, species.maxKg);
@@ -2297,6 +2619,9 @@ if ("serviceWorker" in navigator) {
   }
 
   function buildCatch() {
+    if (tutorialActive) {
+      return buildTutorialFishCatch();
+    }
     const trashChance = getTrashChance();
     if (Math.random() < trashChance) {
       return buildTrashCatch();
@@ -2768,7 +3093,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
-  const STORAGE_VERSION = 9;
+  const STORAGE_VERSION = 10;
   const NICK_REGISTRY_KEY = "icefish_nick_registry";
 
   function loadNickRegistry() {
@@ -2841,6 +3166,9 @@ if ("serviceWorker" in navigator) {
   let collectorRodUnlocked = false;
   let dailyRareBoostCharges = 0;
   let lastChargeResetDate = null;
+  let tutorialCompleted = false;
+  let tutorialActive = false;
+  let tutorialPauseGameplay = false;
 
   const progression = {
     xpRequired(level) {
@@ -3088,6 +3416,7 @@ if ("serviceWorker" in navigator) {
         dailyRareBoostCharges = Number(obj.dailyRareBoostCharges ?? 0);
         lastChargeResetDate = obj.lastChargeResetDate || null;
       }
+      tutorialCompleted = !!obj.tutorialCompleted;
       if (obj.storageVersion >= 7) {
         if (obj.questPreview && typeof obj.questPreview === "object") {
           QUEST_DIFFICULTY_KEYS.forEach((key) => {
@@ -3174,7 +3503,8 @@ if ("serviceWorker" in navigator) {
         trophyQuest: activeQuest,
         questPreview: questPreviews,
         questCooldowns,
-        questRefreshState
+        questRefreshState,
+        tutorialCompleted
       }));
     } catch {}
   }
@@ -3210,6 +3540,7 @@ if ("serviceWorker" in navigator) {
     questPreviews = { easy: null, medium: null, hard: null };
     questCooldowns = { easyAvailableAt: 0, mediumAvailableAt: 0, hardAvailableAt: 0 };
     questRefreshState = { refreshCount: 0, nextRefreshAt: 0 };
+    tutorialCompleted = false;
     save();
     updateHUD();
     renderInventory();
@@ -5734,6 +6065,9 @@ if ("serviceWorker" in navigator) {
     }
     updateHUD();
     save();
+    if (tutorialManager?.shouldStart()) {
+      tutorialManager.start();
+    }
   }
 
   btnPlay?.addEventListener("click", () => {
@@ -5786,7 +6120,11 @@ if ("serviceWorker" in navigator) {
   function enterWaiting() {
     game.mode = "WAITING";
     game.t = 0;
-    scheduleBite();
+    if (tutorialManager?.onEnterWaiting()) {
+      game.biteAt = 1.2;
+    } else {
+      scheduleBite();
+    }
     setFishing(true);
     setMsg("Ждём поклёвку…", 1.0);
     if (!reducedEffects) {
@@ -5811,6 +6149,7 @@ if ("serviceWorker" in navigator) {
     triggerBite();
     beep(820, 0.08, 0.05);
     setMsg("ПОКЛЁВКА! Свайп вверх.", 1.0);
+    tutorialManager?.onBiteShown();
   }
 
   function hook() {
@@ -5994,6 +6333,16 @@ if ("serviceWorker" in navigator) {
     save();
     checkQuestCompletion(game.catch);
 
+    if (tutorialManager?.active && tutorialManager.practiceMode) {
+      tutorialManager.onPracticeSuccess();
+      game.catch = null;
+      game.mode = "IDLE";
+      game.t = 0;
+      setFishing(false);
+      setFightState(false);
+      return;
+    }
+
     game.mode = "LANDED";
     game.t = 0;
     beep(660, 0.08, 0.06);
@@ -6176,6 +6525,9 @@ if ("serviceWorker" in navigator) {
         }
       }
       pendingOrientationPause = 0;
+    }
+    if (tutorialPauseGameplay) {
+      return;
     }
     scene.t += dt;
     game.t += dt;
@@ -6405,6 +6757,7 @@ if ("serviceWorker" in navigator) {
         setFishing(false);
         beep(220, 0.10, 0.05);
         setMsg("Леска лопнула.", 1.3);
+        tutorialManager?.onPracticeFail();
         revealSystem.reset();
         scheduleRevealHintHide(260);
         return;
@@ -6420,6 +6773,7 @@ if ("serviceWorker" in navigator) {
         setFishing(false);
         beep(220, 0.10, 0.05);
         setMsg("Слабина! Рыба сорвалась.", 1.3);
+        tutorialManager?.onPracticeFail();
         revealSystem.reset();
         scheduleRevealHintHide(260);
         return;
@@ -6807,6 +7161,14 @@ if ("serviceWorker" in navigator) {
   }
 
   async function boot() {
+    tutorialManager = new TutorialManager();
+    window.icefishTutorial = {
+      reset: () => tutorialManager?.resetForDev(),
+      start: () => tutorialManager?.start(),
+      get completed() {
+        return tutorialCompleted;
+      }
+    };
     showOverlay();
     setOverlayText("Загрузка...");
     if (btnPlay) btnPlay.disabled = true;
