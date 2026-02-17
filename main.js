@@ -3552,14 +3552,29 @@ if ("serviceWorker" in navigator) {
         });
         inner.append(icon);
       }
-      const label = document.createElement("div");
-      label.className = "findingLabel";
-      label.textContent = found ? item.name : "???";
-      inner.append(label);
+      if (found) {
+        cell.setAttribute("role", "button");
+        cell.tabIndex = 0;
+        cell.setAttribute("aria-label", `Открыть находку: ${item.name}`);
+      }
       cell.append(inner);
       trashGrid.append(cell);
     });
     updateTrashRewardStatus();
+  }
+
+  function openFindingFromJournal(trashId) {
+    if (!trashId || !foundTrash[trashId]) return;
+    const trashItem = trashItems.find((item) => item.id === trashId);
+    const details = TRASH_DETAILS[trashId] || {};
+    openFindingModal({
+      catchType: "trash",
+      trashId,
+      name: details.titleRu || trashItem?.name || "Находка",
+      story: details.storyRu || "",
+      iconPath: details.iconPath || TRASH_ICON_PATHS[trashId]
+    }, { fromJournal: true });
+    closeTrashJournal();
   }
 
   function unlockCollectorRod() {
@@ -3642,6 +3657,22 @@ if ("serviceWorker" in navigator) {
 
   btnTrashClose?.addEventListener("click", () => {
     closeTrashJournal();
+  });
+
+  trashGrid?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const cell = target?.closest?.(".trashCell.is-found");
+    if (!(cell instanceof HTMLElement)) return;
+    openFindingFromJournal(cell.dataset.trashId);
+  });
+
+  trashGrid?.addEventListener("keydown", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const cell = target?.closest?.(".trashCell.is-found");
+    if (!(cell instanceof HTMLElement)) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openFindingFromJournal(cell.dataset.trashId);
   });
 
   if (btnTrashFill) {
@@ -5737,19 +5768,19 @@ if ("serviceWorker" in navigator) {
     transitionTo(SCENE_CATCH_MODAL);
   }
 
-  function openFindingModal(catchData, { alreadyFound = false, bonus = 0 } = {}) {
+  function openFindingModal(catchData, { alreadyFound = false, bonus = 0, fromJournal = false } = {}) {
     if (!catchData) return;
     const details = TRASH_DETAILS[catchData.trashId] || {};
     const iconPath = catchData.iconPath || details.iconPath || TRASH_ICON_PATHS[catchData.trashId];
     const name = details.titleRu || catchData.name || "Находка";
     pendingFinding = catchData;
     if (findingTitle) {
-      findingTitle.textContent = alreadyFound ? "Повторная находка" : "Выудил что-то интересное";
+      findingTitle.textContent = fromJournal ? "Находка из журнала" : alreadyFound ? "Повторная находка" : "Выудил что-то интересное";
     }
     if (findingName) findingName.textContent = name;
     if (findingStory) {
       const story = (details.storyRu || catchData.story || "").trim();
-      const bonusLine = bonus > 0 ? `Бонус: +${bonus} монет.` : "";
+      const bonusLine = !fromJournal && bonus > 0 ? `Бонус: +${bonus} монет.` : "";
       const nextStory = [story, bonusLine].filter(Boolean).join(" ");
       findingStory.textContent = nextStory;
       findingStory.classList.toggle("hidden", !nextStory);
