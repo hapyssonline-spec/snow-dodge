@@ -76,6 +76,9 @@ if ("serviceWorker" in navigator) {
   const fishJournalDetailImage = document.getElementById("fishJournalDetailImage");
   const fishJournalDetailPrice = document.getElementById("fishJournalDetailPrice");
   const fishJournalDetailWeight = document.getElementById("fishJournalDetailWeight");
+  const fishJournalDetailChance = document.getElementById("fishJournalDetailChance");
+  const fishJournalDetailFirstCatch = document.getElementById("fishJournalDetailFirstCatch");
+  const fishJournalDetailCaughtTotal = document.getElementById("fishJournalDetailCaughtTotal");
   const fishJournalDetailRod = document.getElementById("fishJournalDetailRod");
   const fishJournalDetailStory = document.getElementById("fishJournalDetailStory");
   const trashGrid = document.getElementById("trashGrid");
@@ -630,6 +633,27 @@ if ("serviceWorker" in navigator) {
     try {
       localStorage.setItem(CAUGHT_SPECIES_KEY, JSON.stringify(Array.from(set)));
     } catch {}
+  }
+
+  function normalizeFishJournalStats(value) {
+    if (!value || typeof value !== "object") return {};
+    const normalized = {};
+    Object.entries(value).forEach(([rawSpeciesId, entry]) => {
+      const speciesId = normalizeSpeciesId(rawSpeciesId);
+      if (!speciesId || !entry || typeof entry !== "object") return;
+      const totalCaught = Math.max(0, Number(entry.totalCaught || 0));
+      const firstCaughtAt = entry.firstCaughtAt || null;
+      const existing = normalized[speciesId];
+      if (!existing) {
+        normalized[speciesId] = { totalCaught, firstCaughtAt };
+        return;
+      }
+      existing.totalCaught = Math.max(existing.totalCaught, totalCaught);
+      if (!existing.firstCaughtAt || (firstCaughtAt && new Date(firstCaughtAt) < new Date(existing.firstCaughtAt))) {
+        existing.firstCaughtAt = firstCaughtAt;
+      }
+    });
+    return normalized;
   }
 
   function getTensionZone(tension) {
@@ -3255,6 +3279,7 @@ if ("serviceWorker" in navigator) {
   };
 
   let inventory = [];
+  let fishJournalStats = {};
   let inventorySort = "WEIGHT_DESC";
   let activeQuest = null;
   let questPreviews = { easy: null, medium: null, hard: null };
@@ -3491,6 +3516,19 @@ if ("serviceWorker" in navigator) {
       if (obj.storageVersion >= 2 && Array.isArray(obj.inventory)) {
         inventory = obj.inventory.map((entry) => normalizeInventoryEntry(entry));
       }
+      fishJournalStats = normalizeFishJournalStats(obj.fishJournalStats);
+      inventory.forEach((entry) => {
+        if (!entry || entry.catchType === "trash" || !entry.speciesId) return;
+        const speciesId = normalizeSpeciesId(entry.speciesId);
+        if (!speciesId) return;
+        const caughtAt = entry.caughtAt || null;
+        const current = fishJournalStats[speciesId] || { totalCaught: 0, firstCaughtAt: caughtAt };
+        current.totalCaught = Math.max(current.totalCaught, 1);
+        if (!current.firstCaughtAt || (caughtAt && new Date(caughtAt) < new Date(current.firstCaughtAt))) {
+          current.firstCaughtAt = caughtAt;
+        }
+        fishJournalStats[speciesId] = current;
+      });
       if (obj.storageVersion >= 3) {
         const savedPlayer = obj.player || {};
         player.coins = Number(savedPlayer.coins || stats.coins || 0);
@@ -3587,6 +3625,7 @@ if ("serviceWorker" in navigator) {
         muted,
         sfxVolume,
         inventory,
+        fishJournalStats,
         foundTrash,
         collectorRodUnlocked,
         dailyRareBoostCharges,
@@ -3631,6 +3670,7 @@ if ("serviceWorker" in navigator) {
     stats.bestRarityFishWeightG = 0;
     stats.totalPlayTimeMs = 0;
     inventory = [];
+    fishJournalStats = {};
     player.activeBaitId = null;
     player.baitInventory = {};
     player.rodTier = 1;
@@ -3845,6 +3885,15 @@ if ("serviceWorker" in navigator) {
 
   function updateCatchStats(catchData) {
     if (!catchData || catchData.catchType !== "fish") return;
+    const speciesId = normalizeSpeciesId(catchData.speciesId);
+    if (speciesId) {
+      const existing = fishJournalStats[speciesId] || { totalCaught: 0, firstCaughtAt: null };
+      existing.totalCaught += 1;
+      if (!existing.firstCaughtAt) {
+        existing.firstCaughtAt = new Date().toISOString();
+      }
+      fishJournalStats[speciesId] = existing;
+    }
     const weightG = Number.isFinite(catchData.weightG)
       ? catchData.weightG
       : Math.round((catchData.weightKg || 0) * 1000);
@@ -4122,6 +4171,7 @@ if ("serviceWorker" in navigator) {
   function openFishJournalDetail(speciesId) {
     const species = fishSpeciesTable.find((item) => item.id === speciesId);
     if (!species) return;
+    const speciesStats = fishJournalStats[species.id] || null;
 
     if (fishJournalDetailName) fishJournalDetailName.textContent = species.name;
     if (fishJournalDetailRarity) {
@@ -4130,6 +4180,9 @@ if ("serviceWorker" in navigator) {
     }
     if (fishJournalDetailPrice) fishJournalDetailPrice.textContent = formatCoins(species.pricePerKg);
     if (fishJournalDetailWeight) fishJournalDetailWeight.textContent = `${species.minKg.toFixed(2)}–${species.maxKg.toFixed(2)} кг`;
+    if (fishJournalDetailChance) fishJournalDetailChance.textContent = formatChancePercent(species.chance);
+    if (fishJournalDetailFirstCatch) fishJournalDetailFirstCatch.textContent = speciesStats?.firstCaughtAt ? formatDate(speciesStats.firstCaughtAt) : "—";
+    if (fishJournalDetailCaughtTotal) fishJournalDetailCaughtTotal.textContent = String(speciesStats?.totalCaught || 0);
     if (fishJournalDetailRod) fishJournalDetailRod.textContent = getRequiredRodLabel(species.minRodTier);
     if (fishJournalDetailStory) fishJournalDetailStory.textContent = species.story || "";
 
