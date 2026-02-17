@@ -114,7 +114,7 @@
         <button id="btnCity" class="chipBtn btn--singleLine" aria-label="В город"><span class="btnText">В город</span></button>
         <button id="btnInventory" class="chipBtn btn--singleLine" aria-label="Инвентарь"><span class="btnText">Инвентарь</span></button>
         <button id="btnJournal" class="chipBtn btn--singleLine" aria-label="Журнал"><span class="btnText">Журнал</span></button>
-        <button id="btnFishJournal" class="chipBtn btn--singleLine" aria-label="Журнал рыб"><span class="btnText">Рыбы</span></button>
+        <button id="btnHero" class="chipBtn btn--singleLine" aria-label="Герой"><span class="btnText">Герой</span></button>
         <button id="btnStar" class="chipBtn iconBtn" aria-label="Раздел в разработке">
           <span class="icon" aria-hidden="true">⭐</span>
           <span class="iconMeta" aria-hidden="true">soon</span>
@@ -157,10 +157,40 @@
                 <option value="NAME_ASC">По названию (А-Я)</option>
                 <option value="NAME_DESC">По названию (Я-А)</option>
               </select>
+              <button id="btnInvFishJournal" class="chipBtn secondary btn--singleLine" aria-label="Журнал рыб">
+                <span class="btnText">Журнал рыб</span>
+              </button>
             </div>
 
-            <div id="invEmpty" class="invEmpty hidden">Инвентарь пуст. Поймай рыбу!</div>
-            <div id="invList" class="invList scrollable"></div>
+            <div id="invItemsView">
+              <div id="invEmpty" class="invEmpty hidden">Инвентарь пуст. Поймай рыбу!</div>
+              <div id="invList" class="invList scrollable"></div>
+            </div>
+
+            <div id="invFishJournalView" class="fishJournalView hidden">
+              <ol id="fishJournalList" class="fishJournalList"></ol>
+            </div>
+
+            <div id="invFishJournalDetailView" class="fishJournalView fishJournalDetailView hidden">
+              <button id="btnFishJournalBack" class="chipBtn fishJournalBackBtn" aria-label="Назад к списку">
+                <span class="btnText">← Назад</span>
+              </button>
+              <div class="fishJournalDetailCard">
+                <div class="fishJournalDetailHead">
+                  <div id="fishJournalDetailName" class="fishJournalDetailName">Рыба</div>
+                  <span id="fishJournalDetailRarity" class="badge badge-common">Обычная</span>
+                </div>
+                <div id="fishJournalDetailImageSlot" class="fishJournalDetailImageSlot">
+                  <img id="fishJournalDetailImage" class="fishJournalDetailImage" alt="">
+                </div>
+                <div class="fishJournalDetailMeta">
+                  <div><strong>Цена за кг:</strong> <span id="fishJournalDetailPrice">0 монет</span></div>
+                  <div><strong>Диапазон веса:</strong> <span id="fishJournalDetailWeight">0.00–0.00 кг</span></div>
+                  <div><strong>Минимальная удочка:</strong> <span id="fishJournalDetailRod">Rod_1</span></div>
+                </div>
+                <div id="fishJournalDetailStory" class="fishJournalDetailStory"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -239,41 +269,6 @@
         </div>
       </div>
 
-      <div id="fishJournalOverlay" class="hidden modal modalOverlay">
-        <div class="fishJournalCard modalCard">
-          <div class="fishJournalHeader modalHeader">
-            <div class="fishJournalTitle modalTitle modalHeaderTitle">Журнал рыб</div>
-            <button id="btnFishJournalClose" class="modalClose" aria-label="Закрыть">×</button>
-          </div>
-          <div class="modalBody">
-            <div id="fishJournalListView" class="fishJournalView">
-              <ol id="fishJournalList" class="fishJournalList"></ol>
-            </div>
-
-            <div id="fishJournalDetailView" class="fishJournalView fishJournalDetailView hidden">
-              <button id="btnFishJournalBack" class="chipBtn fishJournalBackBtn" aria-label="Назад к списку">
-                <span class="btnText">← Назад</span>
-              </button>
-              <div class="fishJournalDetailCard">
-                <div class="fishJournalDetailHead">
-                  <div id="fishJournalDetailName" class="fishJournalDetailName">Рыба</div>
-                  <span id="fishJournalDetailRarity" class="badge badge-common">Обычная</span>
-                </div>
-                <div id="fishJournalDetailImageSlot" class="fishJournalDetailImageSlot">
-                  <img id="fishJournalDetailImage" class="fishJournalDetailImage" alt="">
-                </div>
-                <div class="fishJournalDetailMeta">
-                  <div><strong>Цена за кг:</strong> <span id="fishJournalDetailPrice">0 монет</span></div>
-                  <div><strong>Диапазон веса:</strong> <span id="fishJournalDetailWeight">0.00–0.00 кг</span></div>
-                  <div><strong>Минимальная удочка:</strong> <span id="fishJournalDetailRod">Rod_1</span></div>
-                </div>
-                <div id="fishJournalDetailStory" class="fishJournalDetailStory"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div id="findingOverlay" class="hidden modal modalOverlay">
         <div class="findingCard">
           <div class="findingHeader">
@@ -334,13 +329,7 @@
             </div>
             <div class="profileBody modalBody">
               <section class="profileSection">
-                <div class="sectionTitle">Уровень</div>
-                <div id="profileXpRing" class="xpRing" aria-label="Прогресс опыта"></div>
-              </section>
-
-              <section class="profileSection">
                 <div class="profileQuickActions">
-                  <button id="btnProfileStatsOpen" class="chipBtn btn--twoLines"><span class="btnText">Статистика</span></button>
                   <button id="btnProfileLeaderboardsOpen" class="chipBtn secondary btn--twoLines"><span class="btnText">Рекорды</span></button>
                 </div>
               </section>
@@ -358,6 +347,38 @@
                   <input id="sfxVolume" type="range" min="0" max="100" step="1" value="35" />
                   <span id="sfxVolumeValue" class="soundSettingValue">35%</span>
                 </label>
+              </section>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div id="heroOverlay" class="hidden modal modalOverlay" aria-hidden="true">
+        <div class="profileCard modalCard">
+          <div id="heroScreenMain" class="profileScreen">
+            <div class="profileHeader modalHeader">
+              <div class="profileHeaderInfo">
+                <div class="profileTitle modalTitle modalHeaderTitle">Герой</div>
+              </div>
+              <button id="btnHeroClose" class="modalClose" aria-label="Закрыть">×</button>
+            </div>
+            <div class="profileBody modalBody">
+              <section class="profileSection">
+                <div class="sectionTitle">Уровень</div>
+                <div id="profileXpRing" class="xpRing" aria-label="Прогресс опыта"></div>
+              </section>
+
+              <section class="profileSection">
+                <div class="sectionTitle">Статистика</div>
+                <div class="profileStats">
+                  <div class="statRow"><span>Время в игре</span><span id="statPlayTime">00:00</span></div>
+                  <div class="statRow"><span>Поймано рыб</span><span id="statFishCaught">0</span></div>
+                  <div class="statRow"><span>Заработано золота</span><span id="statGoldEarned">0</span></div>
+                  <div class="statRow"><span>Самая редкая</span><span id="statBestRarity">—</span></div>
+                  <div class="statRow"><span>Максимальный вес</span><span id="statMaxWeight">0 кг</span></div>
+                </div>
               </section>
 
               <section class="profileSection">
@@ -387,32 +408,13 @@
             </div>
           </div>
 
-          <div id="profileScreenStats" class="profileScreen hidden">
-            <div class="profileHeader modalHeader">
-              <div class="modalTitleGroup">
-                <div class="profileTitle modalTitle modalHeaderTitle">Статистика</div>
-                <button id="btnProfileStatsBack" class="chipBtn btn--singleLine"><span class="btnText">Назад</span></button>
-              </div>
-              <button id="btnProfileStatsClose" class="modalClose" aria-label="Закрыть">×</button>
-            </div>
-            <div class="profileBody modalBody">
-              <div class="profileStats">
-                <div class="statRow"><span>Время в игре</span><span id="statPlayTime">00:00</span></div>
-                <div class="statRow"><span>Поймано рыб</span><span id="statFishCaught">0</span></div>
-                <div class="statRow"><span>Заработано золота</span><span id="statGoldEarned">0</span></div>
-                <div class="statRow"><span>Самая редкая</span><span id="statBestRarity">—</span></div>
-                <div class="statRow"><span>Максимальный вес</span><span id="statMaxWeight">0 кг</span></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="profileScreenGear" class="profileScreen hidden">
+          <div id="heroScreenGear" class="profileScreen hidden">
             <div class="profileHeader modalHeader">
               <div class="modalTitleGroup">
                 <div id="profileGearTitle" class="profileTitle modalTitle modalHeaderTitle">Выбор</div>
-                <button id="btnProfileGearBack" class="chipBtn btn--singleLine"><span class="btnText">Назад</span></button>
+                <button id="btnHeroGearBack" class="chipBtn btn--singleLine"><span class="btnText">Назад</span></button>
               </div>
-              <button id="btnProfileGearClose" class="modalClose" aria-label="Закрыть">×</button>
+              <button id="btnHeroGearClose" class="modalClose" aria-label="Закрыть">×</button>
             </div>
             <div class="profileBody modalBody">
               <div id="profileGearPickerList" class="profileGearPickerList"></div>

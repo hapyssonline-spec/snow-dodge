@@ -49,7 +49,7 @@ if ("serviceWorker" in navigator) {
   const btnProfile = document.getElementById("btnProfile");
   const btnInventory = document.getElementById("btnInventory");
   const btnJournal = document.getElementById("btnJournal");
-  const btnFishJournal = document.getElementById("btnFishJournal");
+  const btnHero = document.getElementById("btnHero");
   const btnCity = document.getElementById("btnCity");
   const btnSoundToggle = document.getElementById("btnSoundToggle");
   const sfxVolumeInput = document.getElementById("sfxVolume");
@@ -59,15 +59,16 @@ if ("serviceWorker" in navigator) {
   const invSort = document.getElementById("invSort");
   const invList = document.getElementById("invList");
   const invEmpty = document.getElementById("invEmpty");
+  const invItemsView = document.getElementById("invItemsView");
+  const btnInvFishJournal = document.getElementById("btnInvFishJournal");
+
 
   const trashOverlay = document.getElementById("trashOverlay");
   const btnTrashClose = document.getElementById("btnTrashClose");
 
-  const fishJournalOverlay = document.getElementById("fishJournalOverlay");
-  const btnFishJournalClose = document.getElementById("btnFishJournalClose");
   const fishJournalList = document.getElementById("fishJournalList");
-  const fishJournalListView = document.getElementById("fishJournalListView");
-  const fishJournalDetailView = document.getElementById("fishJournalDetailView");
+  const invFishJournalView = document.getElementById("invFishJournalView");
+  const fishJournalDetailView = document.getElementById("invFishJournalDetailView");
   const btnFishJournalBack = document.getElementById("btnFishJournalBack");
   const fishJournalDetailName = document.getElementById("fishJournalDetailName");
   const fishJournalDetailRarity = document.getElementById("fishJournalDetailRarity");
@@ -173,18 +174,17 @@ if ("serviceWorker" in navigator) {
   const btnLeaderboardClose = document.getElementById("btnLeaderboardClose");
 
   const profileOverlay = document.getElementById("profileOverlay");
+  const heroOverlay = document.getElementById("heroOverlay");
+  const btnHeroClose = document.getElementById("btnHeroClose");
+  const heroScreenMain = document.getElementById("heroScreenMain");
+  const heroScreenGear = document.getElementById("heroScreenGear");
   const btnProfileClose = document.getElementById("btnProfileClose");
   const profileName = document.getElementById("profileName");
   const btnProfileRename = document.getElementById("btnProfileRename");
   const profileXpRing = document.getElementById("profileXpRing");
-  const btnProfileStatsOpen = document.getElementById("btnProfileStatsOpen");
   const btnProfileLeaderboardsOpen = document.getElementById("btnProfileLeaderboardsOpen");
-  const btnProfileStatsBack = document.getElementById("btnProfileStatsBack");
-  const btnProfileStatsClose = document.getElementById("btnProfileStatsClose");
-  const profileScreenMain = document.getElementById("profileScreenMain");
-  const profileScreenStats = document.getElementById("profileScreenStats");
-  const profileScreenGear = document.getElementById("profileScreenGear");
-  const btnProfileGearClose = document.getElementById("btnProfileGearClose");
+  const btnHeroGearBack = document.getElementById("btnHeroGearBack");
+  const btnHeroGearClose = document.getElementById("btnHeroGearClose");
   const statPlayTime = document.getElementById("statPlayTime");
   const statFishCaught = document.getElementById("statFishCaught");
   const statGoldEarned = document.getElementById("statGoldEarned");
@@ -195,7 +195,6 @@ if ("serviceWorker" in navigator) {
   const profileBaitName = document.getElementById("profileBaitName");
   const profileGearTitle = document.getElementById("profileGearTitle");
   const profileGearPickerList = document.getElementById("profileGearPickerList");
-  const btnProfileGearBack = document.getElementById("btnProfileGearBack");
   const profileGearToggles = Array.from(document.querySelectorAll(".profileGearToggle"));
 
   const renameOverlay = document.getElementById("renameOverlay");
@@ -324,7 +323,7 @@ if ("serviceWorker" in navigator) {
     overlay,
     invOverlay,
     trashOverlay,
-    fishJournalOverlay,
+    heroOverlay,
     catchOverlay,
     findingOverlay,
     profileSetupOverlay,
@@ -773,12 +772,11 @@ if ("serviceWorker" in navigator) {
       btnCity,
       btnInventory,
       btnJournal,
-      btnFishJournal,
+      btnHero,
       btnStar,
       btnMute,
       btnProfile,
       btnBackToLake,
-      btnProfileStatsOpen,
       btnProfileLeaderboardsOpen,
       btnTrophyQuests,
       btnTrophyRecords,
@@ -3964,6 +3962,7 @@ if ("serviceWorker" in navigator) {
     if (isFighting) return;
     invOverlay?.classList.remove("hidden");
     if (invSort) invSort.value = inventorySort;
+    showInventoryItemsView();
     renderInventory();
     updateModalLayerState();
     audio?.play("inventory_open");
@@ -3971,6 +3970,7 @@ if ("serviceWorker" in navigator) {
 
   function closeInventory() {
     invOverlay?.classList.add("hidden");
+    showInventoryItemsView();
     updateModalLayerState();
     audio?.play("inventory_close");
   }
@@ -4000,15 +4000,21 @@ if ("serviceWorker" in navigator) {
   }
 
   function showFishJournalListView() {
-    if (!fishJournalListView || !fishJournalDetailView || !fishJournalOverlay) return;
-    fishJournalOverlay.classList.remove("is-detail");
-    fishJournalListView.classList.remove("hidden");
+    if (!invFishJournalView || !fishJournalDetailView) return;
+    invItemsView?.classList.add("hidden");
+    invFishJournalView.classList.remove("hidden");
     fishJournalDetailView.classList.add("hidden");
+  }
+
+  function showInventoryItemsView() {
+    invItemsView?.classList.remove("hidden");
+    invFishJournalView?.classList.add("hidden");
+    fishJournalDetailView?.classList.add("hidden");
   }
 
   function openFishJournalDetail(speciesId) {
     const species = fishSpeciesTable.find((item) => item.id === speciesId);
-    if (!species || !fishJournalOverlay) return;
+    if (!species) return;
 
     if (fishJournalDetailName) fishJournalDetailName.textContent = species.name;
     if (fishJournalDetailRarity) {
@@ -4033,10 +4039,8 @@ if ("serviceWorker" in navigator) {
     }
     fishJournalDetailImageSlot?.classList.toggle("is-empty", !iconPath);
 
-    if (!fishJournalListView || !fishJournalDetailView) return;
-    fishJournalOverlay.classList.add("is-detail");
-    fishJournalListView.classList.add("hidden");
-    fishJournalDetailView.classList.remove("hidden");
+    invFishJournalView?.classList.add("hidden");
+    fishJournalDetailView?.classList.remove("hidden");
   }
 
   function renderFishJournal() {
@@ -4071,42 +4075,19 @@ if ("serviceWorker" in navigator) {
     });
   }
 
-  function openFishJournal() {
-    if (isFighting) return;
-    if (!fishJournalOverlay) return;
-    renderFishJournal();
-    showFishJournalListView();
-    fishJournalOverlay.classList.remove("hidden");
-    requestAnimationFrame(() => {
-      fishJournalOverlay.classList.add("is-visible");
-    });
-    updateModalLayerState();
-  }
-
-  function closeFishJournal() {
-    if (!fishJournalOverlay) return;
-    fishJournalOverlay.classList.remove("is-visible");
-    window.setTimeout(() => {
-      fishJournalOverlay.classList.add("hidden");
-      fishJournalOverlay.classList.remove("is-detail");
-      showFishJournalListView();
-      updateModalLayerState();
-    }, 250);
-  }
-
   btnInventory?.addEventListener("click", () => {
     if (currentScene !== SCENE_LAKE) return;
     openInventory();
   });
 
+  btnInvFishJournal?.addEventListener("click", () => {
+    renderFishJournal();
+    showFishJournalListView();
+  });
+
   btnJournal?.addEventListener("click", () => {
     if (currentScene !== SCENE_LAKE) return;
     openTrashJournal();
-  });
-
-  btnFishJournal?.addEventListener("click", () => {
-    if (currentScene !== SCENE_LAKE) return;
-    openFishJournal();
   });
 
   btnInvClose?.addEventListener("click", () => {
@@ -4115,10 +4096,6 @@ if ("serviceWorker" in navigator) {
 
   btnTrashClose?.addEventListener("click", () => {
     closeTrashJournal();
-  });
-
-  btnFishJournalClose?.addEventListener("click", () => {
-    closeFishJournal();
   });
 
   btnFishJournalBack?.addEventListener("click", () => {
@@ -4185,11 +4162,10 @@ if ("serviceWorker" in navigator) {
     }
   });
 
-  function showProfileScreen(screen) {
+  function showHeroScreen(screen) {
     const screens = {
-      main: profileScreenMain,
-      stats: profileScreenStats,
-      gear: profileScreenGear
+      main: heroScreenMain,
+      gear: heroScreenGear
     };
     Object.entries(screens).forEach(([key, el]) => {
       if (!el) return;
@@ -4202,7 +4178,6 @@ if ("serviceWorker" in navigator) {
     if (!profileOverlay) return;
     profileOverlay.classList.remove("hidden");
     profileOverlay.setAttribute("aria-hidden", "false");
-    showProfileScreen("main");
     updateProfileStatsUI();
     updateModalLayerState();
   }
@@ -4213,6 +4188,23 @@ if ("serviceWorker" in navigator) {
     pendingRename = null;
     activeProfileGear = null;
     blurActiveInput();
+    updateModalLayerState();
+  }
+
+  function openHero() {
+    if (isFighting) return;
+    if (!heroOverlay) return;
+    heroOverlay.classList.remove("hidden");
+    heroOverlay.setAttribute("aria-hidden", "false");
+    showHeroScreen("main");
+    updateProfileStatsUI();
+    updateModalLayerState();
+  }
+
+  function closeHero() {
+    heroOverlay?.classList.add("hidden");
+    heroOverlay?.setAttribute("aria-hidden", "true");
+    activeProfileGear = null;
     updateModalLayerState();
   }
 
@@ -4346,32 +4338,28 @@ if ("serviceWorker" in navigator) {
     closeProfile();
   });
 
-  btnProfileStatsOpen?.addEventListener("click", () => {
-    if (isFighting) return;
-    showProfileScreen("stats");
-    updateProfileStatsUI();
-  });
-
   btnProfileLeaderboardsOpen?.addEventListener("click", () => {
     if (isFighting) return;
     closeProfile();
+    closeHero();
     openLeaderboard();
   });
 
-  btnProfileStatsBack?.addEventListener("click", () => {
-    showProfileScreen("main");
+  btnHero?.addEventListener("click", () => {
+    if (isFighting) return;
+    openHero();
   });
 
-  btnProfileStatsClose?.addEventListener("click", () => {
-    closeProfile();
+  btnHeroClose?.addEventListener("click", () => {
+    closeHero();
   });
 
-  btnProfileGearBack?.addEventListener("click", () => {
-    showProfileScreen("main");
+  btnHeroGearBack?.addEventListener("click", () => {
+    showHeroScreen("main");
   });
 
-  btnProfileGearClose?.addEventListener("click", () => {
-    closeProfile();
+  btnHeroGearClose?.addEventListener("click", () => {
+    closeHero();
   });
 
   btnLeaderboardClose?.addEventListener("click", () => {
@@ -4388,7 +4376,7 @@ if ("serviceWorker" in navigator) {
         profileGearTitle.textContent = `Выбор: ${labelMap[gear] || "Снаряжение"}`;
       }
       renderProfileGearPicker(gear);
-      showProfileScreen("gear");
+      showHeroScreen("gear");
     });
   });
 
@@ -6006,7 +5994,7 @@ if ("serviceWorker" in navigator) {
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
-    btnFishJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    btnHero?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnStar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnMute?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     bottomBar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
@@ -6017,9 +6005,9 @@ if ("serviceWorker" in navigator) {
       trashOverlay.classList.add("hidden");
       trashOverlay.classList.remove("is-visible");
     }
-    if (sceneId !== SCENE_LAKE && fishJournalOverlay) {
-      fishJournalOverlay.classList.add("hidden");
-      fishJournalOverlay.classList.remove("is-visible");
+    if (sceneId !== SCENE_LAKE) {
+      showInventoryItemsView();
+      closeHero();
     }
     updateModalLayerState();
     updateLayerVisibility();
