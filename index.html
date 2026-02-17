@@ -248,23 +248,22 @@
             <div class="catchStory" id="catchStory"></div>
           </div>
           <div class="catchPrices">
-            <div class="catchPriceRow subtle">
-              <span class="priceLabel">Полная цена</span>
-              <span id="catchFullPrice" class="strike priceValue">0</span>
+            <div class="catchPriceRow catchPriceRow--single">
+              <span class="priceLabel">Цена:</span>
+              <span class="catchPriceValueWrap"><span id="catchFullPrice" class="priceValue">0</span><span class="coinIcon" aria-hidden="true">🪙</span></span>
             </div>
-            <div class="catchPriceRow highlight">
-              <span class="priceLabel">Продать сразу</span>
-              <span id="catchDiscountPrice" class="priceValue">0</span>
-            </div>
-            <div class="catchDiscount">-30% за срочную продажу</div>
           </div>
-          <label id="catchTrophyWrap" class="catchTrophy hidden">
-            <input id="catchTrophyToggle" type="checkbox" />
-            Сделать трофеем
-          </label>
+          <div id="catchXpBlock" class="catchXpBlock">
+            <div id="catchXpGain" class="catchXpGain hidden">+0 XP</div>
+            <div id="catchXpBar" class="catchXpBar" aria-label="Прогресс опыта за улов">
+              <div id="catchXpBarBase" class="catchXpBarBase"></div>
+              <div id="catchXpBarDelta" class="catchXpBarDelta"></div>
+              <div id="catchXpBarHead" class="catchXpBarHead"></div>
+            </div>
+            <div id="catchXpLabel" class="catchXpLabel">XP 0/0</div>
+          </div>
           <div class="row">
             <button id="btnCatchKeep" class="secondary btn--twoLines"><span class="btnText">В инвентарь</span></button>
-            <button id="btnCatchSellNow" class="danger btn--twoLines"><span class="btnText">Продать сразу</span></button>
           </div>
         </div>
       </div>

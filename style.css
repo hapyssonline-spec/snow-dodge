@@ -6,6 +6,8 @@
   --text:#e9f2ff;
   --muted:#a6b9da;
   --accent:#7bd3ff;
+  --xp-accent:#86c9f3;
+  --xp-accent-bright:#bfe7ff;
   --good:#66e6a0;
   --warn:#ffd166;
   --bad:#ff6b6b;
@@ -1295,10 +1297,10 @@ img, a{
 
 .xpRingProgress{
   fill:none;
-  stroke:#86c9f3;
+  stroke:var(--xp-accent);
   stroke-width:10;
   stroke-linecap:round;
-  filter: drop-shadow(0 0 6px rgba(134,201,243,.2));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--xp-accent) 45%, transparent));
   transition: filter 0.3s ease;
 }
 
@@ -1324,7 +1326,7 @@ img, a{
 }
 
 .xpRing--pulse .xpRingProgress{
-  filter: drop-shadow(0 0 10px rgba(134,201,243,.5));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--xp-accent) 65%, transparent));
 }
 
 .xpRing--levelup .xpRingCenter{
@@ -1342,9 +1344,9 @@ img, a{
 }
 
 @keyframes xpRingFlash{
-  0%{filter: drop-shadow(0 0 6px rgba(134,201,243,.2));}
-  50%{filter: drop-shadow(0 0 14px rgba(190,230,255,.7));}
-  100%{filter: drop-shadow(0 0 6px rgba(134,201,243,.2));}
+  0%{filter: drop-shadow(0 0 6px color-mix(in srgb, var(--xp-accent) 45%, transparent));}
+  50%{filter: drop-shadow(0 0 14px color-mix(in srgb, var(--xp-accent-bright) 75%, transparent));}
+  100%{filter: drop-shadow(0 0 6px color-mix(in srgb, var(--xp-accent) 45%, transparent));}
 }
 
 .progressBar--slim{
@@ -2449,56 +2451,107 @@ img, a{
 .catchPrices{
   border-radius:14px;
   border:1px solid var(--stroke);
-  padding:10px 12px;
+  padding:12px;
   background: rgba(11,18,28,.6);
-  display:flex;
-  flex-direction:column;
-  gap:6px;
 }
 
 .catchPriceRow{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  font-size:13px;
+  font-size:18px;
   gap:8px;
 }
 
-.priceLabel{
-  font-weight:600;
+.catchPriceRow--single .priceLabel{
+  font-weight:700;
 }
 
 .priceValue{
-  font-weight:800;
-}
-
-.catchPriceRow.subtle{
-  font-size:12px;
-  color:rgba(166,185,218,.8);
-}
-
-.catchPriceRow.highlight{
-  font-size:16px;
   font-weight:900;
-  color:#ffb86b;
 }
 
-.catchDiscount{
-  font-size:11px;
-  color:rgba(255,190,150,.85);
-}
-
-.strike{
-  text-decoration:line-through;
-  color:var(--muted);
-}
-
-.catchTrophy{
-  display:flex;
+.catchPriceValueWrap{
+  display:inline-flex;
   align-items:center;
   gap:8px;
-  font-size:13px;
+}
+
+.coinIcon{
+  font-size:18px;
+  filter: drop-shadow(0 0 6px rgba(255,216,151,.5));
+}
+
+.catchXpBlock{
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  padding:12px;
+  background: rgba(11,18,28,.62);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.catchXpGain{
+  align-self:flex-start;
+  font-size:18px;
+  font-weight:900;
+  color:var(--xp-accent-bright);
+  text-shadow:0 0 14px color-mix(in srgb, var(--xp-accent) 68%, transparent);
+}
+
+.catchXpBar{
+  position:relative;
+  width:100%;
+  height:12px;
+  border-radius:999px;
+  overflow:hidden;
+  background: rgba(8,17,28,.9);
+  border:1px solid rgba(160,205,240,.22);
+}
+
+.catchXpBarBase,
+.catchXpBarDelta{
+  position:absolute;
+  top:0;
+  left:0;
+  height:100%;
+  width:0%;
+  border-radius:inherit;
+}
+
+.catchXpBarBase{
+  background: linear-gradient(90deg, color-mix(in srgb, var(--xp-accent) 88%, white 12%), var(--xp-accent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--xp-accent) 60%, transparent);
+}
+
+.catchXpBarDelta{
+  background: linear-gradient(90deg, var(--xp-accent-bright), #e6f6ff);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--xp-accent-bright) 72%, transparent);
+  opacity:0;
+}
+
+.catchXpBarHead{
+  position:absolute;
+  top:50%;
+  left:0%;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--xp-accent-bright) 92%, #fff 8%) 0%, color-mix(in srgb, var(--xp-accent) 80%, transparent) 65%, transparent 100%);
+  opacity:0;
+  pointer-events:none;
+}
+
+.catchXpLabel{
+  font-size:12px;
+  font-weight:700;
   color:var(--muted);
+}
+
+.catchXpGain.hidden{
+  display:none;
 }
 
 .danger{
@@ -3582,6 +3635,10 @@ button:disabled{
   box-shadow:0 0 0 9999px rgba(4,10,18,.5);
   transition:left .25s ease, top .25s ease, width .25s ease, height .25s ease;
 }
+
+.tutorialSpotlight.is-following{
+  transition:none;
+}
 .tutorialHeader{ position:fixed; top:calc(env(safe-area-inset-top) + 12px); left:0; right:0; display:flex; justify-content:center; pointer-events:none; }
 .tutorialHeaderBadge{ padding:10px 16px; border-radius:999px; background:rgba(14,28,45,.94); border:1px solid rgba(170,220,255,.42); box-shadow:0 8px 24px rgba(0,0,0,.28); font-weight:700; }
 .tutorialCardWrap{ position:fixed; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom) + 14px); display:flex; justify-content:center; }
@@ -3594,3 +3651,8 @@ button:disabled{
 .tutorialSwipeHand{ position:absolute; left:42px; bottom:0; font-size:34px; animation:tutorialSwipe 1.3s ease-in-out infinite; }
 @keyframes tutorialSwipe{ 0%{ transform:translateY(0); opacity:.5;} 70%{ transform:translateY(-130px); opacity:1;} 100%{ transform:translateY(-130px); opacity:0;} }
 @keyframes tutorialPulse{ 0%,100%{ opacity:.5;} 50%{ opacity:1;} }
+
+
+#app[data-effects="reduced"] .catchXpGain{
+  transition:none;
+}
