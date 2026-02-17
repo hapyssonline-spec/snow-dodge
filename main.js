@@ -1193,7 +1193,14 @@ if ("serviceWorker" in navigator) {
       originX: origin.x,
       originY: origin.y,
       tipX: width,
-      tipY: height * 0.1
+      tipY: 0
+    };
+  }
+
+  function viewportToGamePoint(x, y) {
+    return {
+      x: (x - viewportOffsetX) / viewportScale,
+      y: (y - viewportOffsetY) / viewportScale
     };
   }
 
@@ -1214,13 +1221,12 @@ if ("serviceWorker" in navigator) {
     const geometry = getRodGeometryFromElement();
     if (!geometry) return null;
     const rect = rodLayer.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+    const center = viewportToGamePoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
     const angle = getRodAngleFromElement();
     const originOffsetX = geometry.originX - geometry.width / 2;
     const originOffsetY = geometry.originY - geometry.height / 2;
-    const baseX = centerX + originOffsetX * Math.cos(angle) - originOffsetY * Math.sin(angle);
-    const baseY = centerY + originOffsetX * Math.sin(angle) + originOffsetY * Math.cos(angle);
+    const baseX = center.x + originOffsetX * Math.cos(angle) - originOffsetY * Math.sin(angle);
+    const baseY = center.y + originOffsetX * Math.sin(angle) + originOffsetY * Math.cos(angle);
     return computeRodTipFromPose(baseX, baseY, angle, geometry);
   }
 
@@ -4899,14 +4905,16 @@ if ("serviceWorker" in navigator) {
       const geometry = getRodGeometryFromElement();
       if (!geometry) return false;
       const rect = rodLayer.getBoundingClientRect();
-      const baseX = rect.left + rect.width * (geometry.originX / geometry.width);
-      const baseY = rect.top + rect.height * (geometry.originY / geometry.height);
+      const base = viewportToGamePoint(
+        rect.left + rect.width * (geometry.originX / geometry.width),
+        rect.top + rect.height * (geometry.originY / geometry.height)
+      );
       const angle = getRodAngleFromElement();
 
       this.active = true;
       this.elapsed = 0;
       this.rodGeometry = geometry;
-      this.rodBase = { x: baseX, y: baseY };
+      this.rodBase = { x: base.x, y: base.y };
       this.rodStartAngle = angle;
       this.rodBackAngle = angle - (12 * Math.PI) / 180;
       this.rodForwardAngle = angle + (8 * Math.PI) / 180;
