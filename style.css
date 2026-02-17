@@ -813,6 +813,23 @@ img, a{
   justify-content:center;
   padding:calc(12px + var(--safe-top)) calc(12px + var(--safe-right)) calc(12px + var(--safe-bottom) + var(--modal-keyboard-inset, 0px)) calc(12px + var(--safe-left));
   pointer-events:auto;
+  opacity:0;
+  transition: opacity 1s ease;
+}
+
+.modalOverlay:not(.hidden){
+  opacity:1;
+}
+
+.modalOverlay .modalCard{
+  transform: translateY(10px) scale(0.98);
+  opacity:0;
+  transition: transform 1s ease, opacity 1s ease;
+}
+
+.modalOverlay:not(.hidden) .modalCard{
+  transform: translateY(0) scale(1);
+  opacity:1;
 }
 
 .modalOverlay input,
@@ -839,7 +856,7 @@ img, a{
   z-index:6;
   opacity:0;
   pointer-events:none;
-  transition: opacity 0.25s ease;
+  transition: opacity 1s ease;
 }
 
 #trashOverlay.is-visible{
@@ -853,7 +870,7 @@ img, a{
   z-index:6;
   opacity:0;
   pointer-events:none;
-  transition: opacity 0.25s ease;
+  transition: opacity 1s ease;
 }
 
 #fishJournalOverlay.is-visible{
@@ -866,7 +883,7 @@ img, a{
   z-index:6;
   opacity:0;
   pointer-events:none;
-  transition: opacity 0.2s ease;
+  transition: opacity 1s ease;
 }
 
 #catchOverlay.is-visible{
@@ -879,7 +896,7 @@ img, a{
   z-index:6;
   opacity:0;
   pointer-events:none;
-  transition: opacity 0.2s ease;
+  transition: opacity 1s ease;
 }
 
 #findingOverlay.is-visible{
@@ -2225,6 +2242,16 @@ img, a{
   opacity:1;
 }
 
+#app[data-effects="reduced"] .modalOverlay,
+#app[data-effects="reduced"] .modalOverlay .modalCard{
+  transition:none;
+}
+
+#app[data-effects="reduced"] .modalOverlay .modalCard{
+  transform:none;
+  opacity:1;
+}
+
 .rareBoostHud{
   position:absolute;
   top:72px;
@@ -2253,7 +2280,7 @@ img, a{
   box-shadow: 0 20px 60px rgba(0,0,0,.4);
   transform: scale(0.96);
   opacity:0;
-  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 1s ease, opacity 1s ease, box-shadow 1s ease;
 }
 
 #catchOverlay.is-visible .catchCard,
@@ -2265,7 +2292,7 @@ img, a{
 
 #catchOverlay.is-intro .catchCard,
 #findingOverlay.is-intro .findingCard{
-  animation: catchIntro 2s ease;
+  animation: catchIntro 1s ease;
   animation-fill-mode: both;
 }
 
