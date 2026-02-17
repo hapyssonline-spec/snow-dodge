@@ -2184,14 +2184,9 @@ img, a{
   display:flex;
   flex-direction:column;
   gap:10px;
-  transform: translateX(20px);
-  opacity:0;
-  transition: transform 1s ease, opacity 1s ease;
-}
-
-#fishJournalOverlay.is-detail .fishJournalDetailCard{
   transform: translateX(0);
   opacity:1;
+  transition: transform .2s ease, opacity .2s ease;
 }
 
 .fishJournalDetailHead{
