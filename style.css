@@ -139,10 +139,10 @@ img, a{
   display:grid;
   grid-template-columns: auto 1fr auto;
   align-items:center;
-  padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
+  padding: calc(4px + env(safe-area-inset-top)) 6px 4px;
   background: linear-gradient(180deg, rgba(14,28,45,.82), rgba(14,28,45,.42));
   border-bottom: 1px solid var(--stroke);
-  gap:10px;
+  gap:5px;
   position:fixed;
   top:0;
   left:0;
@@ -175,8 +175,8 @@ img, a{
   pointer-events:none;
 }
 .profileButton{
-  width:176px;
-  height:176px;
+  width:88px;
+  height:88px;
   border-radius:50%;
   border:1px solid var(--ui-stroke);
   background: var(--ui-surface);
@@ -226,16 +226,16 @@ img, a{
 }
 .profileLevelBadge{
   position:absolute;
-  right:-16px;
-  bottom:-16px;
-  width:56px;
-  height:56px;
-  min-width:56px;
+  right:-8px;
+  bottom:-8px;
+  width:28px;
+  height:28px;
+  min-width:28px;
   border-radius:999px;
   background: linear-gradient(180deg, #263446, #1b2736);
   border:2px solid rgba(220,238,255,.38);
   color:#e9ecf1;
-  font-size:24px;
+  font-size:12px;
   font-weight:800;
   display:flex;
   align-items:center;
@@ -252,19 +252,19 @@ img, a{
 .stat-compact{
   display:flex;
   align-items:center;
-  gap:12px;
-  padding:16px 24px;
+  gap:6px;
+  padding:8px 12px;
   border-radius:999px;
   background: rgba(10,20,30,.5);
   border:1px solid rgba(243,206,107,.28);
   box-shadow: 0 6px 14px rgba(7,14,24,.24);
 }
 .statIcon{
-  font-size:34px;
+  font-size:17px;
   opacity:1;
   filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
 }
-.value{font-size:38px; font-weight:900; color:#ffe3a2; text-shadow:0 1px 2px rgba(0,0,0,.34)}
+.value{font-size:19px; font-weight:900; color:#ffe3a2; text-shadow:0 1px 2px rgba(0,0,0,.34)}
 .center{flex:1; text-align:center}
 .title{
   font-weight:900;
@@ -2549,14 +2549,14 @@ img, a{
 .locationLabel{
   font-weight:900;
   letter-spacing:.12em;
-  font-size:26px;
+  font-size:13px;
   text-transform:uppercase;
   color:#f2f7ff;
   text-shadow: 0 1px 2px rgba(2,8,14,.7), 0 0 16px rgba(180,220,255,.18);
 }
 
 .questReminder{
-  margin-top:4px;
+  margin-top:2px;
   font-size:11px;
   color:var(--muted);
   letter-spacing:.02em;
