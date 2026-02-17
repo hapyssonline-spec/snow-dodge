@@ -2984,12 +2984,7 @@ button,
 .small{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.35}
 
 /* --- Lake scene (layered) --- */
-#bgPortraitImg{display:none;}
-#bgLandscapeImg{display:block;}
-@media (orientation: portrait){
-  #bgPortraitImg{display:block;}
-  #bgLandscapeImg{display:none;}
-}
+#bgPortraitImg{display:block;}
 
 @keyframes bobber-sway{
   0%, 100%{transform: translate(-50%, -50%) scale(var(--bobber-scale)) translateY(0) rotate(-1.6deg)}
