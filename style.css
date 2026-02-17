@@ -624,6 +624,12 @@ img, a{
   border-color: rgba(149,214,255,.42);
 }
 
+#btnCity.is-locked{
+  opacity:0.45;
+  filter:saturate(0.25);
+  border-color: rgba(178,186,198,.38);
+}
+
 .fightHud{
   position:absolute;
   top:18vh;

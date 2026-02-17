@@ -832,6 +832,8 @@ if ("serviceWorker" in navigator) {
 
   const TUTORIAL_TEST_SPECIES_ID = "karas_serebryanyy";
   const TUTORIAL_TEST_WEIGHT_KG = 1.5;
+  const CITY_UNLOCK_LEVEL = 3;
+  const FINDING_LOCK_CASTS = 5;
 
   function setTutorialPause(enabled) {
     tutorialPauseGameplay = !!enabled;
@@ -1109,12 +1111,14 @@ if ("serviceWorker" in navigator) {
     onPracticeSuccess() {
       if (!this.active || !this.practiceMode) return;
       this.practiceMode = false;
-      setTutorialPause(true);
-      this.showOverlay();
+      setTutorialPause(false);
+      this.hideOverlay();
       this.step = "done";
       this.setSpotlightRect(null);
       tutorialSwipeHint?.classList.add("hidden");
-      this.showCard("Отлично!", "Ты поймал рыбу. Обучение завершено.", "Готово", true);
+      tutorialCompleted = true;
+      this.finish(false);
+      save();
     }
 
     onPracticeFail() {
@@ -1123,7 +1127,7 @@ if ("serviceWorker" in navigator) {
       this.showOverlay();
       this.step = "retry";
       tutorialSwipeHint?.classList.add("hidden");
-      this.highlightFightHud();
+      this.setSpotlightRect(null);
       this.showCard("Ничего страшного", "Попробуй ещё раз — всё получится!", "Повторить", true);
     }
 
@@ -1156,6 +1160,72 @@ if ("serviceWorker" in navigator) {
   }
 
   let tutorialManager = null;
+
+  function isCityUnlocked() {
+    return player.playerLevel >= CITY_UNLOCK_LEVEL;
+  }
+
+  function getSpotlightRect(element, pad = 14) {
+    const rect = element?.getBoundingClientRect?.();
+    if (!rect) return null;
+    return {
+      left: rect.left - pad,
+      top: rect.top - pad,
+      width: rect.width + pad * 2,
+      height: rect.height + pad * 2
+    };
+  }
+
+  function setGuideSpotlight(rect) {
+    if (!tutorialSpotlight) return;
+    if (!rect) {
+      tutorialSpotlight.style.left = "0px";
+      tutorialSpotlight.style.top = "0px";
+      tutorialSpotlight.style.width = "0px";
+      tutorialSpotlight.style.height = "0px";
+      return;
+    }
+    const topLeft = viewportToGamePoint(rect.left, rect.top);
+    tutorialSpotlight.style.left = `${topLeft.x}px`;
+    tutorialSpotlight.style.top = `${topLeft.y}px`;
+    tutorialSpotlight.style.width = `${rect.width / viewportScale}px`;
+    tutorialSpotlight.style.height = `${rect.height / viewportScale}px`;
+  }
+
+  function showGuideOverlay({ title, text, buttonText = "Далее", showButton = true, spotlightRect = null }) {
+    if (tutorialManager?.active) return;
+    if (tutorialTitle) tutorialTitle.textContent = title;
+    if (tutorialText) tutorialText.textContent = text;
+    if (tutorialNextBtn) {
+      tutorialNextBtn.classList.toggle("hidden", !showButton);
+      if (showButton) setButtonText(tutorialNextBtn, buttonText);
+    }
+    tutorialSwipeHint?.classList.add("hidden");
+    tutorialSpotlight?.classList.remove("is-following");
+    setGuideSpotlight(spotlightRect);
+    tutorialOverlay?.classList.remove("hidden");
+    tutorialOverlay?.setAttribute("aria-hidden", "false");
+    if (tutorialOverlay) tutorialOverlay.style.pointerEvents = showButton ? "auto" : "none";
+    requestAnimationFrame(() => tutorialOverlay?.classList.add("is-visible"));
+  }
+
+  function hideGuideOverlay() {
+    if (tutorialManager?.active) return;
+    tutorialOverlay?.classList.remove("is-visible");
+    tutorialOverlay?.setAttribute("aria-hidden", "true");
+    if (tutorialOverlay) tutorialOverlay.style.pointerEvents = "";
+    tutorialSpotlight?.classList.remove("is-following");
+    setGuideSpotlight(null);
+    window.setTimeout(() => {
+      if (guideStep === "none" && !tutorialManager?.active) {
+        tutorialOverlay?.classList.add("hidden");
+      }
+    }, 220);
+  }
+
+  function setGuideStep(step) {
+    guideStep = step;
+  }
 
   class RevealSystem {
     constructor(options) {
@@ -2778,6 +2848,9 @@ if ("serviceWorker" in navigator) {
     if (tutorialActive) {
       return buildTutorialFishCatch();
     }
+    if (player.castCount <= FINDING_LOCK_CASTS) {
+      return buildFishCatch(game.rareBoostActive);
+    }
     const trashChance = getTrashChance();
     if (Math.random() < trashChance) {
       return buildTrashCatch();
@@ -3249,7 +3322,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
-  const STORAGE_VERSION = 10;
+  const STORAGE_VERSION = 11;
   const NICK_REGISTRY_KEY = "icefish_nick_registry";
 
   function loadNickRegistry() {
@@ -3300,7 +3373,8 @@ if ("serviceWorker" in navigator) {
     playerLevel: 1,
     playerXP: 0,
     playerXPTotal: 0,
-    playerXPToNext: 60
+    playerXPToNext: 60,
+    castCount: 0
   };
 
   let inventory = [];
@@ -3326,6 +3400,14 @@ if ("serviceWorker" in navigator) {
   let tutorialCompleted = false;
   let tutorialActive = false;
   let tutorialPauseGameplay = false;
+  let cityUnlockedToastShown = false;
+  const onboarding = {
+    cityUnlockHintShown: false,
+    firstCityArrivalShown: false,
+    trophyGuideDone: false,
+    findingTutorialDone: false
+  };
+  let guideStep = "none";
 
   const progression = {
     xpRequired(level) {
@@ -3575,6 +3657,7 @@ if ("serviceWorker" in navigator) {
           player.ownedLines = Array.from({ length: player.lineTier }, (_, idx) => idx + 1);
         }
         progression.load(savedPlayer);
+        player.castCount = Math.max(0, Number(savedPlayer.castCount || 0));
         if (obj.trophyQuest && typeof obj.trophyQuest === "object") {
           activeQuest = sanitizeQuest(obj.trophyQuest);
         }
@@ -3589,6 +3672,12 @@ if ("serviceWorker" in navigator) {
         lastChargeResetDate = obj.lastChargeResetDate || null;
       }
       tutorialCompleted = !!obj.tutorialCompleted;
+      if (obj.onboarding && typeof obj.onboarding === "object") {
+        onboarding.cityUnlockHintShown = !!obj.onboarding.cityUnlockHintShown;
+        onboarding.firstCityArrivalShown = !!obj.onboarding.firstCityArrivalShown;
+        onboarding.trophyGuideDone = !!obj.onboarding.trophyGuideDone;
+        onboarding.findingTutorialDone = !!obj.onboarding.findingTutorialDone;
+      }
       if (obj.storageVersion >= 7) {
         if (obj.questPreview && typeof obj.questPreview === "object") {
           QUEST_DIFFICULTY_KEYS.forEach((key) => {
@@ -3671,13 +3760,15 @@ if ("serviceWorker" in navigator) {
           lineTier: player.lineTier,
           ownedRods: player.ownedRods,
           ownedLines: player.ownedLines,
+          castCount: player.castCount,
           ...progression.save()
         },
         trophyQuest: activeQuest,
         questPreview: questPreviews,
         questCooldowns,
         questRefreshState,
-        tutorialCompleted
+        tutorialCompleted,
+        onboarding
       }));
     } catch {}
   }
@@ -3706,6 +3797,7 @@ if ("serviceWorker" in navigator) {
     player.playerXP = 0;
     player.playerXPTotal = 0;
     player.playerXPToNext = progression.xpRequired(1);
+    player.castCount = 0;
     foundTrash = {};
     collectorRodUnlocked = false;
     dailyRareBoostCharges = 0;
@@ -3715,6 +3807,11 @@ if ("serviceWorker" in navigator) {
     questCooldowns = { easyAvailableAt: 0, mediumAvailableAt: 0, hardAvailableAt: 0 };
     questRefreshState = { refreshCount: 0, nextRefreshAt: 0 };
     tutorialCompleted = false;
+    onboarding.cityUnlockHintShown = false;
+    onboarding.firstCityArrivalShown = false;
+    onboarding.trophyGuideDone = false;
+    onboarding.findingTutorialDone = false;
+    cityUnlockedToastShown = false;
     save();
     updateHUD();
     renderInventory();
@@ -3758,6 +3855,22 @@ if ("serviceWorker" in navigator) {
   function updateHUD() {
     if (coinsEl) coinsEl.textContent = String(player.coins);
     if (profileLevelBadge) profileLevelBadge.textContent = String(player.playerLevel);
+    const cityUnlocked = isCityUnlocked();
+    btnCity?.classList.toggle("is-locked", !cityUnlocked);
+    if (btnCity) btnCity.disabled = !cityUnlocked;
+    if (cityUnlocked && !cityUnlockedToastShown) {
+      cityUnlockedToastShown = true;
+      if (!onboarding.cityUnlockHintShown && currentScene === SCENE_LAKE && !tutorialManager?.active) {
+        setGuideStep("city-unlock");
+        showGuideOverlay({
+          title: "Город открыт",
+          text: "Достигнут 3 уровень! Теперь можно отправиться в город и продать рыбу.",
+          buttonText: "Отлично",
+          showButton: true,
+          spotlightRect: getSpotlightRect(btnCity)
+        });
+      }
+    }
     updateRareBoostHud();
     updateTrashRewardStatus();
     updateQuestReminder();
@@ -4280,6 +4393,7 @@ if ("serviceWorker" in navigator) {
   });
 
   btnTrashClose?.addEventListener("click", () => {
+    if (guideStep === "trash-journal-intro") return;
     closeTrashJournal();
   });
 
@@ -4704,6 +4818,16 @@ if ("serviceWorker" in navigator) {
   btnTrophyQuests?.addEventListener("click", () => {
     if (isFighting) return;
     setTrophyView("quests");
+    if (guideStep === "city-force-quests-open") {
+      setGuideStep("trophy-difficulty-info");
+      showGuideOverlay({
+        title: "Сложности заданий",
+        text: "Выбирай сложность задания. После взятия и поимки нужной рыбы вернись в город за наградой.",
+        buttonText: "Далее",
+        showButton: true,
+        spotlightRect: getSpotlightRect(difficultyButtons[0]?.closest(".questDifficulty"))
+      });
+    }
   });
 
   btnTrophyRecords?.addEventListener("click", () => {
@@ -4724,6 +4848,10 @@ if ("serviceWorker" in navigator) {
   btnCity?.addEventListener("click", () => {
     if (isFighting) return;
     if (currentScene !== SCENE_LAKE) return;
+    if (!isCityUnlocked()) {
+      showToast(`Город откроется на ${CITY_UNLOCK_LEVEL} уровне.`);
+      return;
+    }
     startTravel("lake", "city");
   });
 
@@ -4748,6 +4876,7 @@ if ("serviceWorker" in navigator) {
 
   btnFindingContinue?.addEventListener("click", () => {
     if (!pendingFinding) return;
+    if (guideStep === "finding-force-journal") return;
     pendingFinding = null;
     transitionTo(SCENE_LAKE);
     setHint("Тап: заброс", 1.2);
@@ -4758,6 +4887,16 @@ if ("serviceWorker" in navigator) {
     pendingFinding = null;
     transitionTo(SCENE_LAKE);
     openTrashJournal();
+    if (guideStep === "finding-force-journal") {
+      setGuideStep("trash-journal-intro");
+      showGuideOverlay({
+        title: "Журнал находок",
+        text: "Здесь хранятся все находки. Собери коллекцию полностью, чтобы получить ценную награду.",
+        buttonText: "Понятно",
+        showButton: true,
+        spotlightRect: getSpotlightRect(trashOverlay)
+      });
+    }
   });
 
   btnSellAll?.addEventListener("click", () => {
@@ -5016,6 +5155,17 @@ if ("serviceWorker" in navigator) {
     if (isFighting) return;
     transitionTo(sceneId);
     renderShop(sceneId);
+    if (guideStep === "city-force-trophy-open" && sceneId === SCENE_BUILDING_TROPHY) {
+      setGuideStep("city-force-quests-open");
+      window.setTimeout(() => {
+        showGuideOverlay({
+          title: "Загляни в задания",
+          text: "Теперь открой раздел «Задания». Это обязательный шаг обучения города.",
+          showButton: false,
+          spotlightRect: getSpotlightRect(btnTrophyQuests)
+        });
+      }, 260);
+    }
   }
 
   function renderShop(sceneId = currentScene) {
@@ -5855,6 +6005,9 @@ if ("serviceWorker" in navigator) {
         if (currentScene !== SCENE_CITY) return;
         stopUiEvent(event);
         const sceneId = sceneMap[hitbox.dataset.scene];
+        if (guideStep === "city-force-trophy-open" && sceneId !== SCENE_BUILDING_TROPHY) {
+          return;
+        }
         if (sceneId) openShop(sceneId);
       });
     });
@@ -5962,6 +6115,17 @@ if ("serviceWorker" in navigator) {
     transitionTo(destination);
     if (destination === SCENE_LAKE) {
       setHint("Тап: заброс", 1.2);
+    } else if (!onboarding.firstCityArrivalShown && !onboarding.trophyGuideDone) {
+      setGuideStep("city-intro-fish");
+      window.setTimeout(() => {
+        showGuideOverlay({
+          title: "Рыбная лавка",
+          text: "Здесь ты продаёшь рыбу за монеты.",
+          buttonText: "Далее",
+          showButton: true,
+          spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "fish"))
+        });
+      }, 280);
     }
     setTravelOverlayVisible(false);
     setTravelUiLocked(false);
@@ -6175,6 +6339,84 @@ if ("serviceWorker" in navigator) {
     startGame();
   });
 
+  tutorialNextBtn?.addEventListener("click", () => {
+    if (tutorialManager?.active) return;
+    if (guideStep === "city-unlock") {
+      onboarding.cityUnlockHintShown = true;
+      setGuideStep("none");
+      hideGuideOverlay();
+      save();
+      return;
+    }
+    if (guideStep === "city-intro-fish") {
+      setGuideStep("city-intro-gear");
+      showGuideOverlay({
+        title: "Лавка снастей",
+        text: "Здесь покупаются удочки, лески и наживки.",
+        buttonText: "Далее",
+        showButton: true,
+        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "gear"))
+      });
+      return;
+    }
+    if (guideStep === "city-intro-gear") {
+      setGuideStep("city-intro-trophy");
+      showGuideOverlay({
+        title: "Трофейная",
+        text: "В трофейной можно брать задания и получать награды.",
+        buttonText: "Открыть трофейную",
+        showButton: true,
+        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"))
+      });
+      return;
+    }
+    if (guideStep === "city-intro-trophy") {
+      setGuideStep("city-force-trophy-open");
+      showGuideOverlay({
+        title: "Сделай шаг",
+        text: "Нажми на «Трофейную», чтобы посмотреть задания.",
+        showButton: false,
+        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"))
+      });
+      return;
+    }
+    if (guideStep === "trophy-difficulty-info") {
+      setGuideStep("trophy-refresh-info");
+      showGuideOverlay({
+        title: "Обновление",
+        text: "Можно менять задания кнопкой «Обновить задания». После поимки нужной рыбы вернись в город за наградой.",
+        buttonText: "Понятно",
+        showButton: true,
+        spotlightRect: getSpotlightRect(btnQuestRefresh)
+      });
+      return;
+    }
+    if (guideStep === "trophy-refresh-info") {
+      onboarding.trophyGuideDone = true;
+      onboarding.firstCityArrivalShown = true;
+      setGuideStep("none");
+      hideGuideOverlay();
+      save();
+      return;
+    }
+    if (guideStep === "finding-intro") {
+      setGuideStep("finding-force-journal");
+      showGuideOverlay({
+        title: "Журнал находок",
+        text: "Это находки — предметы коллекции. Открой журнал находок, чтобы продолжить.",
+        showButton: false,
+        spotlightRect: getSpotlightRect(btnFindingJournal)
+      });
+      return;
+    }
+    if (guideStep === "trash-journal-intro") {
+      onboarding.findingTutorialDone = true;
+      setGuideStep("none");
+      hideGuideOverlay();
+      save();
+    }
+  });
+
   // ===== Fishing logic =====
   function scheduleBite() {
     game.biteAt = randomInt(BITE_DELAY_RANGE_MS.min, BITE_DELAY_RANGE_MS.max) / 1000;
@@ -6201,6 +6443,7 @@ if ("serviceWorker" in navigator) {
     game.t = 0;
     idleHintShown = true;
     game.rareBoostActive = spendRareBoostCharge();
+    player.castCount += 1;
     updateHUD();
     save();
     // Replaces old animateCastToHole + velocity-based flight with timed cast phases.
@@ -6394,6 +6637,18 @@ if ("serviceWorker" in navigator) {
       findingOverlayIntroTimer = timerId;
     });
     transitionTo(SCENE_FINDING_MODAL);
+    if (!fromJournal && !alreadyFound && !onboarding.findingTutorialDone) {
+      setGuideStep("finding-intro");
+      window.setTimeout(() => {
+        showGuideOverlay({
+          title: "Новая находка",
+          text: "Это экран поимки находки. Такие предметы идут в отдельную коллекцию.",
+          buttonText: "Далее",
+          showButton: true,
+          spotlightRect: getSpotlightRect(findingOverlay?.querySelector(".findingCard") || findingOverlay)
+        });
+      }, 260);
+    }
   }
 
   function land() {
@@ -6468,16 +6723,6 @@ if ("serviceWorker" in navigator) {
     save();
     checkQuestCompletion(game.catch);
 
-    if (tutorialManager?.active && tutorialManager.practiceMode) {
-      tutorialManager.onPracticeSuccess();
-      game.catch = null;
-      game.mode = "IDLE";
-      game.t = 0;
-      setFishing(false);
-      setFightState(false);
-      return;
-    }
-
     game.mode = "LANDED";
     game.t = 0;
     beep(660, 0.08, 0.06);
@@ -6486,6 +6731,7 @@ if ("serviceWorker" in navigator) {
     scheduleRevealHintHide(260);
 
     openCatchModal(game.catch, xpResult);
+    tutorialManager?.onPracticeSuccess();
     game.catch = null;
   }
 
