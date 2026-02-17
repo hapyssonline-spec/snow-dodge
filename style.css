@@ -21,7 +21,10 @@
   --modal-viewport-height: 100vh;
   --vvh: 1vh;
   --vv-top: 0px;
+  --hud-icon-button-size: 88px;
+  --hud-icon-glyph-size: 36px;
 }
+
 
 *{box-sizing:border-box}
 html,body{
@@ -167,8 +170,8 @@ img, a{
   pointer-events:none;
 }
 .profileButton{
-  width:44px;
-  height:44px;
+  width:88px;
+  height:88px;
   border-radius:50%;
   border:1px solid var(--stroke);
   background: rgba(15,26,36,.7);
@@ -539,14 +542,16 @@ img, a{
   cursor:not-allowed;
 }
 .iconBtn{
-  width:44px;
+  width:var(--hud-icon-button-size);
+  min-width:var(--hud-icon-button-size);
+  height:var(--hud-icon-button-size);
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:8px;
+  padding:10px;
 }
 .iconBtn .icon{
-  font-size:18px;
+  font-size:var(--hud-icon-glyph-size);
   line-height:1;
 }
 .iconBtn.is-muted{
@@ -3185,7 +3190,7 @@ button:disabled{
   --bobber-x: var(--cast-x);
   --bobber-y: calc(var(--cast-y) - 1.0%);
   --bobber-w: 10.8px;
-  --bobber-scale: 2.1;
+  --bobber-scale: 1.55;
 }
 
 #lakeScene{ position:absolute; inset:0; z-index:2; pointer-events:none; }
