@@ -98,11 +98,13 @@ if ("serviceWorker" in navigator) {
   const catchImageSlot = document.getElementById("catchImageSlot");
   const catchImage = document.getElementById("catchImage");
   const catchFullPrice = document.getElementById("catchFullPrice");
-  const catchDiscountPrice = document.getElementById("catchDiscountPrice");
-  const catchTrophyWrap = document.getElementById("catchTrophyWrap");
-  const catchTrophyToggle = document.getElementById("catchTrophyToggle");
+  const catchXpGain = document.getElementById("catchXpGain");
+  const catchXpBarBase = document.getElementById("catchXpBarBase");
+  const catchXpBarDelta = document.getElementById("catchXpBarDelta");
+  const catchXpBarHead = document.getElementById("catchXpBarHead");
+  const catchXpLabel = document.getElementById("catchXpLabel");
+  const catchXpBlock = document.getElementById("catchXpBlock");
   const btnCatchKeep = document.getElementById("btnCatchKeep");
-  const btnCatchSellNow = document.getElementById("btnCatchSellNow");
 
   const findingOverlay = document.getElementById("findingOverlay");
   const findingTitle = document.getElementById("findingTitle");
@@ -258,7 +260,6 @@ if ("serviceWorker" in navigator) {
   disableUiClickSfx(btnQuestAccept);
   disableUiClickSfx(btnQuestClaim);
   disableUiClickSfx(btnSellAll);
-  disableUiClickSfx(btnCatchSellNow);
 
   // Fix for accidental scene -> shop routing: isolate UI/game layers and stop UI click bubbling.
   const stopUiEvent = (event) => {
@@ -909,6 +910,17 @@ if ("serviceWorker" in navigator) {
       if (this.step === "hero") this.highlightHero();
       if (this.step === "cast") this.highlightWaterRight();
       if (this.step === "fight-help") this.highlightFightHud();
+      if (this.step === "bite-info") this.followBobberSpotlight();
+    }
+
+    followBobberSpotlight() {
+      if (!tutorialSpotlight) return;
+      tutorialSpotlight.classList.add("is-following");
+      this.setSpotlightRect(bobberLayer?.getBoundingClientRect() || null);
+    }
+
+    stopFollowBobberSpotlight() {
+      tutorialSpotlight?.classList.remove("is-following");
     }
 
     highlightHero() {
@@ -987,7 +999,7 @@ if ("serviceWorker" in navigator) {
         const y = clamp(p.y, scene.lakeY - 10, H - 20);
         castTo(p.x, y);
         this.step = "bite-info";
-        this.setSpotlightRect(bobberLayer?.getBoundingClientRect() || null);
+        this.followBobberSpotlight();
         this.showCard("Поклёвка", "Когда поплавок начинает плыть правее — это поклёвка.", "Показать");
         return;
       }
@@ -1046,6 +1058,7 @@ if ("serviceWorker" in navigator) {
         setTutorialPause(true);
         this.step = "swipe";
         this.showOverlay();
+        this.stopFollowBobberSpotlight();
         this.setSpotlightRect(null);
         tutorialSwipeHint?.classList.remove("hidden");
         this.showCard("Рыба клюнула!", "Чтобы подсечь — проведи пальцем снизу вверх.", "", false);
@@ -1092,6 +1105,7 @@ if ("serviceWorker" in navigator) {
       this.waitingForBiteDemo = false;
       this.practiceMode = false;
       tutorialSwipeHint?.classList.add("hidden");
+      this.stopFollowBobberSpotlight();
       this.hideOverlay();
       setTutorialPause(false);
       if (!forReset) {
@@ -1719,6 +1733,97 @@ if ("serviceWorker" in navigator) {
       xpToast.classList.remove("show");
       setTimeout(() => xpToast.classList.add("hidden"), 200);
     }, 1500);
+  }
+
+  const CATCH_XP_BAR_MIN_DURATION_MS = 460;
+  const CATCH_XP_BAR_LEVELUP_PULSE_MS = 150;
+
+  function setCatchXpVisual(basePercent, targetPercent, labelText) {
+    const clampedBase = clamp(basePercent, 0, 100);
+    const clampedTarget = clamp(targetPercent, 0, 100);
+    if (catchXpBarBase) catchXpBarBase.style.width = `${clampedBase}%`;
+    if (catchXpBarDelta) {
+      catchXpBarDelta.style.left = `${clampedBase}%`;
+      catchXpBarDelta.style.width = `${Math.max(0, clampedTarget - clampedBase)}%`;
+      catchXpBarDelta.style.opacity = clampedTarget > clampedBase ? "1" : "0";
+    }
+    if (catchXpBarHead) {
+      catchXpBarHead.style.left = `${clampedBase}%`;
+      catchXpBarHead.style.opacity = "0";
+    }
+    if (catchXpLabel) catchXpLabel.textContent = labelText;
+  }
+
+  function waitMs(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  async function animateCatchXpReward(result) {
+    if (!result || !catchXpGain) return;
+    const steps = Array.isArray(result.animationSteps) ? result.animationSteps : [];
+    if (!steps.length) {
+      setCatchXpVisual(0, 0, `Ур. ${result.level} · XP ${result.xp}/${result.xpToNext}`);
+      return;
+    }
+    catchXpGain.textContent = `+${result.gainedXP} XP`;
+    catchXpGain.classList.remove("hidden");
+    setCatchXpVisual(steps[0].startPct, steps[0].startPct, `Ур. ${steps[0].level} · XP ${steps[0].startXp}/${steps[0].xpToNext}`);
+    await waitMs(260);
+
+    const gainRect = catchXpGain.getBoundingClientRect();
+    const barRect = catchXpBlock?.getBoundingClientRect();
+    if (gainRect && barRect) {
+      const dx = (barRect.left + barRect.width * 0.5) - (gainRect.left + gainRect.width * 0.5);
+      const dy = (barRect.top + 8) - gainRect.top;
+      catchXpGain.animate([
+        { transform: "translate(0, 0) scale(1)", opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.34)`, opacity: 0.05 }
+      ], { duration: 620, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" });
+    }
+    await waitMs(240);
+
+    for (let i = 0; i < steps.length; i += 1) {
+      const step = steps[i];
+      const duration = Math.max(CATCH_XP_BAR_MIN_DURATION_MS, Math.round(210 + (step.endPct - step.startPct) * 9));
+      const t0 = performance.now();
+      if (catchXpBarHead) catchXpBarHead.style.opacity = "1";
+      await new Promise((resolve) => {
+        function tick(now) {
+          const t = clamp((now - t0) / duration, 0, 1);
+          const eased = 1 - (1 - t) * (1 - t);
+          const currentPct = lerp(step.startPct, step.endPct, eased);
+          if (catchXpBarBase) catchXpBarBase.style.width = `${currentPct}%`;
+          if (catchXpBarDelta) {
+            catchXpBarDelta.style.left = `${step.startPct}%`;
+            catchXpBarDelta.style.width = `${Math.max(0, currentPct - step.startPct)}%`;
+            catchXpBarDelta.style.opacity = "1";
+          }
+          if (catchXpBarHead) catchXpBarHead.style.left = `${currentPct}%`;
+          const currentXp = Math.round(lerp(step.startXp, step.endXp, eased));
+          if (catchXpLabel) catchXpLabel.textContent = `Ур. ${step.level} · XP ${currentXp}/${step.xpToNext}`;
+          if (t < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            resolve();
+          }
+        }
+        requestAnimationFrame(tick);
+      });
+      if (step.endsLevel && i < steps.length - 1) {
+        if (catchXpBarDelta) catchXpBarDelta.style.opacity = "0";
+        if (catchXpBarBase) catchXpBarBase.style.width = "0%";
+        if (catchXpBarHead) catchXpBarHead.style.left = "0%";
+        if (catchXpLabel) catchXpLabel.textContent = `Ур. ${steps[i + 1].level} · XP 0/${steps[i + 1].xpToNext}`;
+        await waitMs(CATCH_XP_BAR_LEVELUP_PULSE_MS);
+      }
+    }
+
+    if (catchXpBarDelta) catchXpBarDelta.style.opacity = "0";
+    if (catchXpBarHead) catchXpBarHead.style.opacity = "0";
+    catchXpGain.classList.add("hidden");
+    catchXpGain.style.transform = "";
+    catchXpGain.style.opacity = "";
+    if (catchXpLabel) catchXpLabel.textContent = `Ур. ${result.level} · XP ${result.xp}/${result.xpToNext}`;
   }
 
   // ===== Tension + progress balance (REELING) =====
@@ -3331,6 +3436,8 @@ if ("serviceWorker" in navigator) {
 
   function normalizeInventoryEntry(entry) {
     if (!entry || entry.catchType === "trash") return entry;
+    if ("isTrophy" in entry) delete entry.isTrophy;
+    if ("canBeTrophy" in entry) delete entry.canBeTrophy;
     const normalizedId = normalizeSpeciesId(entry.speciesId);
     if (normalizedId && normalizedId !== entry.speciesId) {
       entry.speciesId = normalizedId;
@@ -4554,24 +4661,10 @@ if ("serviceWorker" in navigator) {
 
   btnCatchKeep?.addEventListener("click", () => {
     if (!pendingCatch) return;
-    const makeTrophyFlag = !!catchTrophyToggle?.checked && pendingCatch.weightKg >= 5.0;
-    addCatch(pendingCatch, makeTrophyFlag);
+    addCatch(pendingCatch);
     save();
     pendingCatch = null;
     transitionTo(SCENE_LAKE);
-    setHint("Тап: заброс", 1.2);
-  });
-
-  btnCatchSellNow?.addEventListener("click", () => {
-    if (!pendingCatch) return;
-    const discounted = Math.round(pendingCatch.sellValue * 0.7);
-    awardCoins(discounted);
-    stats.bestCoin = Math.max(stats.bestCoin, discounted);
-    updateHUD();
-    save();
-    pendingCatch = null;
-    transitionTo(SCENE_LAKE);
-    showToast("Продано со скидкой -30%.");
     setHint("Тап: заброс", 1.2);
   });
 
@@ -4701,15 +4794,6 @@ if ("serviceWorker" in navigator) {
     showToast("Продажа доступна только в городе.");
   }
 
-  function makeTrophy(itemId) {
-    const item = inventory.find((entry) => entry.id === itemId);
-    if (!item || item.isTrophy || !item.canBeTrophy) return;
-    item.isTrophy = true;
-    save();
-    renderInventory();
-    setMsg(`Трофей оформлен: ${item.name} (${formatItemWeight(item)}).`, 1.5);
-  }
-
   function renderInventory() {
     if (!invList || !invEmpty) return;
     invList.innerHTML = "";
@@ -4745,13 +4829,6 @@ if ("serviceWorker" in navigator) {
       weight.textContent = formatItemWeight(item);
 
       meta.append(rarityBadge, weight);
-
-      if (item.isTrophy) {
-        const trophy = document.createElement("span");
-        trophy.className = "badge badge-trophy";
-        trophy.textContent = "Трофей";
-        meta.appendChild(trophy);
-      }
 
       const price = document.createElement("div");
       price.className = "invItemPrice";
@@ -4820,34 +4897,7 @@ if ("serviceWorker" in navigator) {
         setButtonText(btnDetails, isHidden ? "Подробнее" : "Скрыть");
       });
 
-      if (item.canBeTrophy && !item.isTrophy) {
-        const btnTrophy = document.createElement("button");
-        btnTrophy.className = "invBtn btn--twoLines";
-        setButtonText(btnTrophy, "Сделать трофеем");
-        btnTrophy.addEventListener("click", (event) => {
-          event.stopPropagation();
-          makeTrophy(item.id);
-        });
-        actions.appendChild(btnTrophy);
-      }
-
       actions.appendChild(btnDetails);
-
-      const detailActions = document.createElement("div");
-      detailActions.className = "invActions";
-
-      if (item.canBeTrophy && !item.isTrophy) {
-        const btnTrophyDetail = document.createElement("button");
-        btnTrophyDetail.className = "invBtn btn--twoLines";
-        setButtonText(btnTrophyDetail, "Сделать трофеем");
-        btnTrophyDetail.addEventListener("click", (event) => {
-          event.stopPropagation();
-          makeTrophy(item.id);
-        });
-        detailActions.appendChild(btnTrophyDetail);
-      }
-
-      detail.appendChild(detailActions);
 
       card.append(header, price, actions, detail);
 
@@ -4863,7 +4913,7 @@ if ("serviceWorker" in navigator) {
     }
   }
 
-  function addCatch(catchData, isTrophy = false) {
+  function addCatch(catchData) {
     const item = {
       id: makeId(),
       speciesId: catchData.speciesId,
@@ -4875,9 +4925,7 @@ if ("serviceWorker" in navigator) {
       sellValue: catchData.sellValue,
       story: catchData.story,
       iconPath: catchData.iconPath,
-      caughtAt: new Date().toISOString(),
-      isTrophy,
-      canBeTrophy: catchData.weightKg >= 5.0
+      caughtAt: new Date().toISOString()
     };
     inventory.push(item);
     save();
@@ -5911,7 +5959,7 @@ if ("serviceWorker" in navigator) {
       overlayEl.classList.remove("is-intro");
       setOverlayControlsDisabled(overlayEl, false);
       timerRefSetter(null);
-    }, 2000);
+    }, 1000);
     timerRefSetter(timerId);
   }
 
@@ -6192,7 +6240,7 @@ if ("serviceWorker" in navigator) {
     setHint("Жми", 0.9);
   }
 
-  function openCatchModal(catchData) {
+  function openCatchModal(catchData, xpResult = null) {
     if (!catchData) return;
     const isTrash = catchData.catchType === "trash";
     pendingCatch = catchData;
@@ -6238,12 +6286,16 @@ if ("serviceWorker" in navigator) {
       }
     }
     if (catchFullPrice) catchFullPrice.textContent = formatCoins(catchData.sellValue);
-    const discounted = Math.round(catchData.sellValue * 0.7);
-    if (catchDiscountPrice) catchDiscountPrice.textContent = formatCoins(discounted);
-    if (catchTrophyWrap) {
-      catchTrophyWrap.classList.toggle("hidden", isTrash || !catchData.weightKg || catchData.weightKg < 5.0);
+    if (xpResult) {
+      const steps = Array.isArray(xpResult.animationSteps) ? xpResult.animationSteps : [];
+      const start = steps[0] || null;
+      if (start) {
+        setCatchXpVisual(start.startPct, start.startPct, `Ур. ${start.level} · XP ${start.startXp}/${start.xpToNext}`);
+      } else {
+        setCatchXpVisual(0, 0, `Ур. ${xpResult.level} · XP ${xpResult.xp}/${xpResult.xpToNext}`);
+      }
+      window.setTimeout(() => animateCatchXpReward(xpResult), 140);
     }
-    if (catchTrophyToggle) catchTrophyToggle.checked = false;
     if (catchOverlayIntroTimer) window.clearTimeout(catchOverlayIntroTimer);
     startOverlayIntro(catchOverlay, (timerId) => {
       catchOverlayIntroTimer = timerId;
@@ -6305,11 +6357,44 @@ if ("serviceWorker" in navigator) {
     }
 
     updateCatchStats(game.catch);
+    const xpBefore = {
+      level: player.playerLevel,
+      xp: player.playerXP,
+      xpToNext: player.playerXPToNext
+    };
     const xpResult = progression.awardXP({
       speciesId: game.catch.speciesId,
       rarity: game.catch.rarity,
       weightKg: game.catch.weightKg
     });
+    xpResult.before = xpBefore;
+    xpResult.animationSteps = [];
+    let remainingXP = xpResult.gainedXP;
+    let stepLevel = xpBefore.level;
+    let stepXp = xpBefore.xp;
+    let stepXpToNext = xpBefore.xpToNext;
+    while (remainingXP > 0) {
+      const toLevelEnd = stepXpToNext - stepXp;
+      const consumed = Math.min(remainingXP, toLevelEnd);
+      const endXp = stepXp + consumed;
+      xpResult.animationSteps.push({
+        level: stepLevel,
+        xpToNext: stepXpToNext,
+        startXp: stepXp,
+        endXp,
+        startPct: (stepXp / stepXpToNext) * 100,
+        endPct: (endXp / stepXpToNext) * 100,
+        endsLevel: consumed === toLevelEnd
+      });
+      remainingXP -= consumed;
+      if (consumed === toLevelEnd) {
+        stepLevel += 1;
+        stepXp = 0;
+        stepXpToNext = progression.xpRequired(stepLevel);
+      } else {
+        stepXp = endXp;
+      }
+    }
     consumeBait();
     updateHUD();
     const unlockAdjusted = enforceGearUnlocks();
@@ -6342,7 +6427,7 @@ if ("serviceWorker" in navigator) {
     revealSystem.reset();
     scheduleRevealHintHide(260);
 
-    openCatchModal(game.catch);
+    openCatchModal(game.catch, xpResult);
     game.catch = null;
   }
 
@@ -6517,6 +6602,9 @@ if ("serviceWorker" in navigator) {
         }
       }
       pendingOrientationPause = 0;
+    }
+    if (tutorialManager?.active && tutorialManager.step === "bite-info") {
+      tutorialManager.followBobberSpotlight();
     }
     if (tutorialPauseGameplay) {
       return;
