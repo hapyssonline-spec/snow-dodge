@@ -3858,23 +3858,25 @@ if ("serviceWorker" in navigator) {
     const cityUnlocked = isCityUnlocked();
     btnCity?.classList.toggle("is-locked", !cityUnlocked);
     if (btnCity) btnCity.disabled = !cityUnlocked;
-    if (cityUnlocked && !cityUnlockedToastShown) {
-      cityUnlockedToastShown = true;
-      if (!onboarding.cityUnlockHintShown && currentScene === SCENE_LAKE && !tutorialManager?.active) {
-        setGuideStep("city-unlock");
-        showGuideOverlay({
-          title: "Город открыт",
-          text: "Достигнут 3 уровень! Теперь можно отправиться в город и продать рыбу.",
-          buttonText: "Отлично",
-          showButton: true,
-          spotlightRect: getSpotlightRect(btnCity)
-        });
-      }
-    }
+    maybeShowCityUnlockGuide();
     updateRareBoostHud();
     updateTrashRewardStatus();
     updateQuestReminder();
     updateProfileStatsUI();
+  }
+
+  function maybeShowCityUnlockGuide() {
+    if (!isCityUnlocked() || cityUnlockedToastShown || onboarding.cityUnlockHintShown || tutorialManager?.active) return;
+    if (currentScene !== SCENE_LAKE || catchOverlayVisible || findingOverlayVisible) return;
+    cityUnlockedToastShown = true;
+    setGuideStep("city-unlock");
+    showGuideOverlay({
+      title: "Город открыт",
+      text: "Достигнут 3 уровень! Теперь можно отправиться в город и продать рыбу.",
+      buttonText: "Отлично",
+      showButton: true,
+      spotlightRect: getSpotlightRect(btnCity)
+    });
   }
 
   const xpRingState = {
@@ -6281,6 +6283,7 @@ if ("serviceWorker" in navigator) {
     }
     updateModalLayerState();
     updateLayerVisibility();
+    maybeShowCityUnlockGuide();
   }
 
   function transitionTo(sceneId) {

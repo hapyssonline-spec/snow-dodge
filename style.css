@@ -2524,11 +2524,15 @@ img, a{
 }
 
 .catchXpBarBase{
+  border-top-right-radius:0;
+  border-bottom-right-radius:0;
   background: linear-gradient(90deg, color-mix(in srgb, var(--xp-accent) 42%, #13243a 58%), color-mix(in srgb, var(--xp-accent) 56%, #1e3650 44%));
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
 }
 
 .catchXpBarDelta{
+  border-top-left-radius:0;
+  border-bottom-left-radius:0;
   background: linear-gradient(90deg, #9de7ff, #f1fbff);
   box-shadow: 0 0 16px color-mix(in srgb, var(--xp-accent-bright) 88%, transparent);
   opacity:0;
