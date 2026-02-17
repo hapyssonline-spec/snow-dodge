@@ -1859,7 +1859,15 @@ if ("serviceWorker" in navigator) {
       }
     }
 
-    if (catchXpBarDelta) catchXpBarDelta.style.opacity = "0";
+    const finalStep = steps[steps.length - 1];
+    if (finalStep) {
+      if (catchXpBarBase) catchXpBarBase.style.width = `${clamp(finalStep.startPct, 0, 100)}%`;
+      if (catchXpBarDelta) {
+        catchXpBarDelta.style.left = `${clamp(finalStep.startPct, 0, 100)}%`;
+        catchXpBarDelta.style.width = `${Math.max(0, clamp(finalStep.endPct, 0, 100) - clamp(finalStep.startPct, 0, 100))}%`;
+        catchXpBarDelta.style.opacity = finalStep.endPct > finalStep.startPct ? "1" : "0";
+      }
+    }
     if (catchXpBarHead) catchXpBarHead.style.opacity = "0";
     catchXpGain.classList.add("hidden");
     catchXpGain.style.transform = "";

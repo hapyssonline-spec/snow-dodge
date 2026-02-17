@@ -2490,6 +2490,7 @@ img, a{
 
 .catchXpGain{
   align-self:flex-start;
+  min-height: 1.2em;
   font-size:23.4px;
   font-weight:900;
   color:var(--xp-accent-bright);
@@ -2547,7 +2548,7 @@ img, a{
 }
 
 .catchXpGain.hidden{
-  display:none;
+  visibility:hidden;
 }
 
 .danger{
