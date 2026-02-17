@@ -75,16 +75,24 @@ img, a{
   position:fixed;
   inset:0;
   overflow:hidden;
+  background: #06101a;
+}
+
+#gameRoot{
+  position:absolute;
+  top:0;
+  left:0;
+  transform-origin: top left;
+  overflow:hidden;
 }
 
 #gameLayer,
 #uiLayer,
 #modalLayer{
-  position:fixed;
+  position:absolute;
   inset:0;
   width:100%;
-  height:100dvh;
-  height:-webkit-fill-available;
+  height:100%;
 }
 
 #gameLayer{
@@ -250,9 +258,8 @@ img, a{
 #sceneRoot{
   position:absolute;
   inset:0;
-  width:100vw;
-  height:100dvh;
-  height:-webkit-fill-available;
+  width:100%;
+  height:100%;
   overflow:hidden;
   z-index:0;
 }
@@ -3211,7 +3218,7 @@ button:disabled{
   }
 }
 
-#lakeScene{ position:fixed; inset:0; z-index:2; pointer-events:none; }
+#lakeScene{ position:absolute; inset:0; z-index:2; pointer-events:none; }
 #lakeScene .layer{ position:absolute; transform: translate(-50%,-50%); }
 
 #lakeScene{

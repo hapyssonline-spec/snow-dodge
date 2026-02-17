@@ -25,6 +25,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== DOM =====
   const app = document.getElementById("app");
+  const gameRoot = document.getElementById("gameRoot");
   const gameLayer = document.getElementById("gameLayer");
   const uiLayer = document.getElementById("uiLayer");
   const modalLayer = document.getElementById("modalLayer");
@@ -1122,17 +1123,9 @@ if ("serviceWorker" in navigator) {
   }
 
   function updateOrientationLock() {
-    const shouldLock = isLandscapeOrientation();
+    const shouldLock = false;
     orientationLocked = shouldLock;
     if (app) app.classList.toggle("orientation-locked", shouldLock);
-    if (shouldLock) {
-      showRotateOverlay();
-      disableGameInput();
-      if (orientationPauseStarted === null) {
-        orientationPauseStarted = Date.now();
-      }
-      return;
-    }
     hideRotateOverlay();
     enableGameInput();
     if (orientationPauseStarted !== null) {
@@ -2632,19 +2625,40 @@ if ("serviceWorker" in navigator) {
   document.addEventListener("touchstart", unlockAudioOnce, { once: true, capture: true, passive: true });
 
   // ===== DPI / Resize =====
-  let W = 0, H = 0, DPR = 1;
+  const BASE_PORTRAIT = { w: 720, h: 1280 };
+  const BASE_LANDSCAPE = { w: 1280, h: 720 };
+  let currentMode = "portrait";
+  let W = BASE_PORTRAIT.w, H = BASE_PORTRAIT.h, DPR = 1;
+  let viewportScale = 1;
+  let viewportOffsetX = 0;
+  let viewportOffsetY = 0;
   const HERO_ROD_Y_OFFSET_FACTOR = 0.65;
   const HERO_ROD_SAFE_PADDING = 12;
 
-  function resize() {
-    const rect = canvas.getBoundingClientRect();
-    DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-    W = Math.max(1, Math.floor(rect.width));
-    H = Math.max(1, Math.floor(rect.height));
+  function resizeGame() {
+    const screenW = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+    const screenH = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+    currentMode = screenW >= screenH ? "landscape" : "portrait";
+    const base = currentMode === "landscape" ? BASE_LANDSCAPE : BASE_PORTRAIT;
 
+    W = base.w;
+    H = base.h;
+    viewportScale = Math.min(screenW / W, screenH / H);
+    viewportOffsetX = (screenW - W * viewportScale) / 2;
+    viewportOffsetY = (screenH - H * viewportScale) / 2;
+
+    DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
     canvas.width = Math.floor(W * DPR);
     canvas.height = Math.floor(H * DPR);
+    canvas.style.width = `${W}px`;
+    canvas.style.height = `${H}px`;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    if (gameRoot) {
+      gameRoot.style.width = `${W}px`;
+      gameRoot.style.height = `${H}px`;
+      gameRoot.style.transform = `translate(${viewportOffsetX}px, ${viewportOffsetY}px) scale(${viewportScale})`;
+    }
 
     scene.horizonY = Math.floor(H * 0.44);
     scene.lakeY = Math.floor(H * 0.58);
@@ -2656,7 +2670,6 @@ if ("serviceWorker" in navigator) {
     rod.tipY = rod.baseY - Math.floor(H * 0.12);
     rod.width = ROD_WIDTH;
 
-    // keep bobber stable if visible
     if (bobber.visible) {
       bobber.x = clamp(bobber.x, W * 0.34, W * 0.92);
       bobber.y = clamp(bobber.y, scene.lakeY + 16, H - 30);
@@ -2692,49 +2705,38 @@ if ("serviceWorker" in navigator) {
     updateModalLayerState();
   }
 
-  function applyViewportToLayer(layer, vp) {
-    if (!layer) return;
-    layer.style.top = `${vp.y}px`;
-    layer.style.left = `${vp.x}px`;
-    layer.style.width = `${vp.w}px`;
-    layer.style.height = `${vp.h}px`;
-  }
-
-  function positionRareBoostHud(vp) {
+  function positionRareBoostHud() {
     if (!rareBoostHud) return;
     const topBarHeight = topBar?.getBoundingClientRect().height ?? 0;
-    const top = vp.y + topBarHeight + 12;
-    rareBoostHud.style.top = `${Math.round(top)}px`;
-    rareBoostHud.style.right = `${Math.round(vp.safeRightPx + 14)}px`;
+    rareBoostHud.style.top = `${Math.round(topBarHeight + 12)}px`;
+    rareBoostHud.style.right = "14px";
     rareBoostHud.style.left = "auto";
   }
 
-  function positionCityHud(vp) {
+  function positionCityHud() {
     if (!cityHud) return;
-    cityHud.style.left = `${Math.round(vp.x + vp.w / 2)}px`;
-    cityHud.style.bottom = `${Math.round(vp.safeBottomPx + 16)}px`;
+    cityHud.style.left = `${Math.round(W / 2)}px`;
+    cityHud.style.bottom = "16px";
   }
 
   const layout = () => {
-    const vp = getGameViewportRect();
-    applyViewportToLayer(modalLayer, vp);
-    resize();
+    resizeGame();
     applyLakeRig();
     if (!bobber.visible) {
       syncBobberToRodTip();
     }
-    positionRareBoostHud(vp);
-    positionCityHud(vp);
+    positionRareBoostHud();
+    positionCityHud();
     updateLayerVisibility();
   };
 
-  const handleResize = debounce(updateOrientationLock, 100);
+  const handleResize = debounce(layout, 100);
   window.addEventListener("resize", handleResize);
-  window.addEventListener("orientationchange", updateOrientationLock);
-  orientationQuery?.addEventListener?.("change", updateOrientationLock);
+  window.addEventListener("orientationchange", handleResize);
+  orientationQuery?.addEventListener?.("change", handleResize);
   if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", layout, { passive: true });
-    window.visualViewport.addEventListener("scroll", layout, { passive: true });
+    window.visualViewport.addEventListener("resize", handleResize, { passive: true });
+    window.visualViewport.addEventListener("scroll", handleResize, { passive: true });
   }
 
   // ===== Persistent state =====
@@ -5816,17 +5818,25 @@ if ("serviceWorker" in navigator) {
   let lastX = 0, lastY = 0;
   let swipeDone = false;
 
-  function getXY(e) {
+  function mapPointerToGame(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const gameX = (clientX - rect.left) / viewportScale;
+    const gameY = (clientY - rect.top) / viewportScale;
+    const inBounds = gameX >= 0 && gameY >= 0 && gameX <= W && gameY <= H;
+    return { x: gameX, y: gameY, inBounds };
+  }
+
+  function getXY(e) {
+    return mapPointerToGame(e.clientX, e.clientY);
   }
 
   function onDown(e) {
     if (orientationLocked) return;
+    const p = getXY(e);
+    if (!p.inBounds) return;
     e.preventDefault();
     pointerDown = true;
     swipeDone = false;
-    const p = getXY(e);
     startX = lastX = p.x;
     startY = lastY = p.y;
 
@@ -5916,6 +5926,7 @@ if ("serviceWorker" in navigator) {
     if (!pointerDown) return;
     e.preventDefault();
     const p = getXY(e);
+    if (!p.inBounds) return;
     lastX = p.x;
     lastY = p.y;
 
@@ -5935,7 +5946,11 @@ if ("serviceWorker" in navigator) {
     if (orientationLocked) return;
     e.preventDefault();
     if (pointerDown && game.mode === "BITE" && !swipeDone) {
-      const p = typeof e.clientX === "number" ? getXY(e) : { x: lastX, y: lastY };
+      const p = typeof e.clientX === "number" ? getXY(e) : { x: lastX, y: lastY, inBounds: true };
+      if (!p.inBounds) {
+        pointerDown = false;
+        return;
+      }
       const dy = p.y - startY;
       const dx = p.x - startX;
 
