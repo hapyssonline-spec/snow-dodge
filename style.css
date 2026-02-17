@@ -1803,13 +1803,13 @@ img, a{
 }
 
 .trashTitle{
-  font-size:18px;
+  font-size:24px;
   font-weight:900;
   letter-spacing:.04em;
 }
 
 .trashRewardStatus{
-  font-size:13px;
+  font-size:16px;
   color:var(--muted);
   display:flex;
   flex-direction:column;
@@ -1894,7 +1894,7 @@ img, a{
   align-items:center;
   justify-content:center;
   text-align:center;
-  font-size:12px;
+  font-size:14px;
   font-weight:700;
   color:var(--muted);
   position:relative;
@@ -1960,7 +1960,7 @@ img, a{
 .findingLabel{
   max-width:100%;
   text-align:center;
-  font-size:clamp(10px, 1.1vw, 12px);
+  font-size:clamp(12px, 1.45vw, 15px);
   line-height:1.15;
   display:-webkit-box;
   -webkit-line-clamp:2;
@@ -1971,7 +1971,7 @@ img, a{
 }
 
 .trashCell.is-missing .findingLabel{
-  font-size:11px;
+  font-size:13px;
   opacity:0.6;
   letter-spacing:0.02em;
 }
