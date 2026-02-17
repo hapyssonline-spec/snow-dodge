@@ -847,6 +847,20 @@ img, a{
   pointer-events:auto;
 }
 
+#fishJournalOverlay{
+  backdrop-filter: blur(10px);
+  background: rgba(6,12,20,.74);
+  z-index:6;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.25s ease;
+}
+
+#fishJournalOverlay.is-visible{
+  opacity:1;
+  pointer-events:auto;
+}
+
 #catchOverlay{
   background: rgba(6,12,20,.7);
   z-index:6;
@@ -892,6 +906,7 @@ img, a{
 #app[data-effects="reduced"] #overlay,
 #app[data-effects="reduced"] #invOverlay,
 #app[data-effects="reduced"] #trashOverlay,
+#app[data-effects="reduced"] #fishJournalOverlay,
 #app[data-effects="reduced"] #shopOverlay,
 #app[data-effects="reduced"] #profileOverlay,
 #app[data-effects="reduced"] #profileSetupOverlay,
@@ -1537,7 +1552,8 @@ img, a{
   letter-spacing:.02em;
 }
 
-#app[data-effects="reduced"] #trashOverlay{
+#app[data-effects="reduced"] #trashOverlay,
+#app[data-effects="reduced"] #fishJournalOverlay{
   transition: none;
 }
 
@@ -2037,6 +2053,176 @@ img, a{
   flex-wrap:wrap;
   gap:8px;
   justify-content:flex-end;
+}
+
+
+.fishJournalCard{
+  width:min(560px, 100%);
+  border-radius:18px;
+  border:1px solid rgba(130,162,198,.22);
+  background: rgba(14,26,40,.98);
+  padding:16px;
+  gap:12px;
+  box-shadow: 0 18px 55px rgba(0,0,0,.4);
+  transform: translateY(10px) scale(0.98);
+  opacity:0;
+  transition: transform 1s ease, opacity 1s ease;
+}
+
+#fishJournalOverlay.is-visible .fishJournalCard{
+  transform: translateY(0) scale(1);
+  opacity:1;
+}
+
+.fishJournalHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.fishJournalTitle{
+  font-size:24px;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+
+.fishJournalView{
+  display:block;
+}
+
+.fishJournalList{
+  margin:0;
+  padding:0;
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.fishJournalRow{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border-radius:12px;
+  border:1px solid rgba(120,145,170,.22);
+  background: rgba(12,22,32,.7);
+  padding:10px 12px;
+  min-height:48px;
+}
+
+.fishJournalNumber{
+  min-width:28px;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.fishJournalName,
+.fishJournalMissing{
+  font-size:16px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+
+.fishJournalName{
+  padding:0;
+  border:none;
+  background:none;
+  color:var(--text);
+  text-align:left;
+  cursor:pointer;
+}
+
+.fishJournalName.rarity-common{color:#7bd3ff;}
+.fishJournalName.rarity-uncommon{color:#66e6a0;}
+.fishJournalName.rarity-rare{color:#ffd166;}
+.fishJournalName.rarity-epic{color:#c2a6ff;}
+.fishJournalName.rarity-legendary{color:#ff6b6b;}
+
+.fishJournalMissing{
+  color:rgba(206,220,240,.66);
+}
+
+.fishJournalDetailView{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.fishJournalBackBtn{
+  max-width:145px;
+}
+
+.fishJournalDetailCard{
+  border-radius:14px;
+  border:1px solid rgba(130,162,198,.22);
+  background: rgba(12,22,34,.78);
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  transform: translateX(20px);
+  opacity:0;
+  transition: transform 1s ease, opacity 1s ease;
+}
+
+#fishJournalOverlay.is-detail .fishJournalDetailCard{
+  transform: translateX(0);
+  opacity:1;
+}
+
+.fishJournalDetailHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.fishJournalDetailName{
+  font-size:22px;
+  font-weight:900;
+}
+
+.fishJournalDetailImageSlot{
+  border-radius:14px;
+  border:1px dashed rgba(130,162,198,.28);
+  background: rgba(10,18,28,.65);
+  min-height:170px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+}
+
+.fishJournalDetailImageSlot.is-empty{
+  opacity:.6;
+}
+
+.fishJournalDetailImage{
+  width:100%;
+  max-height:210px;
+  object-fit:contain;
+}
+
+.fishJournalDetailMeta{
+  display:grid;
+  gap:6px;
+  font-size:14px;
+  color:var(--muted);
+}
+
+.fishJournalDetailStory{
+  border-top:1px solid rgba(130,162,198,.2);
+  padding-top:10px;
+  line-height:1.45;
+  color:#d9e7fa;
+}
+
+#app[data-effects="reduced"] .fishJournalCard,
+#app[data-effects="reduced"] .fishJournalDetailCard{
+  transition:none;
+  transform:none;
+  opacity:1;
 }
 
 .rareBoostHud{

@@ -49,6 +49,7 @@ if ("serviceWorker" in navigator) {
   const btnProfile = document.getElementById("btnProfile");
   const btnInventory = document.getElementById("btnInventory");
   const btnJournal = document.getElementById("btnJournal");
+  const btnFishJournal = document.getElementById("btnFishJournal");
   const btnCity = document.getElementById("btnCity");
   const btnSoundToggle = document.getElementById("btnSoundToggle");
   const sfxVolumeInput = document.getElementById("sfxVolume");
@@ -61,6 +62,21 @@ if ("serviceWorker" in navigator) {
 
   const trashOverlay = document.getElementById("trashOverlay");
   const btnTrashClose = document.getElementById("btnTrashClose");
+
+  const fishJournalOverlay = document.getElementById("fishJournalOverlay");
+  const btnFishJournalClose = document.getElementById("btnFishJournalClose");
+  const fishJournalList = document.getElementById("fishJournalList");
+  const fishJournalListView = document.getElementById("fishJournalListView");
+  const fishJournalDetailView = document.getElementById("fishJournalDetailView");
+  const btnFishJournalBack = document.getElementById("btnFishJournalBack");
+  const fishJournalDetailName = document.getElementById("fishJournalDetailName");
+  const fishJournalDetailRarity = document.getElementById("fishJournalDetailRarity");
+  const fishJournalDetailImageSlot = document.getElementById("fishJournalDetailImageSlot");
+  const fishJournalDetailImage = document.getElementById("fishJournalDetailImage");
+  const fishJournalDetailPrice = document.getElementById("fishJournalDetailPrice");
+  const fishJournalDetailWeight = document.getElementById("fishJournalDetailWeight");
+  const fishJournalDetailRod = document.getElementById("fishJournalDetailRod");
+  const fishJournalDetailStory = document.getElementById("fishJournalDetailStory");
   const trashGrid = document.getElementById("trashGrid");
   const trashRewardStatus = document.getElementById("trashRewardStatus");
   const trashFoundCount = document.getElementById("trashFoundCount");
@@ -302,6 +318,7 @@ if ("serviceWorker" in navigator) {
     overlay,
     invOverlay,
     trashOverlay,
+    fishJournalOverlay,
     catchOverlay,
     findingOverlay,
     profileSetupOverlay,
@@ -750,6 +767,7 @@ if ("serviceWorker" in navigator) {
       btnCity,
       btnInventory,
       btnJournal,
+      btnFishJournal,
       btnStar,
       btnMute,
       btnProfile,
@@ -3642,6 +3660,105 @@ if ("serviceWorker" in navigator) {
     }, 250);
   }
 
+  function getRequiredRodLabel(tier) {
+    return `Rod_${Math.max(1, Number(tier) || 1)}`;
+  }
+
+  function showFishJournalListView() {
+    if (!fishJournalListView || !fishJournalDetailView || !fishJournalOverlay) return;
+    fishJournalOverlay.classList.remove("is-detail");
+    fishJournalListView.classList.remove("hidden");
+    fishJournalDetailView.classList.add("hidden");
+  }
+
+  function openFishJournalDetail(speciesId) {
+    const species = fishSpeciesTable.find((item) => item.id === speciesId);
+    if (!species || !fishJournalOverlay) return;
+
+    if (fishJournalDetailName) fishJournalDetailName.textContent = species.name;
+    if (fishJournalDetailRarity) {
+      fishJournalDetailRarity.textContent = rarityLabels[species.rarity] || species.rarity;
+      fishJournalDetailRarity.className = `badge badge-${species.rarity}`;
+    }
+    if (fishJournalDetailPrice) fishJournalDetailPrice.textContent = formatCoins(species.pricePerKg);
+    if (fishJournalDetailWeight) fishJournalDetailWeight.textContent = `${species.minKg.toFixed(2)}–${species.maxKg.toFixed(2)} кг`;
+    if (fishJournalDetailRod) fishJournalDetailRod.textContent = getRequiredRodLabel(species.minRodTier);
+    if (fishJournalDetailStory) fishJournalDetailStory.textContent = species.story || "";
+
+    const iconPath = species.icon || fishIcons[species.id];
+    if (fishJournalDetailImage) {
+      if (iconPath) {
+        fishJournalDetailImage.src = iconPath;
+        fishJournalDetailImage.alt = species.name;
+        fishJournalDetailImage.classList.remove("hidden");
+      } else {
+        fishJournalDetailImage.removeAttribute("src");
+        fishJournalDetailImage.classList.add("hidden");
+      }
+    }
+    fishJournalDetailImageSlot?.classList.toggle("is-empty", !iconPath);
+
+    if (!fishJournalListView || !fishJournalDetailView) return;
+    fishJournalOverlay.classList.add("is-detail");
+    fishJournalListView.classList.add("hidden");
+    fishJournalDetailView.classList.remove("hidden");
+  }
+
+  function renderFishJournal() {
+    if (!fishJournalList) return;
+    const caughtSpecies = readCaughtSpecies();
+    fishJournalList.innerHTML = "";
+
+    fishSpeciesTable.forEach((species, index) => {
+      const isCaught = caughtSpecies.has(species.id);
+      const item = document.createElement("li");
+      item.className = "fishJournalRow";
+
+      const number = document.createElement("span");
+      number.className = "fishJournalNumber";
+      number.textContent = `${index + 1}.`;
+
+      if (isCaught) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `fishJournalName rarity-${species.rarity}`;
+        button.textContent = species.name;
+        button.dataset.speciesId = species.id;
+        item.append(number, button);
+      } else {
+        const missing = document.createElement("span");
+        missing.className = "fishJournalMissing";
+        missing.textContent = "????????";
+        item.append(number, missing);
+      }
+
+      fishJournalList.append(item);
+    });
+  }
+
+  function openFishJournal() {
+    if (isFighting) return;
+    if (!fishJournalOverlay) return;
+    renderFishJournal();
+    showFishJournalListView();
+    fishJournalOverlay.classList.remove("hidden");
+    requestAnimationFrame(() => {
+      fishJournalOverlay.classList.add("is-visible");
+    });
+    updateModalLayerState();
+  }
+
+  function closeFishJournal() {
+    if (!fishJournalOverlay) return;
+    fishJournalOverlay.classList.remove("is-visible");
+    window.setTimeout(() => {
+      fishJournalOverlay.classList.add("hidden");
+      fishJournalOverlay.classList.remove("is-detail");
+      showFishJournalListView();
+      updateModalLayerState();
+    }, 250);
+  }
+
   btnInventory?.addEventListener("click", () => {
     if (currentScene !== SCENE_LAKE) return;
     openInventory();
@@ -3652,12 +3769,32 @@ if ("serviceWorker" in navigator) {
     openTrashJournal();
   });
 
+  btnFishJournal?.addEventListener("click", () => {
+    if (currentScene !== SCENE_LAKE) return;
+    openFishJournal();
+  });
+
   btnInvClose?.addEventListener("click", () => {
     closeInventory();
   });
 
   btnTrashClose?.addEventListener("click", () => {
     closeTrashJournal();
+  });
+
+  btnFishJournalClose?.addEventListener("click", () => {
+    closeFishJournal();
+  });
+
+  btnFishJournalBack?.addEventListener("click", () => {
+    showFishJournalListView();
+  });
+
+  fishJournalList?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target?.closest?.(".fishJournalName");
+    if (!(button instanceof HTMLElement)) return;
+    openFishJournalDetail(button.dataset.speciesId);
   });
 
   trashGrid?.addEventListener("click", (event) => {
@@ -5534,6 +5671,7 @@ if ("serviceWorker" in navigator) {
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    btnFishJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnStar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnMute?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     bottomBar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
@@ -5543,6 +5681,10 @@ if ("serviceWorker" in navigator) {
     if (sceneId !== SCENE_LAKE && trashOverlay) {
       trashOverlay.classList.add("hidden");
       trashOverlay.classList.remove("is-visible");
+    }
+    if (sceneId !== SCENE_LAKE && fishJournalOverlay) {
+      fishJournalOverlay.classList.add("hidden");
+      fishJournalOverlay.classList.remove("is-visible");
     }
     updateModalLayerState();
     updateLayerVisibility();
