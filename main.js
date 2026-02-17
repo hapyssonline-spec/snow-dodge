@@ -2626,7 +2626,9 @@ if ("serviceWorker" in navigator) {
 
   // ===== DPI / Resize =====
   const BASE_PORTRAIT = { w: 720, h: 1280 };
-  const BASE_LANDSCAPE = { w: 1280, h: 720 };
+  // Keep gameplay space identical for both orientations so physics and object sizing
+  // remain consistent regardless of viewport aspect ratio.
+  const BASE_LANDSCAPE = { ...BASE_PORTRAIT };
   let currentMode = "portrait";
   let W = BASE_PORTRAIT.w, H = BASE_PORTRAIT.h, DPR = 1;
   let viewportScale = 1;
