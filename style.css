@@ -239,7 +239,7 @@ img, a{
   background: linear-gradient(180deg, #263446, #1b2736);
   border:2px solid rgba(220,238,255,.38);
   color:#e9ecf1;
-  font-size:12px;
+  font-size:15.6px;
   font-weight:800;
   display:flex;
   align-items:center;
@@ -265,16 +265,16 @@ img, a{
   box-shadow: 0 6px 14px rgba(7,14,24,.24);
 }
 .statIcon{
-  font-size:17px;
+  font-size:22.1px;
   opacity:1;
   filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
 }
-.value{font-size:19px; font-weight:900; color:#ffe3a2; text-shadow:0 1px 2px rgba(0,0,0,.34)}
+.value{font-size:24.7px; font-weight:900; color:#ffe3a2; text-shadow:0 1px 2px rgba(0,0,0,.34)}
 .center{flex:1; text-align:center}
 .title{
   font-weight:900;
   letter-spacing:.16em;
-  font-size:16px;
+  font-size:20.8px;
   color:#f2f7ff;
   text-shadow: 0 1px 2px rgba(2,8,14,.7), 0 0 16px rgba(180,220,255,.18);
 }
@@ -373,7 +373,7 @@ img, a{
   border-radius:10px;
   background: rgba(10,18,28,.82);
   color: #e9f2ff;
-  font-size:12px;
+  font-size:15.6px;
   font-weight:700;
   letter-spacing:.02em;
   opacity:0;
@@ -518,7 +518,7 @@ img, a{
   place-items:center;
   flex:0 0 auto;
   font-weight:800;
-  font-size:20px;
+  font-size:26px;
   padding:0;
   line-height:1;
   transition: transform 0.12s ease, filter 0.12s ease;
@@ -552,7 +552,7 @@ img, a{
   align-items:center;
   justify-content:center;
   padding:0;
-  font-size:14px;
+  font-size:18.2px;
 }
 
 .iconButton:hover{
@@ -585,7 +585,7 @@ img, a{
   position:absolute;
   bottom:10px;
   right:10px;
-  font-size:10px;
+  font-size:13px;
   font-weight:900;
   letter-spacing:.08em;
   text-transform:uppercase;
@@ -616,7 +616,7 @@ img, a{
 #btnInventory .btnText,
 #btnJournal .btnText{
   white-space:normal;
-  font-size:13px;
+  font-size:16.9px;
   line-height:1.05;
 }
 
@@ -744,6 +744,7 @@ img, a{
   text-shadow:0 1px 0 rgba(10,18,28,0.35);
 }
 .fishHintText{
+  display:none;
   flex:1 1 auto;
   min-width:0;
   max-width:50%;
@@ -839,7 +840,7 @@ img, a{
 
 .modalOverlay input,
 .modalOverlay textarea{
-  font-size:16px;
+  font-size:20.8px;
 }
 
 #overlay{
@@ -995,7 +996,7 @@ img, a{
 }
 
 .profileTitle{
-  font-size:20px;
+  font-size:26px;
   font-weight:900;
 }
 
@@ -1016,7 +1017,7 @@ img, a{
 }
 
 .modalTitle{
-  font-size:20px;
+  font-size:26px;
   font-weight:900;
 }
 
@@ -1075,7 +1076,7 @@ img, a{
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  font-size:14px;
+  font-size:18.2px;
 }
 
 .soundSettingSlider{
@@ -1108,12 +1109,12 @@ img, a{
 }
 
 .profileName{
-  font-size:20px;
+  font-size:26px;
   font-weight:900;
 }
 
 .profileRenameHint{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -1146,12 +1147,12 @@ img, a{
 }
 
 .renameTitle{
-  font-size:20px;
+  font-size:26px;
   font-weight:900;
 }
 
 .renameHint{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -1162,7 +1163,7 @@ img, a{
 }
 
 .sectionTitle{
-  font-size:14px;
+  font-size:18.2px;
   font-weight:800;
 }
 
@@ -1188,7 +1189,7 @@ img, a{
   align-items:center;
   justify-content:space-between;
   gap:10px;
-  font-size:13px;
+  font-size:16.9px;
   color:var(--muted);
 }
 
@@ -1220,7 +1221,7 @@ img, a{
 }
 
 .profileSetupLabel{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
   font-weight:700;
   letter-spacing:.03em;
@@ -1228,7 +1229,7 @@ img, a{
 }
 
 .profileSetupName{
-  font-size:20px;
+  font-size:26px;
   font-weight:900;
 }
 
@@ -1249,7 +1250,7 @@ img, a{
 }
 
 .profileGearLabel{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
   letter-spacing:.02em;
 }
@@ -1269,7 +1270,7 @@ img, a{
 }
 
 .profileLevelRow{
-  font-size:14px;
+  font-size:18.2px;
   font-weight:700;
 }
 
@@ -1316,12 +1317,12 @@ img, a{
 }
 
 .xpRingLevel{
-  font-size:32px;
+  font-size:41.6px;
   font-weight:900;
 }
 
 .xpRingValue{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -1356,12 +1357,12 @@ img, a{
 
 .profileXpText,
 .profileXpRemain{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
 .profileConfirmText{
-  font-size:14px;
+  font-size:18.2px;
   font-weight:700;
   color:var(--text);
   line-height:1.4;
@@ -1375,7 +1376,7 @@ img, a{
 }
 
 .formLabel{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
   font-weight:700;
   letter-spacing:.02em;
@@ -1389,11 +1390,11 @@ img, a{
   background: rgba(15,26,36,.85);
   color:var(--text);
   font-weight:700;
-  font-size:16px;
+  font-size:20.8px;
 }
 
 .formHint{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -1418,7 +1419,7 @@ img, a{
 }
 
 .leaderboardTitle{
-  font-size:20px;
+  font-size:26px;
   font-weight:900;
 }
 
@@ -1457,7 +1458,7 @@ img, a{
 }
 
 .leaderboardYourRecord{
-  font-size:13px;
+  font-size:16.9px;
   color:var(--muted);
 }
 
@@ -1545,7 +1546,7 @@ img, a{
   border-radius:10px;
   border:1px solid rgba(166,185,218,.14);
   background: rgba(13,22,34,.6);
-  font-size:13px;
+  font-size:16.9px;
 }
 
 .leaderboardRow .leaderboardRank{
@@ -1563,12 +1564,12 @@ img, a{
 }
 
 .leaderboardWorldStub{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
 .leaderboardSectionLabel{
-  font-size:12px;
+  font-size:15.6px;
   font-weight:700;
   color:var(--muted);
   letter-spacing:.02em;
@@ -1619,7 +1620,7 @@ img, a{
   background: rgba(8,14,20,.65);
   border:1px solid rgba(166,185,218,.18);
   color:#eaf2ff;
-  font-size:13px;
+  font-size:16.9px;
   font-weight:600;
   letter-spacing:.02em;
   opacity:0;
@@ -1671,7 +1672,7 @@ img, a{
 
 .travelMessage{
   min-height:18px;
-  font-size:12px;
+  font-size:15.6px;
   letter-spacing:0.22em;
   text-transform:uppercase;
   color:var(--muted);
@@ -1753,7 +1754,7 @@ img, a{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  font-size:12px;
+  font-size:15.6px;
   font-weight:700;
   color:var(--muted);
   padding:0 4px;
@@ -1799,7 +1800,7 @@ img, a{
 
 @media (max-width: 360px){
   .travelLabels{
-    font-size:11px;
+    font-size:14.3px;
     padding:0 2px;
   }
 }
@@ -1841,13 +1842,13 @@ img, a{
 }
 
 .trashTitle{
-  font-size:24px;
+  font-size:31.2px;
   font-weight:900;
   letter-spacing:.04em;
 }
 
 .trashRewardStatus{
-  font-size:16px;
+  font-size:20.8px;
   color:var(--muted);
   display:flex;
   flex-direction:column;
@@ -1932,7 +1933,7 @@ img, a{
   align-items:center;
   justify-content:center;
   text-align:center;
-  font-size:14px;
+  font-size:18.2px;
   font-weight:700;
   color:var(--muted);
   position:relative;
@@ -2104,7 +2105,7 @@ img, a{
 }
 
 .fishJournalTitle{
-  font-size:24px;
+  font-size:31.2px;
   font-weight:900;
   letter-spacing:.04em;
 }
@@ -2141,7 +2142,7 @@ img, a{
 
 .fishJournalName,
 .fishJournalMissing{
-  font-size:16px;
+  font-size:20.8px;
   font-weight:800;
   letter-spacing:.02em;
 }
@@ -2201,7 +2202,7 @@ img, a{
 }
 
 .fishJournalDetailName{
-  font-size:22px;
+  font-size:28.6px;
   font-weight:900;
 }
 
@@ -2229,7 +2230,7 @@ img, a{
 .fishJournalDetailMeta{
   display:grid;
   gap:6px;
-  font-size:14px;
+  font-size:18.2px;
   color:var(--muted);
 }
 
@@ -2265,7 +2266,7 @@ img, a{
   border-radius:12px;
   border:1px solid var(--stroke);
   background: rgba(15,26,36,.75);
-  font-size:12px;
+  font-size:15.6px;
   font-weight:800;
   letter-spacing:.02em;
   z-index:6;
@@ -2297,7 +2298,7 @@ img, a{
 
 #catchOverlay.is-intro .catchCard,
 #findingOverlay.is-intro .findingCard{
-  animation: catchIntro 1s ease;
+  animation: catchIntro .8s ease;
   animation-fill-mode: both;
 }
 
@@ -2309,11 +2310,11 @@ img, a{
 
 @keyframes catchIntro{
   0%{
-    transform: scale(0.92);
+    transform: scale(0.94);
     opacity:0;
   }
-  60%{
-    transform: scale(1.02);
+  70%{
+    transform: scale(1);
     opacity:1;
   }
   100%{
@@ -2330,7 +2331,7 @@ img, a{
 }
 
 .catchTitle{
-  font-size:18px;
+  font-size:23.4px;
   font-weight:900;
   letter-spacing:.04em;
 }
@@ -2349,7 +2350,7 @@ img, a{
 }
 
 .catchName{
-  font-size:20px;
+  font-size:26px;
   font-weight:900;
 }
 
@@ -2359,7 +2360,7 @@ img, a{
 }
 
 .catchMeta{
-  font-size:13px;
+  font-size:16.9px;
   color:var(--muted);
   display:flex;
   flex-direction:column;
@@ -2459,7 +2460,7 @@ img, a{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  font-size:18px;
+  font-size:23.4px;
   gap:8px;
 }
 
@@ -2478,7 +2479,7 @@ img, a{
 }
 
 .coinIcon{
-  font-size:18px;
+  font-size:23.4px;
   filter: drop-shadow(0 0 6px rgba(255,216,151,.5));
 }
 
@@ -2494,7 +2495,7 @@ img, a{
 
 .catchXpGain{
   align-self:flex-start;
-  font-size:18px;
+  font-size:23.4px;
   font-weight:900;
   color:var(--xp-accent-bright);
   text-shadow:0 0 14px color-mix(in srgb, var(--xp-accent) 68%, transparent);
@@ -2521,13 +2522,13 @@ img, a{
 }
 
 .catchXpBarBase{
-  background: linear-gradient(90deg, color-mix(in srgb, var(--xp-accent) 88%, white 12%), var(--xp-accent));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--xp-accent) 60%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--xp-accent) 42%, #13243a 58%), color-mix(in srgb, var(--xp-accent) 56%, #1e3650 44%));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
 }
 
 .catchXpBarDelta{
-  background: linear-gradient(90deg, var(--xp-accent-bright), #e6f6ff);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--xp-accent-bright) 72%, transparent);
+  background: linear-gradient(90deg, #9de7ff, #f1fbff);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--xp-accent-bright) 88%, transparent);
   opacity:0;
 }
 
@@ -2545,7 +2546,7 @@ img, a{
 }
 
 .catchXpLabel{
-  font-size:12px;
+  font-size:15.6px;
   font-weight:700;
   color:var(--muted);
 }
@@ -2578,12 +2579,12 @@ img, a{
 }
 
 .hudTitle{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
 .hudTimer{
-  font-size:16px;
+  font-size:20.8px;
   font-weight:900;
 }
 
@@ -2599,13 +2600,13 @@ img, a{
   min-height:var(--hud-icon-button-size);
   min-width:var(--hud-icon-button-size);
   padding:10px 16px;
-  font-size:20px;
+  font-size:26px;
 }
 
 .locationLabel{
   font-weight:900;
   letter-spacing:.12em;
-  font-size:13px;
+  font-size:16.9px;
   text-transform:uppercase;
   color:#f2f7ff;
   text-shadow: 0 1px 2px rgba(2,8,14,.7), 0 0 16px rgba(180,220,255,.18);
@@ -2613,7 +2614,7 @@ img, a{
 
 .questReminder{
   margin-top:2px;
-  font-size:11px;
+  font-size:14.3px;
   color:var(--muted);
   letter-spacing:.02em;
   max-width:min(70vw, 320px);
@@ -2645,7 +2646,7 @@ img, a{
 }
 
 .shopTitle{
-  font-size:20px;
+  font-size:26px;
   font-weight:900;
 }
 
@@ -2653,7 +2654,7 @@ img, a{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -2687,12 +2688,12 @@ img, a{
 }
 
 .shopSectionTitle{
-  font-size:14px;
+  font-size:18.2px;
   font-weight:800;
 }
 
 .shopSubTitle{
-  font-size:12px;
+  font-size:15.6px;
   font-weight:800;
   color:var(--muted);
 }
@@ -2714,7 +2715,7 @@ img, a{
 }
 
 .shopOfferInfo{
-  font-size:13px;
+  font-size:16.9px;
   color:var(--muted);
   display:flex;
   flex-direction:column;
@@ -2820,7 +2821,7 @@ img, a{
   display:flex;
   flex-direction:column;
   gap:8px;
-  font-size:12px;
+  font-size:15.6px;
 }
 
 .questCardTitle{
@@ -2861,7 +2862,7 @@ img, a{
 }
 
 .questRefreshStatus{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
   min-height:16px;
 }
@@ -2874,7 +2875,7 @@ img, a{
   display:flex;
   flex-direction:column;
   gap:6px;
-  font-size:12px;
+  font-size:15.6px;
 }
 
 .shopItemHeader{
@@ -2915,19 +2916,19 @@ img, a{
   border:1px solid var(--stroke);
   background: rgba(16,31,48,.92);
   font-weight:800;
-  font-size:12px;
+  font-size:15.6px;
   opacity:0;
   transition: opacity .2s ease;
   z-index:7;
 }
 
 .toastTitle{
-  font-size:12px;
+  font-size:15.6px;
   font-weight:900;
 }
 
 .toastSub{
-  font-size:11px;
+  font-size:14.3px;
   font-weight:700;
   color:var(--muted);
   margin-top:2px;
@@ -2947,7 +2948,7 @@ img, a{
   border:1px solid var(--stroke);
   background: rgba(16,31,48,.92);
   font-weight:800;
-  font-size:12px;
+  font-size:15.6px;
   opacity:0;
   transition: opacity .2s ease, transform .2s ease;
   z-index:7;
@@ -2990,7 +2991,7 @@ img, a{
 }
 
 .invTitle{
-  font-size:20px;
+  font-size:26px;
   font-weight:900;
   letter-spacing:.04em;
 }
@@ -3000,7 +3001,7 @@ img, a{
   align-items:center;
   justify-content:space-between;
   gap:10px;
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -3058,7 +3059,7 @@ img, a{
   flex-wrap:wrap;
   gap:6px;
   align-items:center;
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -3068,7 +3069,7 @@ img, a{
 }
 
 .invItemPrice{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -3086,7 +3087,7 @@ img, a{
   background: rgba(15,26,36,.8);
   color:var(--text);
   font-weight:800;
-  font-size:12px;
+  font-size:15.6px;
 }
 
 .invBtn.primary{
@@ -3105,7 +3106,7 @@ img, a{
   display:flex;
   flex-direction:column;
   gap:6px;
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -3227,7 +3228,7 @@ img, a{
   align-items:center;
   padding:2px 8px;
   border-radius:999px;
-  font-size:10px;
+  font-size:13px;
   font-weight:800;
   text-transform:uppercase;
   letter-spacing:.08em;
@@ -3249,7 +3250,7 @@ img, a{
   padding:16px;
   box-shadow: 0 14px 50px rgba(0,0,0,.30);
 }
-.h1{font-size:22px; font-weight:900; margin-bottom:6px}
+.h1{font-size:28.6px; font-weight:900; margin-bottom:6px}
 .p{color:var(--muted); margin-bottom:14px; line-height:1.35}
 .row{display:flex; gap:10px; min-width:0}
 .row > *{min-width:0}
@@ -3318,7 +3319,7 @@ button,
   line-height:1.1;
   text-align:center;
 }
-.small{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.35}
+.small{margin-top:10px; font-size:15.6px; color:var(--muted); line-height:1.35}
 
 /* --- Lake scene (layered) --- */
 #bgPortraitImg{display:block;}
@@ -3478,13 +3479,13 @@ button:disabled{
 }
 
 .rotateTitle{
-  font-size:16px;
+  font-size:20.8px;
   font-weight:900;
   letter-spacing:.02em;
 }
 
 .rotateHint{
-  font-size:12px;
+  font-size:15.6px;
   color:var(--muted);
 }
 
@@ -3643,12 +3644,12 @@ button:disabled{
 .tutorialHeaderBadge{ padding:10px 16px; border-radius:999px; background:rgba(14,28,45,.94); border:1px solid rgba(170,220,255,.42); box-shadow:0 8px 24px rgba(0,0,0,.28); font-weight:700; }
 .tutorialCardWrap{ position:fixed; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom) + 14px); display:flex; justify-content:center; }
 .tutorialCard{ width:min(560px, 100%); background:rgba(15,26,36,.96); border:1px solid rgba(190,223,255,.3); border-radius:18px; padding:14px; box-shadow:0 14px 34px rgba(0,0,0,.35); }
-.tutorialCard h3{ margin:0 0 8px; font-size:20px; }
+.tutorialCard h3{ margin:0 0 8px; font-size:26px; }
 .tutorialCard p{ margin:0 0 12px; line-height:1.4; color:#e5eefc; }
 .tutorialSwipeHint{ position:fixed; left:50%; bottom:120px; width:120px; height:220px; transform:translateX(-50%); pointer-events:none; }
 .tutorialSwipeLine{ position:absolute; left:58px; bottom:36px; width:4px; height:144px; border-radius:4px; background:linear-gradient(180deg, rgba(123,211,255,0), rgba(123,211,255,.9)); }
-.tutorialSwipeArrow{ position:absolute; top:4px; left:46px; font-size:28px; color:#7bd3ff; animation:tutorialPulse 1.1s ease-in-out infinite; }
-.tutorialSwipeHand{ position:absolute; left:42px; bottom:0; font-size:34px; animation:tutorialSwipe 1.3s ease-in-out infinite; }
+.tutorialSwipeArrow{ position:absolute; top:4px; left:46px; font-size:36.4px; color:#7bd3ff; animation:tutorialPulse 1.1s ease-in-out infinite; }
+.tutorialSwipeHand{ position:absolute; left:42px; bottom:0; font-size:44.2px; animation:tutorialSwipe 1.3s ease-in-out infinite; }
 @keyframes tutorialSwipe{ 0%{ transform:translateY(0); opacity:.5;} 70%{ transform:translateY(-130px); opacity:1;} 100%{ transform:translateY(-130px); opacity:0;} }
 @keyframes tutorialPulse{ 0%,100%{ opacity:.5;} 50%{ opacity:1;} }
 
