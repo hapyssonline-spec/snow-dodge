@@ -937,6 +937,8 @@ if ("serviceWorker" in navigator) {
       if (this.step === "cast") this.highlightWaterRight();
       if (this.step === "fight-progress") this.highlightReelProgress();
       if (this.step === "fight-help") this.highlightTensionSweetSpot();
+      if (this.step === "fight-demo-tap-tension" || this.step === "fight-demo-keep-green") this.highlightTensionSweetSpot();
+      if (this.step === "fight-demo-reel-progress") this.highlightReelProgress();
       if (this.step === "bite-info") this.followBobberSpotlight();
     }
 
@@ -1009,10 +1011,35 @@ if ("serviceWorker" in navigator) {
       if (this.step === "fight-progress") {
         this.step = "fight-help";
         this.highlightTensionSweetSpot();
-        this.showCard("Натяжение по центру", "Лучше всего выматывание растёт, когда натяжение держится ближе к центральной зоне.", "Начать вываживание");
+        this.showCard("Натяжение по центру", "Сейчас покажу короткую сценку: как растёт выматывание, когда натяжение в зелёной зоне.", "Показать");
         return;
       }
       if (this.step === "fight-help") {
+        this.step = "fight-demo-prep";
+        this.hideOverlay();
+        setTutorialPause(false);
+        setTimeout(() => {
+          if (!this.active || this.step !== "fight-demo-prep") return;
+          const zones = game.reel?.zones;
+          if (zones) {
+            game.tension = clamp((zones.sweetMin + zones.sweetMax) * 0.5, 0, TENSION_MAX);
+            game.tensionVel = 0;
+          }
+          setTutorialPause(true);
+          this.step = "fight-demo-tap-tension";
+          this.showOverlay();
+          this.highlightTensionSweetSpot();
+          this.showCard("Контроль натяжения", "Натяжение в центре. Нажми по индикатору натяжения, чтобы продолжить.", "", false);
+        }, 900);
+        return;
+      }
+      if (this.step === "fight-demo-reel-progress") {
+        this.step = "fight-demo-keep-green";
+        this.highlightTensionSweetSpot();
+        this.showCard("Держи зелёную зону", "Отлично! Выматывание растёт. Продолжай держать натяжение в зелёной зоне, чтобы выудить рыбу.", "Начать вываживание");
+        return;
+      }
+      if (this.step === "fight-demo-keep-green") {
         this.step = "practice";
         this.practiceMode = true;
         this.waitingForBiteDemo = false;
@@ -1048,6 +1075,14 @@ if ("serviceWorker" in navigator) {
       }
       if (this.step === "swipe") {
         this.swipeStart = { x: event.clientX, y: event.clientY };
+        return;
+      }
+      if (this.step === "fight-demo-tap-tension") {
+        if (!this.pointInAllowedRect(event.clientX, event.clientY)) return;
+        game.reelProgress = clamp(game.reelProgress + 0.18, 0, 1);
+        this.step = "fight-demo-reel-progress";
+        this.highlightReelProgress();
+        this.showCard("Выматывание выросло", "Видишь, шкала выматывания немного увеличилась.", "Далее");
       }
     }
 
@@ -1083,7 +1118,7 @@ if ("serviceWorker" in navigator) {
         this.step = "fight-progress";
         this.highlightReelProgress();
         this.showOverlay();
-        this.showCard("Борьба с рыбой", "Рыба будет поймана, когда полностью заполнится шкала выматывания.", "Понял");
+        this.showCard("Борьба с рыбой", "Рыба будет поймана, когда полностью заполнится шкала выматывания.", "Понятно");
       }, 320);
     }
 
@@ -2153,6 +2188,12 @@ if ("serviceWorker" in navigator) {
     }
   };
 
+  const FIXED_QUEST_TARGETS = {
+    easy: { speciesId: "karas_serebryanyy", targetWeightKg: 1.5 },
+    medium: { speciesId: "plotva", targetWeightKg: 0.8 },
+    hard: { speciesId: "shchuka", targetWeightKg: 6.0 }
+  };
+
   const QUEST_DIFFICULTY_KEYS = ["easy", "medium", "hard"];
   const QUEST_REFRESH_COOLDOWNS = [10_000, 60_000, 600_000, 3_600_000];
   const QUEST_COMPLETION_COOLDOWNS = {
@@ -2558,17 +2599,12 @@ if ("serviceWorker" in navigator) {
   }
 
   function pickQuestSpecies(difficultyKey) {
-    const config = QUEST_DIFFICULTIES[difficultyKey] || QUEST_DIFFICULTIES.easy;
-    const available = fishSpeciesTable.filter((species) => species.minRodTier <= player.rodTier);
-    const pool = available.filter((species) => config.rarityPool.includes(species.rarity));
-    const finalPool = pool.length ? pool : available;
-    const total = finalPool.reduce((sum, species) => sum + species.chance, 0);
-    let roll = Math.random() * total;
-    for (const species of finalPool) {
-      roll -= species.chance;
-      if (roll <= 0) return species;
+    const fixed = FIXED_QUEST_TARGETS[difficultyKey];
+    if (fixed) {
+      const target = fishSpeciesTable.find((species) => species.id === fixed.speciesId);
+      if (target) return target;
     }
-    return finalPool[0];
+    return fishSpeciesTable[0];
   }
 
   function roundWeight(value) {
@@ -2601,7 +2637,10 @@ if ("serviceWorker" in navigator) {
   function generateQuest(difficultyKey) {
     const difficulty = QUEST_DIFFICULTIES[difficultyKey] ? difficultyKey : "easy";
     const species = pickQuestSpecies(difficulty);
-    const { minWeight, maxWeight } = buildQuestRange(species, difficulty);
+    const fixed = FIXED_QUEST_TARGETS[difficulty];
+    const { minWeight, maxWeight } = fixed
+      ? { minWeight: fixed.targetWeightKg, maxWeight: fixed.targetWeightKg }
+      : buildQuestRange(species, difficulty);
     const reward = buildQuestReward(species, difficulty, minWeight, maxWeight);
     return {
       id: `quest-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
@@ -2687,7 +2726,8 @@ if ("serviceWorker" in navigator) {
 
   function renderTrophyQuest() {
     if (!trophyQuestSection || !trophyActiveSection) return;
-    if (activeQuest) {
+    const showQuestPicker = !activeQuest || guideStep === "trophy-refresh-info";
+    if (!showQuestPicker) {
       trophyQuestSection.classList.add("hidden");
       trophyActiveSection.classList.remove("hidden");
       if (activeQuestSpecies) activeQuestSpecies.textContent = activeQuest.speciesName;
@@ -4824,10 +4864,10 @@ if ("serviceWorker" in navigator) {
       setGuideStep("trophy-difficulty-info");
       showGuideOverlay({
         title: "Сложности заданий",
-        text: "Выбирай сложность задания. После взятия и поимки нужной рыбы вернись в город за наградой.",
-        buttonText: "Далее",
-        showButton: true,
-        spotlightRect: getSpotlightRect(difficultyButtons[0]?.closest(".questDifficulty"))
+        text: "Сейчас возьми первое задание. Для старта по умолчанию выбрано лёгкое задание с карасём.",
+        buttonText: "",
+        showButton: false,
+        spotlightRect: getSpotlightRect(btnQuestAccept)
       });
     }
   });
@@ -4929,15 +4969,24 @@ if ("serviceWorker" in navigator) {
 
   difficultyButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
+      if (guideStep === "trophy-difficulty-info") return;
       const difficulty = btn.dataset.difficulty || "easy";
       if (!QUEST_DIFFICULTIES[difficulty]) return;
       selectedQuestDifficulty = difficulty;
       updateQuestDifficultyButtons();
       updateQuestPreviewUI();
+      if (guideStep === "trophy-refresh-info") {
+        onboarding.trophyGuideDone = true;
+        onboarding.firstCityArrivalShown = true;
+        setGuideStep("none");
+        hideGuideOverlay();
+        save();
+      }
     });
   });
 
   btnQuestRefresh?.addEventListener("click", () => {
+    if (guideStep === "trophy-difficulty-info") return;
     const now = Date.now();
     if (now < questRefreshState.nextRefreshAt) {
       updateQuestRefreshUI();
@@ -4955,6 +5004,13 @@ if ("serviceWorker" in navigator) {
     save();
     updateQuestPreviewUI();
     updateQuestRefreshUI();
+    if (guideStep === "trophy-refresh-info") {
+      onboarding.trophyGuideDone = true;
+      onboarding.firstCityArrivalShown = true;
+      setGuideStep("none");
+      hideGuideOverlay();
+      save();
+    }
   });
 
   btnQuestAccept?.addEventListener("click", () => {
@@ -4971,6 +5027,15 @@ if ("serviceWorker" in navigator) {
     updateQuestReminder();
     renderTrophyQuest();
     audio?.play("quest_accept");
+    if (guideStep === "trophy-difficulty-info") {
+      setGuideStep("trophy-refresh-info");
+      showGuideOverlay({
+        title: "Обновление заданий",
+        text: "Теперь можно переключаться между заданиями по сложности или обновить варианты кнопкой «Обновить задания», если текущие не подходят.",
+        showButton: false,
+        spotlightRect: getSpotlightRect(trophyQuestSection)
+      });
+    }
   });
 
   btnQuestClaim?.addEventListener("click", () => {
@@ -5162,7 +5227,7 @@ if ("serviceWorker" in navigator) {
       window.setTimeout(() => {
         showGuideOverlay({
           title: "Загляни в задания",
-          text: "Теперь открой раздел «Задания». Это обязательный шаг обучения города.",
+          text: "Теперь открой раздел «Задания».",
           showButton: false,
           spotlightRect: getSpotlightRect(btnTrophyQuests)
         });
@@ -6381,25 +6446,6 @@ if ("serviceWorker" in navigator) {
         showButton: false,
         spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"))
       });
-      return;
-    }
-    if (guideStep === "trophy-difficulty-info") {
-      setGuideStep("trophy-refresh-info");
-      showGuideOverlay({
-        title: "Обновление",
-        text: "Можно менять задания кнопкой «Обновить задания». После поимки нужной рыбы вернись в город за наградой.",
-        buttonText: "Понятно",
-        showButton: true,
-        spotlightRect: getSpotlightRect(btnQuestRefresh)
-      });
-      return;
-    }
-    if (guideStep === "trophy-refresh-info") {
-      onboarding.trophyGuideDone = true;
-      onboarding.firstCityArrivalShown = true;
-      setGuideStep("none");
-      hideGuideOverlay();
-      save();
       return;
     }
     if (guideStep === "finding-intro") {
