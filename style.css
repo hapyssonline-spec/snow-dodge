@@ -143,7 +143,7 @@ img, a{
   min-height: calc(var(--hud-icon-button-size) + 16px + env(safe-area-inset-top));
   background: linear-gradient(180deg, rgba(14,28,45,.82), rgba(14,28,45,.42));
   border-bottom: 1px solid var(--stroke);
-  gap:10px;
+  gap:5px;
   position:fixed;
   top:0;
   left:0;
