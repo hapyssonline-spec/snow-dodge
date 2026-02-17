@@ -3529,6 +3529,8 @@ button:disabled{
 }
 #lakeScene.is-casting #bobberLayer{
   opacity: 1;
+  width: var(--bobber-w);
+  transform: translate(-50%,-50%) scale(var(--bobber-scale));
   animation: none;
 }
 
