@@ -909,7 +909,8 @@ if ("serviceWorker" in navigator) {
       if (!this.active) return;
       if (this.step === "hero") this.highlightHero();
       if (this.step === "cast") this.highlightWaterRight();
-      if (this.step === "fight-help") this.highlightFightHud();
+      if (this.step === "fight-progress") this.highlightReelProgress();
+      if (this.step === "fight-help") this.highlightTensionSweetSpot();
       if (this.step === "bite-info") this.followBobberSpotlight();
     }
 
@@ -942,6 +943,16 @@ if ("serviceWorker" in navigator) {
       this.setSpotlightRect(fightHud?.getBoundingClientRect() || null);
     }
 
+    highlightReelProgress() {
+      const reelWrap = fightHud?.querySelector(".reelWrap");
+      this.setSpotlightRect(reelWrap?.getBoundingClientRect() || fightHud?.getBoundingClientRect() || null);
+    }
+
+    highlightTensionSweetSpot() {
+      const zones = fightHud?.querySelector(".tensionZones");
+      this.setSpotlightRect(zones?.getBoundingClientRect() || fightHud?.getBoundingClientRect() || null);
+    }
+
     pointInAllowedRect(clientX, clientY) {
       const r = this.allowedRect;
       if (!r) return false;
@@ -967,6 +978,12 @@ if ("serviceWorker" in navigator) {
         this.waitingForBiteDemo = true;
         this.showCard("Поклёвка", "Смотри на поплавок. Через мгновение он поплывёт вправо.", "Наблюдаю", false);
         setTutorialPause(false);
+        return;
+      }
+      if (this.step === "fight-progress") {
+        this.step = "fight-help";
+        this.highlightTensionSweetSpot();
+        this.showCard("Натяжение по центру", "Лучше всего выматывание растёт, когда натяжение держится ближе к центральной зоне.", "Начать вываживание");
         return;
       }
       if (this.step === "fight-help") {
@@ -1037,10 +1054,10 @@ if ("serviceWorker" in navigator) {
       setTimeout(() => {
         if (!this.active) return;
         setTutorialPause(true);
-        this.step = "fight-help";
-        this.highlightFightHud();
+        this.step = "fight-progress";
+        this.highlightReelProgress();
         this.showOverlay();
-        this.showCard("Борьба с рыбой", "Держись ближе к центру зоны натяжения — так быстрее растёт прогресс. На краях выше риск срыва.", "Попробовать выудить");
+        this.showCard("Борьба с рыбой", "Рыба будет поймана, когда полностью заполнится шкала выматывания.", "Понял");
       }, 320);
     }
 
@@ -2878,7 +2895,7 @@ if ("serviceWorker" in navigator) {
   // ===== Audio (SFX + background music) =====
   let audioCtx = null;
   let muted = false;
-  const DEFAULT_SFX_VOLUME = 0.35;
+  const DEFAULT_SFX_VOLUME = 0.175;
   let sfxVolume = DEFAULT_SFX_VOLUME;
   let bgStarted = false;
   let bgBuffer = null;
@@ -2889,7 +2906,7 @@ if ("serviceWorker" in navigator) {
 
   const sfxManifest = {
     ui_click: {
-      volume: 0.2,
+      volume: 0.08,
       cooldownRangeMs: [60, 80],
       pitchRange: [0.02, 0.04],
       variants: [
@@ -2899,26 +2916,26 @@ if ("serviceWorker" in navigator) {
       ]
     },
     inventory_open: {
-      volume: 0.24,
+      volume: 0.12,
       variants: [{ type: "sweep", start: 420, end: 1320, duration: 0.18, wave: "triangle" }]
     },
     inventory_close: {
-      volume: 0.24,
+      volume: 0.12,
       variants: [{ type: "sweep", start: 1200, end: 420, duration: 0.16, wave: "triangle" }]
     },
     reel_spin: {
-      volume: 0.22,
+      volume: 0.11,
       loop: true,
       rate: 0.96,
       cooldownRangeMs: [120, 160],
       variants: [{ type: "reel_loop", lowpass: 800, highpass: 90, humFreq: 120, humGain: 0.2, noiseGain: 0.55 }]
     },
     quest_accept: {
-      volume: 0.32,
+      volume: 0.16,
       variants: [{ type: "chime", notes: [620, 940, 1240], duration: 0.22, interval: 0.05 }]
     },
     quest_complete: {
-      volume: 0.36,
+      volume: 0.18,
       variants: [{ type: "chime", notes: [660, 990, 1320, 1760], duration: 0.3, interval: 0.06 }]
     }
   };
@@ -5400,10 +5417,10 @@ if ("serviceWorker" in navigator) {
 
   const REEL_LOOP_ID = "reel_spin_loop";
   const startReelSpinLoop = () => {
-    audio?.play("reel_spin", { loop: true, loopId: REEL_LOOP_ID, fadeInMs: 80 });
+    return;
   };
   const stopReelSpinLoop = () => {
-    audio?.stopLoop(REEL_LOOP_ID, 160);
+    return;
   };
 
   const castController = {
@@ -5685,18 +5702,9 @@ if ("serviceWorker" in navigator) {
 
   function setHintTexts(weightTextOrNull, speciesTextOrNull) {
     if (!fishHintText) return;
-    if (revealHintHideTimer) {
-      window.clearTimeout(revealHintHideTimer);
-      revealHintHideTimer = null;
-    }
-    const nextWeight = weightTextOrNull || "";
-    const nextSpecies = speciesTextOrNull || "";
-    const combined = `${nextWeight} ${nextSpecies}`.trim();
-    if (combined !== lastFishHintText) {
-      fishHintText.textContent = combined;
-      fishHintText.setAttribute("aria-hidden", combined ? "false" : "true");
-      lastFishHintText = combined;
-    }
+    fishHintText.textContent = "";
+    fishHintText.setAttribute("aria-hidden", "true");
+    lastFishHintText = "";
   }
 
   function scheduleRevealHintHide(delay = 260) {
@@ -5709,23 +5717,12 @@ if ("serviceWorker" in navigator) {
 
   function showHint(text, duration = 1.4) {
     if (!hintToast || !text) return;
-    const next = text.trim();
-    if (!next) return;
-    if (hintHideTimer) window.clearTimeout(hintHideTimer);
-    hintToast.textContent = next;
-    hintToast.classList.remove("hidden");
-    hintToast.classList.add("show");
-    hintHideTimer = window.setTimeout(() => {
-      hintToast.classList.remove("show");
-      window.setTimeout(() => hintToast.classList.add("hidden"), 220);
-    }, duration * 1000);
+    hintToast.classList.remove("show");
+    hintToast.classList.add("hidden");
   }
 
   function setHint(text, duration) {
-    if (!text) return;
-    const inFight = game.mode === "REELING";
-    const safeDuration = inFight ? 0.9 : (duration ?? 1.6);
-    showHint(text, safeDuration);
+    return;
   }
 
   function setMsg(text, seconds = 1.2) {
@@ -7067,7 +7064,7 @@ if ("serviceWorker" in navigator) {
       ctx.strokeRect(building.x + 10, building.y + 12, building.w - 20, building.h - 30);
 
       ctx.fillStyle = "#eaf2ff";
-      ctx.font = "700 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
+      ctx.font = "700 16px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
       ctx.textAlign = "center";
       ctx.fillText(building.label, building.x + building.w / 2, building.y + building.h + 18);
     }
@@ -7157,7 +7154,7 @@ if ("serviceWorker" in navigator) {
     const slackX = x - barW / 2;
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#eaf2ff";
-    ctx.font = "700 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
+    ctx.font = "700 16px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     ctx.fillText(`Срыв: ${Math.round(slackRisk * 100)}%`, slackX, slackLabelY);
@@ -7175,7 +7172,7 @@ if ("serviceWorker" in navigator) {
     // labels
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#eaf2ff";
-    ctx.font = "700 12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
+    ctx.font = "700 16px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
     ctx.fillText(`Выматывание: ${(p * 100 | 0)}%`, x, y - 12);
