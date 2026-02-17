@@ -110,6 +110,7 @@ if ("serviceWorker" in navigator) {
   const cityHitboxes = Array.from(document.querySelectorAll(".city-hitbox"));
   const cityTooltip = document.getElementById("cityTooltip");
   const questReminder = document.getElementById("questReminder");
+  const locationLabel = document.getElementById("locationLabel");
   const rotateOverlay = document.getElementById("rotateOverlay");
 
   const setButtonText = (button, text) => {
@@ -5504,6 +5505,12 @@ if ("serviceWorker" in navigator) {
     }, 220);
   }
 
+  function updateLocationLabel(sceneId) {
+    if (!locationLabel) return;
+    const isCityScene = [SCENE_CITY, SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId);
+    locationLabel.textContent = isCityScene ? "Город" : "Озеро";
+  }
+
   function setScene(sceneId) {
     if (sceneId !== SCENE_LAKE) {
       cancelWaitingState();
@@ -5528,6 +5535,9 @@ if ("serviceWorker" in navigator) {
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnStar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    btnMute?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    bottomBar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    updateLocationLabel(sceneId);
     if (rareBoostHud) rareBoostHud.classList.toggle("hidden", sceneId !== SCENE_LAKE || !collectorRodUnlocked);
     if (sceneId !== SCENE_LAKE && invOverlay) invOverlay.classList.add("hidden");
     if (sceneId !== SCENE_LAKE && trashOverlay) {
