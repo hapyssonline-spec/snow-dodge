@@ -1,7 +1,7 @@
 // sw.js — простой кеш для оффлайн-режима
 // ВАЖНО: при изменениях увеличивай CACHE_VERSION, чтобы iPhone не держал старую версию.
-// CACHE_VERSION bumped to 82 to force full cache refresh.
-const CACHE_VERSION = 82;
+// CACHE_VERSION bumped to 83 to force full cache refresh.
+const CACHE_VERSION = 83;
 
 const CACHE_NAME = `cache-${CACHE_VERSION}`;
 
@@ -27,7 +27,7 @@ const ASSETS = [
   "./assets/fish/okun.png",
   "./assets/fish/shchuka.png",
   "./assets/fish/lesh.png",
-  "./assets/fish/karas_serebryanyy.png",
+  "./assets/fish/karas.png",
   "./assets/fish/osetr.png",
   "./assets/fish/pozhiratel_lunok.png"
 ];

@@ -5,7 +5,6 @@ ICE FISH — Lake Scene Pack v1 (PNG)
 - bg_lake_landscape.png  (ландшафт, 1792x1024) — фон сцены "озеро" для ПК/планшета
 - hero.png               — герой (PNG с прозрачностью)
 - rod.png                — удочка (PNG с прозрачностью), вращать через CSS transform
-- hole.png               — лунка (PNG с прозрачностью)
 - bobber.png             — поплавок (PNG с прозрачностью)
 
 Подключение (пример CSS):
@@ -15,4 +14,4 @@ ICE FISH — Lake Scene Pack v1 (PNG)
 }
 
 Слои:
-- hero/rod/hole/bobber кладёшь абсолютными слоями внутри #lakeScene.
+- hero/rod/bobber кладёшь абсолютными слоями внутри #lakeScene.
