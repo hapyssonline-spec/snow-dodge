@@ -11,7 +11,6 @@ const ASSETS = [
   "./style.css",
   "./main.js",
   "./manifest.json",
-  "./bg_lake_landscape.png",
   "./bg_lake_portrait.png",
   "./city.PNG",
   "./bobber.png",
