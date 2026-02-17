@@ -114,6 +114,7 @@
         <button id="btnCity" class="chipBtn btn--singleLine" aria-label="В город"><span class="btnText">В город</span></button>
         <button id="btnInventory" class="chipBtn btn--singleLine" aria-label="Инвентарь"><span class="btnText">Инвентарь</span></button>
         <button id="btnJournal" class="chipBtn btn--singleLine" aria-label="Журнал"><span class="btnText">Журнал</span></button>
+        <button id="btnFishJournal" class="chipBtn btn--singleLine" aria-label="Журнал рыб"><span class="btnText">Рыбы</span></button>
         <button id="btnStar" class="chipBtn iconBtn" aria-label="Раздел в разработке">
           <span class="icon" aria-hidden="true">⭐</span>
           <span class="iconMeta" aria-hidden="true">soon</span>
@@ -234,6 +235,41 @@
           <div class="row">
             <button id="btnCatchKeep" class="secondary btn--twoLines"><span class="btnText">В инвентарь</span></button>
             <button id="btnCatchSellNow" class="danger btn--twoLines"><span class="btnText">Продать сразу</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div id="fishJournalOverlay" class="hidden modal modalOverlay">
+        <div class="fishJournalCard modalCard">
+          <div class="fishJournalHeader modalHeader">
+            <div class="fishJournalTitle modalTitle modalHeaderTitle">Журнал рыб</div>
+            <button id="btnFishJournalClose" class="modalClose" aria-label="Закрыть">×</button>
+          </div>
+          <div class="modalBody">
+            <div id="fishJournalListView" class="fishJournalView">
+              <ol id="fishJournalList" class="fishJournalList"></ol>
+            </div>
+
+            <div id="fishJournalDetailView" class="fishJournalView fishJournalDetailView hidden">
+              <button id="btnFishJournalBack" class="chipBtn fishJournalBackBtn" aria-label="Назад к списку">
+                <span class="btnText">← Назад</span>
+              </button>
+              <div class="fishJournalDetailCard">
+                <div class="fishJournalDetailHead">
+                  <div id="fishJournalDetailName" class="fishJournalDetailName">Рыба</div>
+                  <span id="fishJournalDetailRarity" class="badge badge-common">Обычная</span>
+                </div>
+                <div id="fishJournalDetailImageSlot" class="fishJournalDetailImageSlot">
+                  <img id="fishJournalDetailImage" class="fishJournalDetailImage" alt="">
+                </div>
+                <div class="fishJournalDetailMeta">
+                  <div><strong>Цена за кг:</strong> <span id="fishJournalDetailPrice">0 монет</span></div>
+                  <div><strong>Диапазон веса:</strong> <span id="fishJournalDetailWeight">0.00–0.00 кг</span></div>
+                  <div><strong>Минимальная удочка:</strong> <span id="fishJournalDetailRod">Rod_1</span></div>
+                </div>
+                <div id="fishJournalDetailStory" class="fishJournalDetailStory"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
