@@ -579,11 +579,31 @@
       <div id="gemsShopOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="gemsShopCard modalCard">
           <div class="modalHeader">
-            <div class="modalTitle modalHeaderTitle">Магазин гемов</div>
+            <div class="modalTitle modalHeaderTitle">Магазин</div>
             <button id="btnGemsShopClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="modalBody">
-            <div id="gemsPackList" class="gemsPackList"></div>
+            <div class="shopTabs" role="tablist" aria-label="Магазин валют">
+              <button class="shopTabBtn is-active btn--singleLine" data-shop-tab="gems" role="tab" aria-selected="true"><span class="btnText">Гемы</span></button>
+              <button class="shopTabBtn btn--singleLine" data-shop-tab="coins" role="tab" aria-selected="false"><span class="btnText">Монеты</span></button>
+              <button class="shopTabBtn btn--singleLine" data-shop-tab="exchange" role="tab" aria-selected="false"><span class="btnText">Обмен</span></button>
+              <span id="shopTabIndicator" class="shopTabIndicator" aria-hidden="true"></span>
+            </div>
+            <div id="gemsTabPanel" class="shopTabPanel is-active" role="tabpanel">
+              <div id="gemsPackList" class="gemsPackList"></div>
+            </div>
+            <div id="coinsTabPanel" class="shopTabPanel" role="tabpanel" aria-hidden="true">
+              <div id="coinsPackList" class="gemsPackList"></div>
+            </div>
+            <div id="exchangeTabPanel" class="shopTabPanel" role="tabpanel" aria-hidden="true">
+              <div class="exchangePanel">
+                <div id="exchangeRateText" class="exchangeRateText">Курс: 1 💎 = 500 🪙</div>
+                <label class="formLabel" for="exchangeInput">Сколько 💎 обменять</label>
+                <input id="exchangeInput" class="textInput" type="number" min="1" step="1" inputmode="numeric" />
+                <div id="exchangeResult" class="exchangeResult">Получишь: 0 🪙</div>
+                <button id="btnExchangeSubmit" class="chipBtn btn--singleLine" disabled><span class="btnText">Обменять</span></button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -664,7 +684,9 @@
 
   <!-- cache-bust: audio manager + main.js v79 (cache refresh) -->
   <script src="audio/AudioManager.js?v=2"></script>
-  <script src="config/gemsShop.js?v=1"></script>
-  <script src="main.js?v=80"></script>
+  <script src="config/gemsShop.js?v=2"></script>
+  <script src="config/coinShop.js?v=1"></script>
+  <script src="config/exchange.js?v=1"></script>
+  <script src="main.js?v=81"></script>
 </body>
 </html>
