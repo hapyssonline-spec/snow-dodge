@@ -3917,10 +3917,22 @@ button:disabled{
   height:3px;
   width:0;
   border-radius:999px;
-  background:linear-gradient(90deg, #74d7ff 0%, #b58cff 100%);
+  background:linear-gradient(90deg, #5fb0ff 0%, #2f7fe6 100%);
   will-change:transform, width;
 }
 
+
+#gemsShopOverlay[data-active-tab="gems"] .shopTabIndicator{
+  background:linear-gradient(90deg, #5fb0ff 0%, #2f7fe6 100%);
+}
+
+#gemsShopOverlay[data-active-tab="coins"] .shopTabIndicator{
+  background:linear-gradient(90deg, #ffd86e 0%, #e8ab2d 100%);
+}
+
+#gemsShopOverlay[data-active-tab="exchange"] .shopTabIndicator{
+  background:linear-gradient(90deg, #5fb0ff 0%, #ffd86e 100%);
+}
 .shopTabPanel{ display:none; opacity:0; transform:translateY(6px); }
 .shopTabPanel.is-active{ display:block; opacity:1; transform:translateY(0); transition:opacity .2s ease, transform .2s ease; }
 
@@ -4004,10 +4016,19 @@ button:disabled{
 }
 
 .gemsPackAmount{
+  display:inline-flex;
+  align-items:baseline;
+  gap:6px;
   font-weight:800;
   font-size:20px;
   color:#9df1ff;
   letter-spacing:.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.gemsPackAmount .currencyIcon{
+  --currency-icon-size: 20px;
+  vertical-align:-0.12em;
 }
 
 .shopPackBonusHint{
@@ -4127,8 +4148,10 @@ button:disabled{
   display:flex;
   flex-direction:column;
   gap:10px;
-  background:rgba(10, 20, 34, .65);
-  border:1px solid rgba(121, 212, 255, .26);
+  background:
+    linear-gradient(180deg, rgba(17, 34, 58, .86) 0%, rgba(18, 29, 47, .9) 100%),
+    linear-gradient(90deg, rgba(95, 176, 255, .22) 0%, rgba(255, 216, 110, .22) 100%);
+  border:1px solid rgba(173, 216, 255, .3);
   border-radius:16px;
   padding:14px;
 }
@@ -4142,26 +4165,18 @@ button:disabled{
   position:absolute;
   top:10px;
   right:10px;
-  padding:3px 9px;
+  padding:2px 8px;
   border-radius:999px;
-  font-size:11px;
+  font-size:10px;
   font-weight:900;
-  letter-spacing:.03em;
+  letter-spacing:.035em;
+  line-height:1.15;
   text-transform:uppercase;
+  border:1px solid rgba(255, 224, 148, .45);
+  color:#5f3e00;
+  background: linear-gradient(180deg, rgba(255, 231, 164, .95), rgba(238, 194, 99, .92));
   box-shadow:0 8px 14px rgba(0,0,0,.24);
   transition:filter .14s ease, box-shadow .14s ease;
-}
-
-.shopBestValueBadge--gems{
-  border:1px solid rgba(255, 224, 148, .42);
-  background: linear-gradient(180deg, rgba(255, 231, 164, .95), rgba(238, 194, 99, .92));
-  color:#5f3e00;
-}
-
-.shopBestValueBadge--coins{
-  border:1px solid rgba(174, 226, 255, .42);
-  background: linear-gradient(180deg, rgba(149, 223, 255, .95), rgba(78, 170, 232, .92));
-  color:#093253;
 }
 
 .gemsPackItem:hover .shopBestValueBadge{

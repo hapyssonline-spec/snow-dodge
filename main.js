@@ -791,6 +791,14 @@ if ("serviceWorker" in navigator) {
     }
   }
 
+  const formatNumber = (value) => {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return "0";
+    const normalized = Math.trunc(numericValue);
+    return normalized
+      .toLocaleString("ru-RU")
+      .replace(/[\u00A0\u202F]/g, " ");
+  };
   const formatKg = (value) => `${value.toFixed(2)} кг`;
   const formatChancePercent = (value) => {
     if (!Number.isFinite(value)) return "—";
@@ -813,7 +821,7 @@ if ("serviceWorker" in navigator) {
     if (Number.isFinite(grams) && grams > 0) return formatWeightFromGrams(grams);
     return formatKg(Number(item.weightKg) || 0);
   };
-  const formatCoins = (value) => `${value} монет`;
+  const formatCoins = (value) => `${formatNumber(value)} монет`;
 
   function isBookPurchased(bookId) {
     if (bookId === "common-sense") return hasCommonSenseBook;
@@ -2239,6 +2247,8 @@ if ("serviceWorker" in navigator) {
 
   function setActiveShopTab(tab, { emit = true } = {}) {
     const safeTab = ["gems", "coins", "exchange"].includes(tab) ? tab : "gems";
+    if (gemsShopOverlay) gemsShopOverlay.dataset.activeTab = safeTab;
+    if (shopTabIndicator) shopTabIndicator.dataset.tab = safeTab;
     shopTabButtons.forEach((button) => {
       const isActive = button.dataset.shopTab === safeTab;
       button.classList.toggle("is-active", isActive);
@@ -2258,6 +2268,13 @@ if ("serviceWorker" in navigator) {
       eventBus.emit(EVENTS.SHOP_OPEN, { tab: safeTab });
       logEvent("shop_open", { tab: safeTab });
     }
+  }
+
+  function createBestValueBadge() {
+    const badge = document.createElement("span");
+    badge.className = "shopBestValueBadge";
+    badge.textContent = "Лучшее предложение";
+    return badge;
   }
 
   function getSuggestedGemsPack(requiredGems = 0) {
@@ -2300,13 +2317,13 @@ if ("serviceWorker" in navigator) {
     title.textContent = pack.title;
     const amount = document.createElement("div");
     amount.className = "gemsPackAmount";
-    setTextWithCurrencyIcons(amount, `${pack.granted} 💎`);
+    setTextWithCurrencyIcons(amount, `${formatNumber(pack.granted)} 💎`);
     meta.append(title, amount);
 
     if (pack.bonusPct > 0) {
       const bonusHint = document.createElement("div");
       bonusHint.className = "shopPackBonusHint";
-      bonusHint.textContent = `(${pack.gems}→${pack.granted})`;
+      bonusHint.textContent = `(${formatNumber(pack.gems)}→${formatNumber(pack.granted)})`;
       meta.appendChild(bonusHint);
 
       const bonus = document.createElement("span");
@@ -2321,7 +2338,7 @@ if ("serviceWorker" in navigator) {
     buyBtn.dataset.baseLabel = `${pack.priceYan} yan`;
     buyBtn.addEventListener("click", async () => {
       if (buyBtn.dataset.loading === "1") return;
-      const confirmed = window.confirm(`Подтвердить покупку ${pack.granted} 💎 за ${pack.priceYan} Yan?
+      const confirmed = window.confirm(`Подтвердить покупку ${formatNumber(pack.granted)} 💎 за ${pack.priceYan} Yan?
 Со счета будет списано ${pack.priceYan} Yan.`);
       if (!confirmed) {
         logEvent("gem_purchase_cancel", { packId: pack.id, priceYan: pack.priceYan });
@@ -2336,9 +2353,9 @@ if ("serviceWorker" in navigator) {
           gemsService.add(result.grantedGems, `shop_${pack.id}`);
           logEvent("gem_purchase_result", { packId: pack.id, success: true, grantedGems: result.grantedGems });
           shopVfx.pulseCard(row);
-          shopVfx.flyCurrency({ sourceEl: row, targetEl: btnGemsHud, text: `+${Math.floor(result.grantedGems)} 💎` });
+          shopVfx.flyCurrency({ sourceEl: row, targetEl: btnGemsHud, text: `+${formatNumber(result.grantedGems)} 💎` });
           shopVfx.popHud(btnGemsHud);
-          showToast(`Покупка успешна: +${Math.floor(result.grantedGems)} 💎`);
+          showToast(`Покупка успешна: +${formatNumber(result.grantedGems)} 💎`);
         } else {
           logEvent("gem_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
           showToast("Покупка недоступна");
@@ -2363,13 +2380,13 @@ if ("serviceWorker" in navigator) {
     title.textContent = pack.title;
     const amount = document.createElement("div");
     amount.className = "gemsPackAmount";
-    setTextWithCurrencyIcons(amount, `${formatCoins(pack.grantedCoins)} 🪙`);
+    setTextWithCurrencyIcons(amount, `${formatNumber(pack.grantedCoins)} 🪙`);
     meta.append(title, amount);
 
     if (pack.bonusPct > 0) {
       const bonusHint = document.createElement("div");
       bonusHint.className = "shopPackBonusHint";
-      bonusHint.textContent = `(${formatCoins(pack.baseCoins)}→${formatCoins(pack.grantedCoins)})`;
+      bonusHint.textContent = `(${formatNumber(pack.baseCoins)}→${formatNumber(pack.grantedCoins)})`;
       meta.appendChild(bonusHint);
 
       const bonus = document.createElement("span");
@@ -2392,9 +2409,9 @@ if ("serviceWorker" in navigator) {
           coinsService.add(result.grantedCoins, `shop_${pack.id}`);
           logEvent("coin_purchase_result", { packId: pack.id, success: true, grantedCoins: result.grantedCoins });
           shopVfx.pulseCard(row);
-          shopVfx.flyCurrency({ sourceEl: row, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatCoins(result.grantedCoins)} 🪙` });
+          shopVfx.flyCurrency({ sourceEl: row, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatNumber(result.grantedCoins)} 🪙` });
           shopVfx.popHud(coinsEl?.closest('.stat'));
-          showToast(`Покупка успешна: +${formatCoins(result.grantedCoins)} 🪙`);
+          showToast(`Покупка успешна: +${formatNumber(result.grantedCoins)} 🪙`);
         } else {
           logEvent("coin_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
           showToast("Покупка недоступна");
@@ -2432,11 +2449,7 @@ if ("serviceWorker" in navigator) {
         row.classList.add("is-recommended");
       }
       if (isRecommended) {
-        const badge = document.createElement("span");
-        badge.className = "shopBestValueBadge";
-        badge.textContent = "Лучшее предложение";
-        badge.classList.add("shopBestValueBadge--gems");
-        row.appendChild(badge);
+        row.appendChild(createBestValueBadge());
       }
       if (isSuggested) row.dataset.recommended = "1";
       gemsPackList.appendChild(row);
@@ -2455,11 +2468,7 @@ if ("serviceWorker" in navigator) {
       const row = createCoinPackItem(pack);
       if (pack.id === recommendedCoinsPackId) {
         row.classList.add("is-recommended");
-        const badge = document.createElement("span");
-        badge.className = "shopBestValueBadge";
-        badge.textContent = "Лучшее предложение";
-        badge.classList.add("shopBestValueBadge--coins");
-        row.appendChild(badge);
+        row.appendChild(createBestValueBadge());
       }
       coinsPackList.appendChild(row);
     });
