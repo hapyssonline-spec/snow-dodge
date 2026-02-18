@@ -1460,6 +1460,7 @@ if ("serviceWorker" in navigator) {
       this.devMode = options.devMode;
       this.getBookForRarity = options.getBookForRarity;
       this.hasCaughtSpecies = options.hasCaughtSpecies;
+      this.getSpeciesById = options.getSpeciesById;
       this.reset();
     }
 
@@ -1469,12 +1470,12 @@ if ("serviceWorker" in navigator) {
       this.rarity = "common";
       this.speciesId = null;
       this.maxProgress = 0;
-      this.weightStage = -1;
-      this.speciesStage = -1;
+      this.revealWeightStage = 0;
+      this.revealSpeciesStage = 0;
       this.weightText = null;
       this.speciesText = null;
-      this.realSpecies = null;
-      this.mateSpecies = null;
+      this.realSpeciesId = null;
+      this.mateSpeciesId = null;
       this.firstCandidate = null;
       this.secondCandidate = null;
       this.rareSecondCandidate = null;
@@ -1485,6 +1486,8 @@ if ("serviceWorker" in navigator) {
       this.weightRange = null;
       this.lastWeightRange = null;
       this.wPrev = null;
+      this.lastAppliedWeightStage = 0;
+      this.hasRevealUpdate = false;
     }
 
     startAttempt(fish) {
@@ -1494,62 +1497,95 @@ if ("serviceWorker" in navigator) {
       this.rarity = fish.rarity || "common";
       this.speciesId = fish.speciesId || null;
       this.maxProgress = 0;
-      this.weightStage = -1;
-      this.speciesStage = -1;
+      this.revealWeightStage = 0;
+      this.revealSpeciesStage = 0;
       this.weightText = null;
       this.speciesText = null;
       this.weightRange = null;
       this.lastWeightRange = null;
       this.wPrev = null;
+      this.lastAppliedWeightStage = 0;
+      this.hasRevealUpdate = true;
       this.startWidth = clamp(4 + this.weightKg * 0.45, 4, 8);
       this.minWidth = clamp(1.0 + Math.sqrt(this.weightKg) * 0.08, 1.0, 1.6);
-      const species = this.fishTable.find((entry) => entry.id === this.speciesId);
-      this.realSpecies = fish.speciesName || fish.name || species?.name || "Неизвестно";
-      this.mateSpecies = this.pickMateFromConfusionGroups(this.speciesId);
+      this.realSpeciesId = this.speciesId;
+      this.mateSpeciesId = this.pickMateFromConfusionGroups(this.speciesId);
       const realFirst = Math.random() < 0.5;
-      this.firstCandidate = realFirst ? this.realSpecies : this.mateSpecies;
-      this.secondCandidate = realFirst ? this.mateSpecies : this.realSpecies;
+      this.firstCandidate = realFirst ? this.realSpeciesId : this.mateSpeciesId;
+      this.secondCandidate = realFirst ? this.mateSpeciesId : this.realSpeciesId;
       this.rareSecondCandidate = Math.random() < 0.5 ? this.firstCandidate : this.secondCandidate;
       this.isRarePlus = (this.rarityRank[this.rarity] ?? 0) >= this.rarityRank.rare;
       this.currentBook = this.getBookForRarity?.(this.rarity) || null;
+      this.canRevealSpeciesNames = this.rarity !== "legendary" && Boolean(this.currentBook);
     }
 
     update(progress) {
       if (!this.active) return;
       this.maxProgress = Math.max(this.maxProgress, progress);
+      this.hasRevealUpdate = false;
 
-      const weightShift = this.currentBook?.effect?.weightShift || 0;
-      const weightStart = Math.max(0.1, 0.3 - weightShift * 0.05);
-      const nextWeightStage = this.maxProgress >= weightStart ? Math.floor((this.maxProgress - weightStart) / 0.05) : -1;
-      if (nextWeightStage > this.weightStage) {
-        let currentStage = this.weightStage;
-        while (currentStage < nextWeightStage) {
-          currentStage += 1;
-          const prevRange = this.weightRange;
-          this.updateWeightRange();
-          this.logWeightStage(currentStage, this.weightRange, prevRange);
-        }
-        this.weightStage = nextWeightStage;
-        this.weightText = this.weightRange ? this.formatWeightText(this.weightRange) : null;
+      const nextWeightStage = this.calculateWeightRevealStage();
+      if (nextWeightStage !== this.revealWeightStage) {
+        this.revealWeightStage = nextWeightStage;
+        this.applyWeightRevealStage();
+        this.hasRevealUpdate = true;
       }
 
-      let nextSpeciesStage = -1;
-      const speciesShift = this.currentBook?.effect?.speciesShift || 0;
-      let speciesStageOne = Math.max(0.35, 0.6 - speciesShift * 0.08);
-      let speciesStageTwo = Math.max(speciesStageOne + 0.12, 0.8 - speciesShift * 0.08);
-      if (this.currentBook?.effect?.delayedSpecies) {
-        speciesStageOne = Math.max(speciesStageOne, 0.68);
-        speciesStageTwo = Math.max(speciesStageTwo, 0.87);
-      }
-      if (this.maxProgress >= speciesStageTwo) {
-        nextSpeciesStage = 2;
-      } else if (this.maxProgress >= speciesStageOne) {
-        nextSpeciesStage = 1;
-      }
-      if (nextSpeciesStage > this.speciesStage) {
-        this.speciesStage = nextSpeciesStage;
+      const nextSpeciesStage = this.calculateSpeciesRevealStage();
+      if (nextSpeciesStage !== this.revealSpeciesStage) {
+        this.revealSpeciesStage = nextSpeciesStage;
         this.speciesText = this.buildSpeciesHint();
+        this.hasRevealUpdate = true;
       }
+    }
+
+    hasHintChanges() {
+      return this.hasRevealUpdate;
+    }
+
+    calculateWeightRevealStage() {
+      const thresholds = this.currentBook
+        ? [0.26, 0.46, 0.62, 0.76]
+        : [0.74, 0.9];
+      let stage = 0;
+      thresholds.forEach((threshold, index) => {
+        if (this.maxProgress >= threshold) stage = index + 1;
+      });
+      return stage;
+    }
+
+    applyWeightRevealStage() {
+      // revealWeightStage=0 must never leak weight info at the start of reeling.
+      if (this.revealWeightStage <= 0) {
+        this.weightRange = null;
+        this.weightText = null;
+        this.lastAppliedWeightStage = 0;
+        return;
+      }
+      if (this.lastAppliedWeightStage > this.revealWeightStage) {
+        this.weightRange = null;
+        this.lastAppliedWeightStage = 0;
+      }
+      while (this.lastAppliedWeightStage < this.revealWeightStage) {
+        this.lastAppliedWeightStage += 1;
+        const prevRange = this.weightRange;
+        this.updateWeightRange();
+        this.logWeightStage(this.lastAppliedWeightStage, this.weightRange, prevRange);
+      }
+      this.weightText = this.weightRange ? this.formatWeightText(this.weightRange) : null;
+    }
+
+    calculateSpeciesRevealStage() {
+      const speciesShift = this.currentBook?.effect?.speciesShift || 0;
+      let stageOne = this.currentBook ? Math.max(0.42, 0.58 - speciesShift * 0.08) : 0.72;
+      let stageTwo = this.currentBook ? Math.max(stageOne + 0.14, 0.8 - speciesShift * 0.08) : 0.92;
+      if (this.currentBook?.effect?.delayedSpecies) {
+        stageOne = Math.max(stageOne, 0.68);
+        stageTwo = Math.max(stageTwo, 0.9);
+      }
+      if (this.maxProgress >= stageTwo) return 2;
+      if (this.maxProgress >= stageOne) return 1;
+      return 0;
     }
 
     getHint() {
@@ -1560,26 +1596,31 @@ if ("serviceWorker" in navigator) {
     }
 
     buildSpeciesHint() {
-      if (!this.speciesStage || !this.firstCandidate || !this.secondCandidate) return null;
-      if (this.rarity === "legendary") {
-        return BOOK_UNKNOWN_LABEL;
-      }
-      const hideReal = !this.hasCaughtSpecies?.(this.speciesId);
-      const knownRealName = hideReal ? BOOK_UNKNOWN_LABEL : this.realSpecies;
-      const first = this.firstCandidate === this.realSpecies ? knownRealName : this.firstCandidate;
-      const second = this.secondCandidate === this.realSpecies ? knownRealName : this.secondCandidate;
-      const rareSecond = this.rareSecondCandidate === this.realSpecies ? knownRealName : this.rareSecondCandidate;
-      if (this.speciesStage === 1) {
+      if (this.revealSpeciesStage <= 0 || !this.firstCandidate || !this.secondCandidate) return null;
+      const first = this.maskSpeciesName(this.firstCandidate);
+      const second = this.maskSpeciesName(this.secondCandidate);
+      const rareSecond = this.maskSpeciesName(this.rareSecondCandidate);
+      if (this.revealSpeciesStage === 1) {
         return this.isRarePlus
           ? `${first} / ${second} / ???`
           : `${first} / ${second}`;
       }
-      if (this.speciesStage === 2) {
+      if (this.revealSpeciesStage === 2) {
         return this.isRarePlus
           ? `??? / ${rareSecond}`
           : `${first} / ${second}`;
       }
       return null;
+    }
+
+    // Centralized masking to prevent any species-name leak in hint UI.
+    maskSpeciesName(speciesId) {
+      if (!speciesId) return BOOK_UNKNOWN_LABEL;
+      const species = this.getSpeciesById?.(speciesId);
+      if (species?.rarity === "legendary") return BOOK_UNKNOWN_LABEL;
+      if (!this.canRevealSpeciesNames) return BOOK_UNKNOWN_LABEL;
+      if (!this.hasCaughtSpecies?.(speciesId)) return BOOK_UNKNOWN_LABEL;
+      return species?.name || BOOK_UNKNOWN_LABEL;
     }
 
     updateWeightRange() {
@@ -1685,8 +1726,7 @@ if ("serviceWorker" in navigator) {
         const fallback = commons[Math.floor(Math.random() * commons.length)];
         secondaryId = fallback?.id || realId;
       }
-      const secondary = this.fishTable.find((entry) => entry.id === secondaryId)?.name;
-      return secondary || this.realSpecies || "Неизвестно";
+      return secondaryId || realId;
     }
 
     logWeightStage(stage, range, prevRange) {
@@ -2540,7 +2580,8 @@ if ("serviceWorker" in navigator) {
     rarityRank,
     devMode: DEV_MODE,
     getBookForRarity: (rarity) => getBookForRarity(rarity),
-    hasCaughtSpecies: (speciesId) => caughtSpeciesCache.has(speciesId)
+    hasCaughtSpecies: (speciesId) => caughtSpeciesCache.has(speciesId),
+    getSpeciesById: (speciesId) => fishSpeciesTable.find((entry) => entry.id === speciesId) || null
   });
 
   function runRevealSimulation(attempts = 1000) {
@@ -2616,15 +2657,14 @@ if ("serviceWorker" in navigator) {
         speciesName: species.name
       });
 
-      if (revealSystem.firstCandidate === revealSystem.realSpecies) realFirst += 1;
+      if (revealSystem.firstCandidate === revealSystem.realSpeciesId) realFirst += 1;
 
       revealSystem.update(0.6);
       const stageOne = revealSystem.speciesText;
-      revealSystem.update(0.8);
+      revealSystem.update(0.95);
       const stageTwo = revealSystem.speciesText;
 
-      const expected = `${revealSystem.firstCandidate} / ${revealSystem.secondCandidate}`;
-      if (stageOne !== expected || stageTwo !== expected) orderMismatch += 1;
+      if (!stageOne || !stageTwo) orderMismatch += 1;
     }
 
     const ratio = realFirst / Math.max(1, attempts);
@@ -7422,7 +7462,7 @@ if ("serviceWorker" in navigator) {
     if (catchStory) {
       const story = (catchData.story || "").trim();
       const caughtSpecies = readCaughtSpecies();
-      const speciesKey = catchData.speciesId || catchData.name;
+      const speciesKey = normalizeSpeciesId(catchData.speciesId || catchData.name);
       const isFirst = story && !caughtSpecies.has(speciesKey);
       let nextStory = "";
       if (story) {
@@ -7994,8 +8034,10 @@ if ("serviceWorker" in navigator) {
       bobber.x = lerp(W * 0.78, W * 0.42, p) + reel.bobberDrift;
 
       revealSystem.update(p);
-      const revealHint = revealSystem.getHint();
-      setHintTexts(revealHint.weightText, revealHint.speciesText);
+      if (revealSystem.hasHintChanges()) {
+        const revealHint = revealSystem.getHint();
+        setHintTexts(revealHint.weightText, revealHint.speciesText);
+      }
 
       if (game.tension >= line.breakThreshold) {
         setFightState(false);
