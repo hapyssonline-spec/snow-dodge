@@ -3906,6 +3906,7 @@ if ("serviceWorker" in navigator) {
 
   function maybeShowCityUnlockGuide() {
     if (!isCityUnlocked() || cityUnlockedToastShown || onboarding.cityUnlockHintShown || tutorialManager?.active) return;
+    if (game?.catch || pendingCatch || pendingFinding) return;
     if (currentScene !== SCENE_LAKE || catchOverlayVisible || findingOverlayVisible) return;
     cityUnlockedToastShown = true;
     setGuideStep("city-unlock");
