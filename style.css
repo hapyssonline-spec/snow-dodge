@@ -47,6 +47,14 @@ html,body{
   user-select:none;
 }
 
+@media (max-width: 900px) and (pointer: coarse){
+  html,
+  body{
+    -webkit-text-size-adjust: 150%;
+    text-size-adjust: 150%;
+  }
+}
+
 body.modalOpen{
   position:fixed;
   width:100%;
