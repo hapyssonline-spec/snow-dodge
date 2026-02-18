@@ -1091,7 +1091,7 @@ if ("serviceWorker" in navigator) {
       if (this.step === "hero") {
         this.step = "cast";
         this.highlightWaterRight();
-        this.showCard("Заброс", "Нажми на воду справа — произойдёт заброс удочки. Нажми сейчас.", "Ожидаю тап", false, { preferredSide: "bottom" });
+        this.showCard("Заброс", "Нажми на воду справа — произойдёт заброс удочки. Нажми сейчас.", "Ожидаю тап", false, { preferredSide: "top" });
         return;
       }
       if (this.step === "bite-info") {
@@ -1173,7 +1173,7 @@ if ("serviceWorker" in navigator) {
         game.progress = clamp(game.progress + game.need * 0.15, 0, game.need);
         this.step = "fight-demo-reel-progress";
         this.highlightReelProgress();
-        this.showCard("Выматывание выросло", "Видишь, выматывание поднялось на 15%.", "Далее");
+        this.showCard("Выматывание выросло", "Видишь, выматывание поднялось на 15%.", "Далее", true, { preferredSide: "bottom" });
       }
     }
 
@@ -1209,7 +1209,7 @@ if ("serviceWorker" in navigator) {
         this.step = "fight-progress";
         this.highlightReelProgress();
         this.showOverlay();
-        this.showCard("Борьба с рыбой", "Рыба будет поймана, когда полностью заполнится шкала выматывания.", "Понятно");
+        this.showCard("Борьба с рыбой", "Рыба будет поймана, когда полностью заполнится шкала выматывания.", "Понятно", true, { preferredSide: "bottom" });
       }, 320);
     }
 
