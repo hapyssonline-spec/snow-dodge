@@ -836,18 +836,34 @@ if ("serviceWorker" in navigator) {
   const CITY_UNLOCK_LEVEL = 2;
   const FINDING_LOCK_CASTS = 5;
 
-  function positionTutorialCard({ spotlightRect = null } = {}) {
+  function positionTutorialCard({ spotlightRect = null, preferredSide = "auto" } = {}) {
     if (!tutorialCardWrap) return;
 
     const viewportH = window.innerHeight || 0;
     const cardRect = tutorialCardWrap.getBoundingClientRect();
     const cardHeight = cardRect.height || 220;
-    const safeTop = 76;
+    const safeTop = 92;
     const safeBottomPad = 24;
     const minTop = safeTop;
     const maxTop = Math.max(minTop, viewportH - safeBottomPad - cardHeight);
 
+    const resolveSide = ({ availableAbove = 0, availableBelow = 0 } = {}) => {
+      if (preferredSide === "top") return availableAbove >= cardHeight ? "above" : "below";
+      if (preferredSide === "bottom") return availableBelow >= cardHeight ? "below" : "above";
+      return availableBelow >= availableAbove ? "below" : "above";
+    };
+
     if (!spotlightRect || !spotlightRect.width || !spotlightRect.height) {
+      if (preferredSide === "top") {
+        tutorialCardWrap.style.setProperty("--tutorial-card-top", `${minTop}px`);
+        tutorialCardWrap.dataset.side = "above";
+        return;
+      }
+      if (preferredSide === "bottom") {
+        tutorialCardWrap.style.setProperty("--tutorial-card-top", `${maxTop}px`);
+        tutorialCardWrap.dataset.side = "below";
+        return;
+      }
       const centeredTop = clamp(Math.round((viewportH - cardHeight) * 0.5), minTop, maxTop);
       tutorialCardWrap.style.setProperty("--tutorial-card-top", `${centeredTop}px`);
       tutorialCardWrap.dataset.side = "center";
@@ -857,11 +873,9 @@ if ("serviceWorker" in navigator) {
     const gap = 18;
     const rectTop = spotlightRect.top;
     const rectBottom = spotlightRect.top + spotlightRect.height;
-    const rectCenterY = rectTop + spotlightRect.height * 0.5;
-    const isSpotlightInUpperHalf = rectCenterY < viewportH * 0.5;
-
-    // Rule: spotlight in upper half => card below; spotlight in lower half => card above.
-    const side = isSpotlightInUpperHalf ? "below" : "above";
+    const availableAbove = Math.max(0, rectTop - minTop - gap);
+    const availableBelow = Math.max(0, maxTop - rectBottom - gap);
+    const side = resolveSide({ availableAbove, availableBelow });
     const aboveTop = clamp(Math.round(rectTop - cardHeight - gap), minTop, maxTop);
     const belowTop = clamp(Math.round(rectBottom + gap), minTop, maxTop);
     const targetTop = side === "above" ? aboveTop : belowTop;
@@ -940,7 +954,7 @@ if ("serviceWorker" in navigator) {
       setTimeout(() => tutorialOverlay.classList.add("hidden"), 220);
     }
 
-    showCard(title, text, buttonText = "Далее", showButton = true, { spotlightRect = null } = {}) {
+    showCard(title, text, buttonText = "Далее", showButton = true, { spotlightRect = null, preferredSide = "auto" } = {}) {
       if (tutorialTitle) tutorialTitle.textContent = title;
       if (tutorialText) tutorialText.textContent = text;
       if (tutorialNextBtn) {
@@ -948,7 +962,7 @@ if ("serviceWorker" in navigator) {
         if (showButton) setButtonText(tutorialNextBtn, buttonText);
       }
       const nextSpotlight = spotlightRect || tutorialSpotlight?.getBoundingClientRect?.() || null;
-      requestAnimationFrame(() => positionTutorialCard({ spotlightRect: nextSpotlight }));
+      requestAnimationFrame(() => positionTutorialCard({ spotlightRect: nextSpotlight, preferredSide }));
     }
 
     setSpotlightRect(rect) {
