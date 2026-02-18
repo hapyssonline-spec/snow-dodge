@@ -2655,6 +2655,13 @@ if ("serviceWorker" in navigator) {
     const rollTable = fishSpeciesTable.map((fish) => {
       const rodAllowed = fish.minRodTier <= player.rodTier;
       if (!rodAllowed) return { fish, chance: 0 };
+
+      // Легендарки всегда имеют фиксированный шанс: без влияния наживки,
+      // бонусов снастей и временных редкостных усилений.
+      if (fish.rarity === "legendary") {
+        return { fish, chance: fish.chance };
+      }
+
       let mult = 1.0;
       if (bait) {
         mult = bait.boost.includes(fish.id) ? 2.0 : 0.8;
