@@ -7324,6 +7324,19 @@ if ("serviceWorker" in navigator) {
       enter(params = {}) {
         super.enter(params);
         const sceneId = params.sceneId || currentScene || SCENE_BUILDING_FISHSHOP;
+        this.on(btnShopClose, "click", handleShopClose);
+        this.on(btnTrophyQuests, "click", () => {
+          if (isFighting) return;
+          setTrophyView("quests");
+        });
+        this.on(btnTrophyRecords, "click", () => {
+          if (isFighting) return;
+          openLeaderboard();
+        });
+        this.on(btnTrophyBack, "click", () => {
+          if (isFighting) return;
+          setTrophyView("hub");
+        });
         transitionTo(sceneId);
         renderShop(sceneId);
       }
