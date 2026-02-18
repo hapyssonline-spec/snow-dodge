@@ -150,6 +150,19 @@ if ("serviceWorker" in navigator) {
     setTextWithCurrencyIcons(textNode, text);
   };
 
+
+  function setPriceButtonLoading(button, isLoading) {
+    if (!button) return;
+    const baseLabel = button.dataset.baseLabel || "";
+    button.dataset.loading = isLoading ? "1" : "0";
+    button.classList.toggle("is-loading", !!isLoading);
+    button.disabled = !!isLoading;
+    if (baseLabel) {
+      const labelNode = button.querySelector(".btnText");
+      if (labelNode) labelNode.textContent = baseLabel;
+    }
+  }
+
   const CURRENCY_ICON_CLASS_MAP = {
     "💎": "currencyIcon currencyIcon--gem",
     "🪙": "currencyIcon currencyIcon--coin"
@@ -2261,7 +2274,7 @@ if ("serviceWorker" in navigator) {
     if (pack.bonusPct > 0) {
       const bonusHint = document.createElement("div");
       bonusHint.className = "shopPackBonusHint";
-      setTextWithCurrencyIcons(bonusHint, `${pack.gems} 💎 → ${pack.granted} 💎`);
+      bonusHint.textContent = `(${pack.gems}→${pack.granted})`;
       meta.appendChild(bonusHint);
 
       const bonus = document.createElement("span");
@@ -2273,25 +2286,33 @@ if ("serviceWorker" in navigator) {
     const buyBtn = document.createElement("button");
     buyBtn.className = "chipBtn gemsBuyBtn btn--singleLine";
     buyBtn.innerHTML = `<span class="btnText">${pack.priceYan} yan</span>`;
+    buyBtn.dataset.baseLabel = `${pack.priceYan} yan`;
     buyBtn.addEventListener("click", async () => {
-      const confirmed = window.confirm(`Подтвердить покупку ${pack.granted} 💎 за ${pack.priceYan} Yan?\nСо счета будет списано ${pack.priceYan} Yan.`);
+      if (buyBtn.dataset.loading === "1") return;
+      const confirmed = window.confirm(`Подтвердить покупку ${pack.granted} 💎 за ${pack.priceYan} Yan?
+Со счета будет списано ${pack.priceYan} Yan.`);
       if (!confirmed) {
         logEvent("gem_purchase_cancel", { packId: pack.id, priceYan: pack.priceYan });
         return;
       }
-      eventBus.emit(EVENTS.SHOP_PURCHASE_CLICK, { tab: "gems", packId: pack.id });
-      logEvent("gem_purchase_click", { packId: pack.id, priceYan: pack.priceYan });
-      const result = await purchaseProvider.purchasePack(pack.id);
-      if (result?.success && Number.isFinite(result.grantedGems)) {
-        gemsService.add(result.grantedGems, `shop_${pack.id}`);
-        logEvent("gem_purchase_result", { packId: pack.id, success: true, grantedGems: result.grantedGems });
-        shopVfx.pulseCard(row);
-        shopVfx.flyCurrency({ sourceEl: row, targetEl: btnGemsHud, text: `+${Math.floor(result.grantedGems)} 💎` });
-        shopVfx.popHud(btnGemsHud);
-        showToast(`Покупка успешна: +${Math.floor(result.grantedGems)} 💎`);
-      } else {
-        logEvent("gem_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
-        showToast("Покупка недоступна");
+      setPriceButtonLoading(buyBtn, true);
+      try {
+        eventBus.emit(EVENTS.SHOP_PURCHASE_CLICK, { tab: "gems", packId: pack.id });
+        logEvent("gem_purchase_click", { packId: pack.id, priceYan: pack.priceYan });
+        const result = await purchaseProvider.purchasePack(pack.id);
+        if (result?.success && Number.isFinite(result.grantedGems)) {
+          gemsService.add(result.grantedGems, `shop_${pack.id}`);
+          logEvent("gem_purchase_result", { packId: pack.id, success: true, grantedGems: result.grantedGems });
+          shopVfx.pulseCard(row);
+          shopVfx.flyCurrency({ sourceEl: row, targetEl: btnGemsHud, text: `+${Math.floor(result.grantedGems)} 💎` });
+          shopVfx.popHud(btnGemsHud);
+          showToast(`Покупка успешна: +${Math.floor(result.grantedGems)} 💎`);
+        } else {
+          logEvent("gem_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
+          showToast("Покупка недоступна");
+        }
+      } finally {
+        setPriceButtonLoading(buyBtn, false);
       }
     });
 
@@ -2316,7 +2337,7 @@ if ("serviceWorker" in navigator) {
     if (pack.bonusPct > 0) {
       const bonusHint = document.createElement("div");
       bonusHint.className = "shopPackBonusHint";
-      setTextWithCurrencyIcons(bonusHint, `${formatCoins(pack.baseCoins)} 🪙 → ${formatCoins(pack.grantedCoins)} 🪙`);
+      bonusHint.textContent = `(${formatCoins(pack.baseCoins)}→${formatCoins(pack.grantedCoins)})`;
       meta.appendChild(bonusHint);
 
       const bonus = document.createElement("span");
@@ -2328,24 +2349,43 @@ if ("serviceWorker" in navigator) {
     const buyBtn = document.createElement("button");
     buyBtn.className = "chipBtn gemsBuyBtn btn--singleLine";
     buyBtn.innerHTML = `<span class="btnText">${pack.priceYan} yan</span>`;
+    buyBtn.dataset.baseLabel = `${pack.priceYan} yan`;
     buyBtn.addEventListener("click", async () => {
-      logEvent("coin_purchase_click", { packId: pack.id, priceYan: pack.priceYan });
-      const result = await coinPurchaseProvider.purchasePack(pack.id);
-      if (result?.success && Number.isFinite(result.grantedCoins)) {
-        coinsService.add(result.grantedCoins, `shop_${pack.id}`);
-        logEvent("coin_purchase_result", { packId: pack.id, success: true, grantedCoins: result.grantedCoins });
-        shopVfx.pulseCard(row);
-        shopVfx.flyCurrency({ sourceEl: row, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatCoins(result.grantedCoins)} 🪙` });
-        shopVfx.popHud(coinsEl?.closest('.stat'));
-        showToast(`Покупка успешна: +${formatCoins(result.grantedCoins)} 🪙`);
-      } else {
-        logEvent("coin_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
-        showToast("Покупка недоступна");
+      if (buyBtn.dataset.loading === "1") return;
+      setPriceButtonLoading(buyBtn, true);
+      try {
+        logEvent("coin_purchase_click", { packId: pack.id, priceYan: pack.priceYan });
+        const result = await coinPurchaseProvider.purchasePack(pack.id);
+        if (result?.success && Number.isFinite(result.grantedCoins)) {
+          coinsService.add(result.grantedCoins, `shop_${pack.id}`);
+          logEvent("coin_purchase_result", { packId: pack.id, success: true, grantedCoins: result.grantedCoins });
+          shopVfx.pulseCard(row);
+          shopVfx.flyCurrency({ sourceEl: row, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatCoins(result.grantedCoins)} 🪙` });
+          shopVfx.popHud(coinsEl?.closest('.stat'));
+          showToast(`Покупка успешна: +${formatCoins(result.grantedCoins)} 🪙`);
+        } else {
+          logEvent("coin_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
+          showToast("Покупка недоступна");
+        }
+      } finally {
+        setPriceButtonLoading(buyBtn, false);
       }
     });
 
     row.append(meta, buyBtn);
     return row;
+  }
+
+  function updatePackListScrollAffordance(listEl) {
+    if (!listEl) return;
+    const atEnd = (listEl.scrollTop + listEl.clientHeight) >= (listEl.scrollHeight - 2);
+    listEl.classList.toggle("is-at-end", atEnd);
+  }
+
+  function attachPackListScrollAffordance(listEl) {
+    if (!listEl || listEl.dataset.scrollAffordanceBound === "1") return;
+    listEl.dataset.scrollAffordanceBound = "1";
+    listEl.addEventListener("scroll", () => updatePackListScrollAffordance(listEl), { passive: true });
   }
 
   function renderGemsShop() {
@@ -2368,9 +2408,11 @@ if ("serviceWorker" in navigator) {
       if (isSuggested) row.dataset.recommended = "1";
       gemsPackList.appendChild(row);
     });
+    attachPackListScrollAffordance(gemsPackList);
     const suggestedRow = gemsPackList.querySelector('[data-recommended="1"]')
       || gemsPackList.querySelector('.gemsPackItem.is-recommended');
     suggestedRow?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    requestAnimationFrame(() => updatePackListScrollAffordance(gemsPackList));
   }
 
   function renderCoinShop() {
@@ -2387,6 +2429,8 @@ if ("serviceWorker" in navigator) {
       }
       coinsPackList.appendChild(row);
     });
+    attachPackListScrollAffordance(coinsPackList);
+    requestAnimationFrame(() => updatePackListScrollAffordance(coinsPackList));
   }
 
   function updateExchangeUi() {

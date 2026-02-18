@@ -765,9 +765,9 @@ img, a{
   filter: drop-shadow(0 2px 2px rgba(10,18,28,0.4));
 }
 .fightHudRow{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:10px;
   font-weight:700;
 }
@@ -780,9 +780,9 @@ img, a{
   position:relative;
 }
 .bottomRow{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
   min-height:18px;
 }
@@ -1048,9 +1048,9 @@ img, a{
 
 
 .profileHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -1082,9 +1082,9 @@ img, a{
 }
 
 .modalHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
   flex:0 0 auto;
 }
@@ -1145,9 +1145,9 @@ img, a{
 }
 
 .soundSettingRow{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
   font-size:18.2px;
 }
@@ -1213,9 +1213,9 @@ img, a{
 }
 
 .renameHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -1258,9 +1258,9 @@ img, a{
 }
 
 .statRow{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:10px;
   font-size:16.9px;
   color:var(--muted);
@@ -1276,9 +1276,9 @@ img, a{
   border:1px solid rgba(166,185,218,.18);
   padding:12px;
   background: rgba(13,22,34,.6);
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -1485,9 +1485,9 @@ img, a{
 }
 
 .leaderboardHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -1596,9 +1596,9 @@ img, a{
 }
 
 .trophyQuestHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:10px;
 }
 
@@ -1611,9 +1611,9 @@ img, a{
 }
 
 .leaderboardRow{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:8px;
   padding:8px 10px;
   border-radius:10px;
@@ -1907,9 +1907,9 @@ img, a{
 }
 
 .trashHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -2170,9 +2170,9 @@ img, a{
 }
 
 .fishJournalHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -2262,9 +2262,9 @@ img, a{
 }
 
 .fishJournalDetailHead{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -2391,9 +2391,9 @@ img, a{
 }
 
 .catchHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:10px;
 }
 
@@ -2404,9 +2404,9 @@ img, a{
 }
 
 .findingHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:10px;
 }
 
@@ -2524,9 +2524,9 @@ img, a{
 }
 
 .catchPriceRow{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   font-size:23.4px;
   gap:8px;
 }
@@ -2711,9 +2711,9 @@ img, a{
 }
 
 .shopHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -2753,9 +2753,9 @@ img, a{
 }
 
 .shopSectionHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -3014,9 +3014,9 @@ img, a{
 }
 
 .shopItemHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:8px;
 }
 
@@ -3119,9 +3119,9 @@ img, a{
 }
 
 .invHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
 }
 
@@ -3132,9 +3132,9 @@ img, a{
 }
 
 .invControls{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:10px;
   font-size:15.6px;
   color:var(--muted);
@@ -3179,9 +3179,9 @@ img, a{
 }
 
 .invItemHeader{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:10px;
 }
 
@@ -3932,7 +3932,7 @@ button:disabled{
   max-height:60dvh;
   overflow:auto;
   padding-right:4px;
-  padding-bottom:16px;
+  padding-bottom:24px;
   scrollbar-width:thin;
   scrollbar-color: rgba(138, 208, 238, .5) rgba(7, 16, 29, .5);
 }
@@ -3957,10 +3957,16 @@ button:disabled{
   left:0;
   right:0;
   bottom:0;
-  height:18px;
-  margin-top:-18px;
+  height:20px;
+  margin-top:-20px;
   background:linear-gradient(180deg, rgba(17, 28, 44, 0), rgba(17, 28, 44, .92));
   pointer-events:none;
+  opacity:1;
+  transition:opacity .16s ease;
+}
+
+.gemsPackList.is-at-end::after{
+  opacity:0;
 }
 
 .gemsPackItem{
@@ -3969,9 +3975,9 @@ button:disabled{
   border:1px solid rgba(121, 212, 255, .24);
   border-radius:16px;
   padding:14px;
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
   align-items:center;
-  justify-content:space-between;
   gap:12px;
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
@@ -4005,9 +4011,10 @@ button:disabled{
 }
 
 .shopPackBonusHint{
-  font-size:13px;
-  color:#b8d3e7;
+  font-size:14px;
+  color:#c6dced;
   font-weight:700;
+  line-height:1.2;
 }
 
 .gemsPackBonus{
@@ -4023,8 +4030,15 @@ button:disabled{
 }
 
 .gemsBuyBtn{
-  min-width:126px;
-  border-color: rgba(189, 234, 255, .42);
+  position:relative;
+  --price-btn-width: var(--shop-price-btn-width, 132px);
+  width:var(--price-btn-width);
+  min-width:var(--price-btn-width);
+  height:44px;
+  min-height:44px;
+  padding:0 12px;
+  border-radius:12px;
+  border:1px solid rgba(189, 234, 255, .42);
   background:
     radial-gradient(120% 80% at 50% -35%, rgba(255,255,255,.24), rgba(255,255,255,0) 52%),
     linear-gradient(180deg, rgba(78, 175, 255, .95), rgba(48, 117, 214, .95));
@@ -4034,10 +4048,18 @@ button:disabled{
   transition: transform .14s ease, box-shadow .14s ease, filter .14s ease;
 }
 
+.gemsBuyBtn .btnText{
+  width:100%;
+  text-align:center;
+  font-size:16px;
+  font-weight:900;
+  letter-spacing:.01em;
+}
+
 .gemsBuyBtn:hover:not(:disabled){
   transform:translateY(-1.5px);
-  filter:brightness(1.04);
-  box-shadow: 0 14px 26px rgba(20, 65, 133, .52), inset 0 1px 0 rgba(255,255,255,.38);
+  filter:brightness(1.06);
+  box-shadow: 0 14px 26px rgba(20, 65, 133, .52), inset 0 1px 0 rgba(255,255,255,.4);
 }
 
 .gemsBuyBtn:active:not(:disabled){
@@ -4052,6 +4074,26 @@ button:disabled{
   border-color: rgba(144, 158, 181, .28);
   box-shadow:none;
   text-shadow:none;
+}
+
+.gemsBuyBtn.is-loading{
+  cursor:progress;
+  pointer-events:none;
+}
+
+.gemsBuyBtn.is-loading::after{
+  content:"";
+  position:absolute;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.45);
+  border-top-color:#fff;
+  animation: priceBtnSpin .7s linear infinite;
+}
+
+.gemsBuyBtn.is-loading .btnText{
+  opacity:0;
 }
 
 .exchangeResult,
@@ -4118,6 +4160,7 @@ button:disabled{
 .shop-shake{ animation:shopShake .3s ease; }
 
 @keyframes shopSuccessPulse{ 0%{ transform:scale(1);} 50%{ transform:scale(1.03);} 100%{ transform:scale(1);} }
+@keyframes priceBtnSpin{ to{ transform:rotate(360deg);} }
 @keyframes shopShake{
   0%,100%{ transform:translateX(0);} 20%{ transform:translateX(-5px);} 40%{ transform:translateX(5px);} 60%{ transform:translateX(-4px);} 80%{ transform:translateX(4px);} 
 }
