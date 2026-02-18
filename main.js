@@ -836,50 +836,45 @@ if ("serviceWorker" in navigator) {
   const CITY_UNLOCK_LEVEL = 2;
   const FINDING_LOCK_CASTS = 5;
 
-  function positionTutorialCard({ spotlightRect = null, preferredSide = "auto" } = {}) {
+  function positionTutorialCard({ step = "", preferredSide = "auto" } = {}) {
     if (!tutorialCardWrap) return;
 
-    const viewportH = window.innerHeight || 0;
+    const overlayRect = tutorialOverlay?.getBoundingClientRect?.();
+    const localScale = viewportScale || 1;
+    const viewportH = (overlayRect?.height || window.innerHeight || 0) / localScale;
     const cardRect = tutorialCardWrap.getBoundingClientRect();
-    const cardHeight = cardRect.height || 220;
-    const safeTop = 92;
-    const safeBottomPad = 24;
-    const minTop = safeTop;
-    const maxTop = Math.max(minTop, viewportH - safeBottomPad - cardHeight);
+    const cardHeight = (cardRect.height || 220) / localScale;
+    const minTop = 92;
+    const maxTop = Math.max(minTop, viewportH - 24 - cardHeight);
 
-    const resolveSide = ({ availableAbove = 0, availableBelow = 0 } = {}) => {
-      if (preferredSide === "top") return availableAbove >= cardHeight ? "above" : "below";
-      if (preferredSide === "bottom") return availableBelow >= cardHeight ? "below" : "above";
-      return availableBelow >= availableAbove ? "below" : "above";
+    const manualTopByStep = {
+      intro: 180,
+      hero: 430,
+      cast: 500,
+      "bite-info": 220,
+      "fight-progress": 250,
+      "fight-help": 250,
+      "fight-demo-tap-tension": 250,
+      "fight-demo-reel-progress": 250,
+      "fight-demo-keep-green": 250,
+      swipe: 560,
+      retry: 320,
+      done: 320
     };
 
-    if (!spotlightRect || !spotlightRect.width || !spotlightRect.height) {
+    let targetTop = manualTopByStep[step];
+    if (typeof targetTop !== "number") {
       if (preferredSide === "top") {
-        tutorialCardWrap.style.setProperty("--tutorial-card-top", `${minTop}px`);
-        tutorialCardWrap.dataset.side = "above";
-        return;
+        targetTop = 140;
+      } else if (preferredSide === "bottom") {
+        targetTop = Math.max(minTop, viewportH - cardHeight - 280);
+      } else {
+        targetTop = (viewportH - cardHeight) * 0.5;
       }
-      if (preferredSide === "bottom") {
-        tutorialCardWrap.style.setProperty("--tutorial-card-top", `${maxTop}px`);
-        tutorialCardWrap.dataset.side = "below";
-        return;
-      }
-      const centeredTop = clamp(Math.round((viewportH - cardHeight) * 0.5), minTop, maxTop);
-      tutorialCardWrap.style.setProperty("--tutorial-card-top", `${centeredTop}px`);
-      tutorialCardWrap.dataset.side = "center";
-      return;
     }
 
-    const gap = 18;
-    const rectTop = spotlightRect.top;
-    const rectBottom = spotlightRect.top + spotlightRect.height;
-    const availableAbove = Math.max(0, rectTop - minTop - gap);
-    const availableBelow = Math.max(0, maxTop - rectBottom - gap);
-    const side = resolveSide({ availableAbove, availableBelow });
-    const aboveTop = clamp(Math.round(rectTop - cardHeight - gap), minTop, maxTop);
-    const belowTop = clamp(Math.round(rectBottom + gap), minTop, maxTop);
-    const targetTop = side === "above" ? aboveTop : belowTop;
-
+    targetTop = clamp(Math.round(targetTop), minTop, maxTop);
+    const side = preferredSide === "top" ? "above" : preferredSide === "bottom" ? "below" : "center";
     tutorialCardWrap.style.setProperty("--tutorial-card-top", `${targetTop}px`);
     tutorialCardWrap.dataset.side = side;
   }
@@ -961,8 +956,7 @@ if ("serviceWorker" in navigator) {
         tutorialNextBtn.classList.toggle("hidden", !showButton);
         if (showButton) setButtonText(tutorialNextBtn, buttonText);
       }
-      const nextSpotlight = spotlightRect || tutorialSpotlight?.getBoundingClientRect?.() || null;
-      requestAnimationFrame(() => positionTutorialCard({ spotlightRect: nextSpotlight, preferredSide }));
+      requestAnimationFrame(() => positionTutorialCard({ step: this.step, preferredSide }));
     }
 
     setSpotlightRect(rect) {
@@ -1297,7 +1291,7 @@ if ("serviceWorker" in navigator) {
     tutorialSwipeHint?.classList.add("hidden");
     tutorialSpotlight?.classList.remove("is-following");
     setGuideSpotlight(spotlightRect);
-    requestAnimationFrame(() => positionTutorialCard({ spotlightRect }));
+    requestAnimationFrame(() => positionTutorialCard({ preferredSide: "auto" }));
     tutorialOverlay?.classList.remove("hidden");
     tutorialOverlay?.setAttribute("aria-hidden", "false");
     if (tutorialOverlay) tutorialOverlay.style.pointerEvents = showButton ? "auto" : "none";
