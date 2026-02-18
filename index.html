@@ -70,6 +70,10 @@
         </div>
 
         <div class="topbarSlot topbarSlot-right">
+          <button id="btnGemsHud" class="stat stat-compact stat-gems" aria-label="Открыть магазин гемов">
+            <span class="statIcon" aria-hidden="true">💎</span>
+            <span id="gems" class="value value-gems">0</span>
+          </button>
           <div class="stat stat-compact">
             <span class="statIcon" aria-hidden="true">🪙</span>
             <span id="coins" class="value">0</span>
@@ -565,6 +569,18 @@
           </div>
         </div>
       </div>
+      <div id="gemsShopOverlay" class="hidden modal modalOverlay" aria-hidden="true">
+        <div class="gemsShopCard modalCard">
+          <div class="modalHeader">
+            <div class="modalTitle modalHeaderTitle">Магазин гемов</div>
+            <button id="btnGemsShopClose" class="modalClose" aria-label="Закрыть">×</button>
+          </div>
+          <div class="modalBody">
+            <div id="gemsPackList" class="gemsPackList"></div>
+          </div>
+        </div>
+      </div>
+
       <div id="leaderboardOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="leaderboardCard modalCard">
           <div class="leaderboardHeader modalHeader">
@@ -589,6 +605,10 @@
       </div>
 
       <div id="sceneFade" class="sceneFade hidden"></div>
+      <div id="gemsDevPanel" class="gemsDevPanel hidden">
+        <button id="btnDevAddGems" class="chipBtn secondary btn--singleLine"><span class="btnText">DEV +100 💎</span></button>
+        <button id="btnDevResetGems" class="chipBtn secondary btn--singleLine"><span class="btnText">DEV set 0 💎</span></button>
+      </div>
       <div id="toast" class="toast hidden"></div>
       <div id="xpToast" class="xpToast hidden"></div>
       <div id="hintToast" class="hintToast hidden" aria-live="polite"></div>
@@ -625,6 +645,7 @@
 
   <!-- cache-bust: audio manager + main.js v79 (cache refresh) -->
   <script src="audio/AudioManager.js?v=2"></script>
-  <script src="main.js?v=79"></script>
+  <script src="config/gemsShop.js?v=1"></script>
+  <script src="main.js?v=80"></script>
 </body>
 </html>
