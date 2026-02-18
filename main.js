@@ -39,6 +39,7 @@ if ("serviceWorker" in navigator) {
   const coinsEl = document.getElementById("coins");
   const gemsEl = document.getElementById("gems");
   const btnGemsHud = document.getElementById("btnGemsHud");
+  const btnCoinsHud = document.getElementById("btnCoinsHud");
   const profileLevelBadge = document.getElementById("profileLevelBadge");
   const hintToast = document.getElementById("hintToast");
 
@@ -2188,15 +2189,24 @@ if ("serviceWorker" in navigator) {
     }
   }
 
-  function openGemsShop() {
+  function getSuggestedGemsPack(requiredGems = 0) {
+    const need = Math.max(1, Math.floor(Number(requiredGems) || 0));
+    if (!gemsPacks.length) return null;
+    const sortedByGranted = [...gemsPacks].sort((a, b) => a.granted - b.granted);
+    const nearestEnough = sortedByGranted.find((pack) => pack.granted >= need);
+    return nearestEnough || sortedByGranted[sortedByGranted.length - 1];
+  }
+
+  function openGemsShop({ tab = "gems", suggestedPackId = null } = {}) {
     if (!gemsShopOverlay) return;
     gemsShopOverlay.classList.remove("hidden");
     gemsShopOverlay.setAttribute("aria-hidden", "false");
+    gemsShopOverlay.dataset.suggestedPackId = suggestedPackId || "";
     updateModalLayerState();
     renderGemsShop();
     renderCoinShop();
     updateExchangeUi();
-    requestAnimationFrame(() => setActiveShopTab("gems"));
+    requestAnimationFrame(() => setActiveShopTab(tab));
   }
 
   function closeGemsShop() {
@@ -2204,6 +2214,7 @@ if ("serviceWorker" in navigator) {
     shopVfx.clear();
     gemsShopOverlay.classList.add("hidden");
     gemsShopOverlay.setAttribute("aria-hidden", "true");
+    gemsShopOverlay.dataset.suggestedPackId = "";
     updateModalLayerState();
   }
 
@@ -2235,6 +2246,11 @@ if ("serviceWorker" in navigator) {
     buyBtn.className = "chipBtn gemsBuyBtn btn--singleLine";
     buyBtn.innerHTML = `<span class="btnText">${pack.priceYan} yan</span>`;
     buyBtn.addEventListener("click", async () => {
+      const confirmed = window.confirm(`Подтвердить покупку ${pack.granted} 💎 за ${pack.priceYan} Yan?\nСо счета будет списано ${pack.priceYan} Yan.`);
+      if (!confirmed) {
+        logEvent("gem_purchase_cancel", { packId: pack.id, priceYan: pack.priceYan });
+        return;
+      }
       eventBus.emit(EVENTS.SHOP_PURCHASE_CLICK, { tab: "gems", packId: pack.id });
       logEvent("gem_purchase_click", { packId: pack.id, priceYan: pack.priceYan });
       const result = await purchaseProvider.purchasePack(pack.id);
@@ -2307,7 +2323,17 @@ if ("serviceWorker" in navigator) {
   function renderGemsShop() {
     if (!gemsPackList) return;
     gemsPackList.innerHTML = "";
-    gemsPacks.forEach((pack) => gemsPackList.appendChild(createGemsPackItem(pack)));
+    const suggestedPackId = gemsShopOverlay?.dataset?.suggestedPackId || "";
+    gemsPacks.forEach((pack) => {
+      const row = createGemsPackItem(pack);
+      if (suggestedPackId && pack.id === suggestedPackId) {
+        row.classList.add("is-recommended");
+        row.dataset.recommended = "1";
+      }
+      gemsPackList.appendChild(row);
+    });
+    const suggestedRow = gemsPackList.querySelector('[data-recommended="1"]');
+    suggestedRow?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
   function renderCoinShop() {
@@ -2375,7 +2401,8 @@ if ("serviceWorker" in navigator) {
       updateExchangeUi();
     });
     renderGemsHud(gemsService.getBalance());
-    btnGemsHud?.addEventListener("click", openGemsShop);
+    btnGemsHud?.addEventListener("click", () => openGemsShop({ tab: "gems" }));
+    btnCoinsHud?.addEventListener("click", () => openGemsShop({ tab: "coins" }));
     btnGemsShopClose?.addEventListener("click", closeGemsShop);
     gemsShopOverlay?.addEventListener("click", (event) => {
       if (event.target === gemsShopOverlay) closeGemsShop();
@@ -6571,8 +6598,10 @@ if ("serviceWorker" in navigator) {
     if (currency === "gems") {
       if (!gemsService.canSpend(book.gemsPrice)) {
         logEvent("book_purchase", { bookId: book.id, currency, price: book.gemsPrice, success: false });
-        showToast("Недостаточно гемов — в магазин");
-        openGemsShop();
+        const deficit = Math.max(1, Math.floor(book.gemsPrice - gemsService.getBalance()));
+        const suggestedPack = getSuggestedGemsPack(deficit);
+        showToast(`Не хватает ${deficit} 💎 — открыл магазин`);
+        openGemsShop({ tab: "gems", suggestedPackId: suggestedPack?.id || null });
         return;
       }
       gemsService.spend(book.gemsPrice, `book_${book.id}`);
