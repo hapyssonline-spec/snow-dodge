@@ -1050,6 +1050,7 @@ if ("serviceWorker" in navigator) {
       this.stage.on(tutorialOverlay, "pointerdown", (event) => this.onPointerDown(event), { passive: false });
       this.stage.on(tutorialOverlay, "pointermove", (event) => this.onPointerMove(event), { passive: false });
       this.stage.on(tutorialOverlay, "pointerup", (event) => this.onPointerUp(event), { passive: false });
+      this.stage.on(tutorialOverlay, "click", (event) => this.onOverlayClick(event), { passive: false });
       this.stage.on(window, "resize", () => this.refreshSpotlight());
     }
 
@@ -1275,10 +1276,12 @@ if ("serviceWorker" in navigator) {
       event.preventDefault();
       event.stopPropagation();
       if (this.step === "cast") {
-        if (!this.pointInAllowedRect(event.clientX, event.clientY)) return;
-        const p = mapPointerToGame(event.clientX, event.clientY);
-        const y = clamp(p.y, scene.lakeY - 10, H - 20);
-        castTo(p.x, y);
+        const mapped = mapPointerToGame(event.clientX, event.clientY);
+        const inAllowed = this.pointInAllowedRect(event.clientX, event.clientY);
+        const inRightWater = mapped.x >= W * 0.42 && mapped.y >= scene.lakeY - 50;
+        if (!inAllowed && !inRightWater) return;
+        const y = clamp(mapped.y, scene.lakeY - 10, H - 20);
+        castTo(mapped.x, y);
         this.step = "bite-info";
         this.followBobberSpotlight();
         this.showCard("Поклёвка", "Когда поплавок начинает плыть правее — это поклёвка.", "Показать", true, { preferredSide: "top" });
@@ -1296,6 +1299,13 @@ if ("serviceWorker" in navigator) {
       }
     }
 
+
+    onOverlayClick(event) {
+      if (!this.active) return;
+      if (this.step === "cast" || this.step === "fight-demo-tap-tension") {
+        this.onPointerDown(event);
+      }
+    }
     onPointerMove(event) {
       if (!this.active || this.step !== "swipe" || !this.swipeStart) return;
       event.preventDefault();
@@ -7693,10 +7703,9 @@ if ("serviceWorker" in navigator) {
     save();
     if (tutorialManager?.shouldStart()) {
       if (stageManager) {
-        stageManager.go("tutorial", { start: true });
-      } else {
-        tutorialManager.start();
+        tutorialManager.attachToStage(stageManager.get("world"));
       }
+      tutorialManager.start();
     }
   }
 
@@ -9059,6 +9068,7 @@ if ("serviceWorker" in navigator) {
     initStageSystem();
     if (stageManager) {
       await stageManager.go("world", { sceneId: SCENE_LAKE });
+      tutorialManager.attachToStage(stageManager.get("world"));
     } else {
       setScene(SCENE_LAKE);
     }
