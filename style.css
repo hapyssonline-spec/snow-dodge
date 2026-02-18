@@ -3975,3 +3975,67 @@ button:disabled{
   flex-direction:column;
   gap:8px;
 }
+
+@media (max-width: 900px) and (pointer: coarse){
+  #invOverlay .invCard{
+    width:min(98vw, 680px);
+    max-height:calc(100dvh - 10px - var(--safe-top) - var(--safe-bottom));
+    padding:14px;
+  }
+
+  #invOverlay .modalBody{
+    gap:12px;
+  }
+
+  #invOverlay .invControls{
+    flex-wrap:wrap;
+    justify-content:flex-start;
+    gap:8px;
+  }
+
+  #invOverlay .invControls label{
+    width:100%;
+  }
+
+  #invOverlay .invControls select{
+    min-width:0;
+    flex:1 1 52%;
+  }
+
+  #btnInvFishJournal{
+    flex:1 1 44%;
+    min-height:44px;
+    white-space:normal;
+  }
+
+  #lakeScene.is-fishing #bobberLayer,
+  #lakeScene.is-casting #bobberLayer{
+    width:var(--bobber-w);
+    transform:translate(-50%,-50%) scale(var(--bobber-scale));
+  }
+
+  .tutorialOverlay{
+    transition:opacity .22s ease;
+    will-change:opacity;
+  }
+
+  .tutorialSpotlight{
+    transition:left .12s linear, top .12s linear, width .12s linear, height .12s linear;
+    animation:none;
+    will-change:left, top, width, height;
+  }
+
+  .tutorialCardWrap{
+    transition:top .22s cubic-bezier(.22,.75,.18,1);
+    will-change:top;
+  }
+
+  .tutorialOverlay.is-visible .tutorialCardWrap{
+    animation:none;
+  }
+
+  #lakeScene.is-fishing #heroLayer,
+  #lakeScene.is-fishing #rodLayer{
+    animation-duration:3.2s;
+  }
+}
