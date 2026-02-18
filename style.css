@@ -47,6 +47,79 @@ html,body{
   user-select:none;
 }
 
+
+
+@media (min-width: 901px){
+  #invOverlay .invHeader{
+    position:relative;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+
+  #invOverlay .invTitle{
+    text-align:center;
+    width:100%;
+  }
+
+  #invOverlay #btnInvClose{
+    position:absolute;
+    right:0;
+    top:50%;
+    transform:translateY(-50%);
+  }
+
+  #invOverlay .invControls{
+    grid-template-columns:auto minmax(180px, 220px) minmax(150px, 200px);
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  #invOverlay .invControls label{
+    margin-right:4px;
+  }
+
+  #invOverlay .invControls select{
+    justify-self:start;
+  }
+
+  #invOverlay #btnInvFishJournal{
+    justify-self:end;
+  }
+
+  #invOverlay .invItem{
+    padding:10px;
+    gap:6px;
+  }
+
+  #invOverlay .invItemHeader{
+    grid-template-columns:minmax(0, 1fr) auto;
+  }
+
+  #profileOverlay .profileHeader{
+    position:relative;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding-right:44px;
+  }
+
+  #profileOverlay .profileHeaderInfo{
+    align-items:center;
+    text-align:center;
+  }
+
+  #profileOverlay #btnProfileClose{
+    position:absolute;
+    right:0;
+    top:0;
+  }
+
+  #profileOverlay .profileHeaderNickRow{
+    justify-content:center;
+  }
+}
+
 @media (max-width: 900px) and (pointer: coarse){
   html,
   body{
@@ -586,6 +659,7 @@ img, a{
 }
 
 .iconButton{
+  flex:0 0 auto;
   width:28px;
   height:28px;
   border-radius:10px;
@@ -2542,7 +2616,9 @@ img, a{
 .catchPriceValueWrap{
   display:inline-flex;
   align-items:center;
+  justify-content:flex-end;
   gap:8px;
+  white-space:nowrap;
 }
 
 .coinIcon{
@@ -2621,6 +2697,7 @@ img, a{
   font-size:15.6px;
   font-weight:700;
   color:var(--muted);
+  text-align:center;
 }
 
 .catchXpGain.hidden{
@@ -3361,6 +3438,8 @@ img, a{
 .badge{
   display:inline-flex;
   align-items:center;
+  justify-content:center;
+  text-align:center;
   padding:2px 8px;
   border-radius:999px;
   font-size:13px;
@@ -3844,6 +3923,10 @@ button:disabled{
   cursor:pointer;
 }
 
+.stat-coins .statIcon{
+  display:inline-block;
+}
+
 .stat-coins:active{
   transform: scale(.97);
 }
@@ -4224,6 +4307,79 @@ button:disabled{
   display:flex;
   flex-direction:column;
   gap:8px;
+}
+
+
+
+@media (min-width: 901px){
+  #invOverlay .invHeader{
+    position:relative;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+
+  #invOverlay .invTitle{
+    text-align:center;
+    width:100%;
+  }
+
+  #invOverlay #btnInvClose{
+    position:absolute;
+    right:0;
+    top:50%;
+    transform:translateY(-50%);
+  }
+
+  #invOverlay .invControls{
+    grid-template-columns:auto minmax(180px, 220px) minmax(150px, 200px);
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  #invOverlay .invControls label{
+    margin-right:4px;
+  }
+
+  #invOverlay .invControls select{
+    justify-self:start;
+  }
+
+  #invOverlay #btnInvFishJournal{
+    justify-self:end;
+  }
+
+  #invOverlay .invItem{
+    padding:10px;
+    gap:6px;
+  }
+
+  #invOverlay .invItemHeader{
+    grid-template-columns:minmax(0, 1fr) auto;
+  }
+
+  #profileOverlay .profileHeader{
+    position:relative;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding-right:44px;
+  }
+
+  #profileOverlay .profileHeaderInfo{
+    align-items:center;
+    text-align:center;
+  }
+
+  #profileOverlay #btnProfileClose{
+    position:absolute;
+    right:0;
+    top:0;
+  }
+
+  #profileOverlay .profileHeaderNickRow{
+    justify-content:center;
+  }
 }
 
 @media (max-width: 900px) and (pointer: coarse){

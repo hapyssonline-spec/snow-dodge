@@ -57,6 +57,8 @@ if ("serviceWorker" in navigator) {
   const btnSoundToggle = document.getElementById("btnSoundToggle");
   const sfxVolumeInput = document.getElementById("sfxVolume");
   const sfxVolumeValue = document.getElementById("sfxVolumeValue");
+  const musicVolumeInput = document.getElementById("musicVolume");
+  const musicVolumeValue = document.getElementById("musicVolumeValue");
   const invOverlay = document.getElementById("invOverlay");
   const btnInvClose = document.getElementById("btnInvClose");
   const invSort = document.getElementById("invSort");
@@ -246,7 +248,7 @@ if ("serviceWorker" in navigator) {
   const profileOverlay = document.getElementById("profileOverlay");
   const heroOverlay = document.getElementById("heroOverlay");
   const btnHeroClose = document.getElementById("btnHeroClose");
-  const heroScreenMain = document.getElementById("heroScreenMain");
+  const heroScreenMain = document.getElementById("profileScreenMain");
   const heroScreenGear = document.getElementById("heroScreenGear");
   const btnProfileClose = document.getElementById("btnProfileClose");
   const profileName = document.getElementById("profileName");
@@ -2593,28 +2595,14 @@ if ("serviceWorker" in navigator) {
   }
 
   async function animateCatchXpReward(result) {
-    if (!result || !catchXpGain) return;
+    if (!result) return;
     const steps = Array.isArray(result.animationSteps) ? result.animationSteps : [];
     if (!steps.length) {
       setCatchXpVisual(0, 0, `Ур. ${result.level} · XP ${result.xp}/${result.xpToNext}`);
       return;
     }
-    catchXpGain.textContent = `+${result.gainedXP} XP`;
-    catchXpGain.classList.remove("hidden");
     setCatchXpVisual(steps[0].startPct, steps[0].startPct, `Ур. ${steps[0].level} · XP ${steps[0].startXp}/${steps[0].xpToNext}`);
-    await waitMs(260);
-
-    const gainRect = catchXpGain.getBoundingClientRect();
-    const barRect = catchXpBlock?.getBoundingClientRect();
-    if (gainRect && barRect) {
-      const dx = (barRect.left + barRect.width * 0.5) - (gainRect.left + gainRect.width * 0.5);
-      const dy = (barRect.top + 8) - gainRect.top;
-      catchXpGain.animate([
-        { transform: "translate(0, 0) scale(1)", opacity: 1 },
-        { transform: `translate(${dx}px, ${dy}px) scale(0.34)`, opacity: 0.05 }
-      ], { duration: 620, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" });
-    }
-    await waitMs(240);
+    await waitMs(160);
 
     for (let i = 0; i < steps.length; i += 1) {
       const step = steps[i];
@@ -2662,9 +2650,6 @@ if ("serviceWorker" in navigator) {
       }
     }
     if (catchXpBarHead) catchXpBarHead.style.opacity = "0";
-    catchXpGain.classList.add("hidden");
-    catchXpGain.style.transform = "";
-    catchXpGain.style.opacity = "";
     if (catchXpLabel) catchXpLabel.textContent = `Ур. ${result.level} · XP ${result.xp}/${result.xpToNext}`;
   }
 
@@ -3770,6 +3755,7 @@ if ("serviceWorker" in navigator) {
   const DEFAULT_SFX_VOLUME = 0.175;
   let sfxVolume = DEFAULT_SFX_VOLUME;
   let bgStarted = false;
+  let musicVolume = 0.35;
   let bgBuffer = null;
   let bgLoading = null;
   let bgSource = null;
@@ -3815,14 +3801,14 @@ if ("serviceWorker" in navigator) {
   audio?.init();
   audio?.load(sfxManifest);
   audio?.setSfxVolume(sfxVolume);
-  audio?.setMusicVolume(0.35);
+  audio?.setMusicVolume(musicVolume);
   audio?.setMuted(muted);
 
   function ensureAudioContext() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (!bgGain) {
       bgGain = audioCtx.createGain();
-      bgGain.gain.value = 0.35;
+      bgGain.gain.value = musicVolume;
       bgGain.connect(audioCtx.destination);
     }
   }
@@ -3910,7 +3896,7 @@ if ("serviceWorker" in navigator) {
     if (btnSoundToggle) {
       btnSoundToggle.classList.toggle("is-muted", muted);
       btnSoundToggle.setAttribute("aria-pressed", muted ? "true" : "false");
-      setButtonText(btnSoundToggle, muted ? "Выключен" : "Включен");
+      setButtonText(btnSoundToggle, muted ? "✕" : "✓");
     }
     audio?.setMuted(muted);
     if (muted) {
@@ -3929,11 +3915,30 @@ if ("serviceWorker" in navigator) {
     }
   }
 
+  function updateMusicVolumeUi() {
+    if (!musicVolumeInput) return;
+    const value = Math.round(clamp(musicVolume, 0, 1) * 100);
+    musicVolumeInput.value = String(value);
+    if (musicVolumeValue) {
+      musicVolumeValue.textContent = `${value}%`;
+    }
+  }
+
+
   sfxVolumeInput?.addEventListener("input", () => {
     const next = clamp(Number(sfxVolumeInput.value) / 100, 0, 1);
     sfxVolume = next;
     audio?.setSfxVolume(sfxVolume);
     updateSfxVolumeUi();
+    save();
+  });
+
+  musicVolumeInput?.addEventListener("input", () => {
+    const next = clamp(Number(musicVolumeInput.value) / 100, 0, 1);
+    musicVolume = next;
+    if (bgGain) bgGain.gain.value = musicVolume;
+    audio?.setMusicVolume(musicVolume);
+    updateMusicVolumeUi();
     save();
   });
 
@@ -4700,6 +4705,7 @@ if ("serviceWorker" in navigator) {
       stats.totalPlayTimeMs = Number(obj.totalPlayTimeMs ?? 0);
       muted = !!obj.muted;
       sfxVolume = clamp(Number(obj.sfxVolume ?? DEFAULT_SFX_VOLUME), 0, 1);
+      musicVolume = clamp(Number(obj.musicVolume ?? 0.35), 0, 1);
       if (obj.profile && typeof obj.profile === "object") {
         const canRename = obj.profile.canRename !== false;
         const renameFreeUsed = obj.profile.renameFreeUsed !== undefined
@@ -4825,8 +4831,11 @@ if ("serviceWorker" in navigator) {
       const unlockAdjusted = enforceGearUnlocks();
       refreshDailyCharges();
       audio?.setSfxVolume(sfxVolume);
+      audio?.setMusicVolume(musicVolume);
+      if (bgGain) bgGain.gain.value = musicVolume;
       updateMuteButton();
       updateSfxVolumeUi();
+      updateMusicVolumeUi();
       ensureQuestPreviews();
       if (unlockAdjusted) {
         save();
@@ -4852,6 +4861,7 @@ if ("serviceWorker" in navigator) {
         totalPlayTimeMs: stats.totalPlayTimeMs,
         muted,
         sfxVolume,
+        musicVolume,
         inventory,
         fishJournalStats,
         foundTrash,
@@ -5645,20 +5655,12 @@ if ("serviceWorker" in navigator) {
   }
 
   function openHero() {
-    if (isFighting) return;
-    if (!heroOverlay) return;
-    heroOverlay.classList.remove("hidden");
-    heroOverlay.setAttribute("aria-hidden", "false");
-    showHeroScreen("main");
-    updateProfileStatsUI();
-    updateModalLayerState();
+    openProfile();
   }
 
   function closeHero() {
-    heroOverlay?.classList.add("hidden");
-    heroOverlay?.setAttribute("aria-hidden", "true");
     activeProfileGear = null;
-    updateModalLayerState();
+    closeProfile();
   }
 
   function openProfileSetup() {
@@ -5796,11 +5798,6 @@ if ("serviceWorker" in navigator) {
     closeProfile();
     closeHero();
     openLeaderboard();
-  });
-
-  btnHero?.addEventListener("click", () => {
-    if (isFighting) return;
-    openHero();
   });
 
   btnHeroClose?.addEventListener("click", () => {
@@ -7914,7 +7911,6 @@ if ("serviceWorker" in navigator) {
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
-    btnHero?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnStar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnMute?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     bottomBar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
@@ -8286,6 +8282,7 @@ if ("serviceWorker" in navigator) {
       }
     }
     if (catchFullPrice) catchFullPrice.textContent = formatCoins(catchData.sellValue);
+    if (catchXpGain) catchXpGain.classList.add("hidden");
     if (xpResult) {
       const steps = Array.isArray(xpResult.animationSteps) ? xpResult.animationSteps : [];
       const start = steps[0] || null;

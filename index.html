@@ -121,7 +121,6 @@
         <button id="btnCity" class="chipBtn btn--singleLine" aria-label="В город"><span class="btnText">В город</span></button>
         <button id="btnInventory" class="chipBtn btn--singleLine" aria-label="Инвентарь"><span class="btnText">Инвентарь</span></button>
         <button id="btnJournal" class="chipBtn btn--singleLine" aria-label="Журнал"><span class="btnText">Журнал</span></button>
-        <button id="btnHero" class="chipBtn btn--singleLine" aria-label="Герой"><span class="btnText">Герой</span></button>
         <button id="btnStar" class="chipBtn iconBtn" aria-label="Раздел в разработке">
           <span class="icon" aria-hidden="true">⭐</span>
           <span class="iconMeta" aria-hidden="true">soon</span>
@@ -343,37 +342,6 @@
                 </div>
               </section>
 
-              <section class="profileSection soundSettings">
-                <div class="sectionTitle">Звук</div>
-                <div class="soundSettingRow">
-                  <span>Отключить звук</span>
-                  <button id="btnSoundToggle" class="chipBtn btn--singleLine" type="button" aria-pressed="false">
-                    <span class="btnText">Включен</span>
-                  </button>
-                </div>
-                <label class="soundSettingRow soundSettingSlider">
-                  <span>Громкость эффектов</span>
-                  <input id="sfxVolume" type="range" min="0" max="100" step="1" value="18" />
-                  <span id="sfxVolumeValue" class="soundSettingValue">18%</span>
-                </label>
-              </section>
-
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <div id="heroOverlay" class="hidden modal modalOverlay" aria-hidden="true">
-        <div class="profileCard modalCard">
-          <div id="heroScreenMain" class="profileScreen">
-            <div class="profileHeader modalHeader">
-              <div class="profileHeaderInfo">
-                <div class="profileTitle modalTitle modalHeaderTitle">Герой</div>
-              </div>
-              <button id="btnHeroClose" class="modalClose" aria-label="Закрыть">×</button>
-            </div>
-            <div class="profileBody modalBody">
               <section class="profileSection">
                 <div class="sectionTitle">Уровень</div>
                 <div id="profileXpRing" class="xpRing" aria-label="Прогресс опыта"></div>
@@ -414,6 +382,27 @@
                   <button class="chipBtn profileGearToggle btn--singleLine" data-gear="bait" type="button"><span class="btnText">Изменить</span></button>
                 </div>
               </section>
+
+              <section class="profileSection soundSettings">
+                <div class="sectionTitle">Аудио</div>
+                <div class="soundSettingRow">
+                  <span>Звук</span>
+                  <button id="btnSoundToggle" class="chipBtn btn--singleLine" type="button" aria-pressed="false">
+                    <span class="btnText">✓</span>
+                  </button>
+                </div>
+                <label class="soundSettingRow soundSettingSlider">
+                  <span>Громкость эффектов</span>
+                  <input id="sfxVolume" type="range" min="0" max="100" step="1" value="18" />
+                  <span id="sfxVolumeValue" class="soundSettingValue">18%</span>
+                </label>
+                <label class="soundSettingRow soundSettingSlider">
+                  <span>Музыка</span>
+                  <input id="musicVolume" type="range" min="0" max="100" step="1" value="35" />
+                  <span id="musicVolumeValue" class="soundSettingValue">35%</span>
+                </label>
+              </section>
+
             </div>
           </div>
 
