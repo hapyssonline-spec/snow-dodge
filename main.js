@@ -866,7 +866,8 @@ if ("serviceWorker" in navigator) {
       done: 320
     };
 
-    let targetTop = (viewportH - cardHeight) * 0.5;
+    const manualTop = manualTopByStep[step];
+    let targetTop = typeof manualTop === "number" ? manualTop : (viewportH - cardHeight) * 0.5;
     if (hasSpotlight) {
       const spotlightTop = (spotlightRect.top - overlayTop) / localScale;
       const spotlightBottom = spotlightTop + spotlightRect.height / localScale;
@@ -888,10 +889,7 @@ if ("serviceWorker" in navigator) {
       } else if (canPlaceBelow) {
         targetTop = belowTop;
       } else {
-        const manualTop = manualTopByStep[step];
-        if (typeof manualTop === "number") {
-          targetTop = manualTop;
-        }
+        targetTop = typeof manualTop === "number" ? manualTop : minTop;
       }
 
       const targetBottom = targetTop + cardHeight;
