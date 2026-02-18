@@ -836,7 +836,7 @@ if ("serviceWorker" in navigator) {
   const CITY_UNLOCK_LEVEL = 2;
   const FINDING_LOCK_CASTS = 5;
 
-  function positionTutorialCard({ step = "", preferredSide = "auto" } = {}) {
+  function positionTutorialCard({ step = "", preferredSide = "auto", forcedTop = null } = {}) {
     if (!tutorialCardWrap) return;
 
     const overlayRect = tutorialOverlay?.getBoundingClientRect?.();
@@ -909,6 +909,10 @@ if ("serviceWorker" in navigator) {
           targetTop = moveBelow;
         }
       }
+    }
+
+    if (typeof forcedTop === "number" && Number.isFinite(forcedTop)) {
+      targetTop = forcedTop;
     }
 
     targetTop = clamp(Math.round(targetTop), minTop, maxTop);
@@ -1318,7 +1322,15 @@ if ("serviceWorker" in navigator) {
     tutorialSpotlight.style.height = `${rect.height / viewportScale}px`;
   }
 
-  function showGuideOverlay({ title, text, buttonText = "Далее", showButton = true, spotlightRect = null }) {
+  function showGuideOverlay({
+    title,
+    text,
+    buttonText = "Далее",
+    showButton = true,
+    spotlightRect = null,
+    preferredSide = "auto",
+    cardTop = null
+  }) {
     if (tutorialManager?.active) return;
     if (tutorialTitle) tutorialTitle.textContent = title;
     if (tutorialText) tutorialText.textContent = text;
@@ -1329,7 +1341,7 @@ if ("serviceWorker" in navigator) {
     tutorialSwipeHint?.classList.add("hidden");
     tutorialSpotlight?.classList.remove("is-following");
     setGuideSpotlight(spotlightRect);
-    requestAnimationFrame(() => positionTutorialCard({ preferredSide: "auto" }));
+    requestAnimationFrame(() => positionTutorialCard({ preferredSide, forcedTop: cardTop }));
     tutorialOverlay?.classList.remove("hidden");
     tutorialOverlay?.setAttribute("aria-hidden", "false");
     if (tutorialOverlay) tutorialOverlay.style.pointerEvents = showButton ? "auto" : "none";
@@ -5125,8 +5137,11 @@ if ("serviceWorker" in navigator) {
       showGuideOverlay({
         title: "Обновление заданий",
         text: "Теперь можно переключаться между заданиями по сложности или обновить варианты кнопкой «Обновить задания», если текущие не подходят.",
-        showButton: false,
-        spotlightRect: getSpotlightRect(trophyQuestSection)
+        buttonText: "Понятно",
+        showButton: true,
+        preferredSide: "top",
+        cardTop: 170,
+        spotlightRect: getSpotlightRect(btnQuestRefresh, 18)
       });
     }
   });
@@ -6554,6 +6569,14 @@ if ("serviceWorker" in navigator) {
     }
     if (guideStep === "trash-journal-intro") {
       onboarding.findingTutorialDone = true;
+      setGuideStep("none");
+      hideGuideOverlay();
+      save();
+      return;
+    }
+    if (guideStep === "trophy-refresh-info") {
+      onboarding.trophyGuideDone = true;
+      onboarding.firstCityArrivalShown = true;
       setGuideStep("none");
       hideGuideOverlay();
       save();
