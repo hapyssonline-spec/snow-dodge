@@ -1,5 +1,6 @@
 window.COIN_SHOP_CONFIG = {
   provider: "mock",
+  recommendedPackId: "coin_154k",
   packs: [
     { id: "coin_13k", title: "Базовый", baseCoins: 13000, bonusPct: 0, priceYan: 49 },
     { id: "coin_35k", title: "Популярный", baseCoins: 35000, bonusPct: 10, priceYan: 99 },
