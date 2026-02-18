@@ -3362,15 +3362,14 @@ if ("serviceWorker" in navigator) {
       setTutorialPause(true);
       showGuideOverlay({
         title: "Задание выполнено",
-        text: "Вернись в трофейную, чтобы получить награду.",
+        text: "Вернись в город, чтобы сдать задание и получить награду.",
         buttonText: "Продолжить",
         showButton: true,
-        preferredSide: "top",
-        spotlightRect: getSpotlightRect(btnCity, 16)
+        preferredSide: "top"
       });
       return;
     }
-    showQuestToast("Цель выполнена", "Загляни в трофейную за наградой");
+    showQuestToast("Цель выполнена", "Вернись в город и сдай задание");
   }
 
   function awardQuestRewards(quest) {
@@ -5835,6 +5834,18 @@ if ("serviceWorker" in navigator) {
   btnTrophyQuests?.addEventListener("click", () => {
     if (isFighting) return;
     setTrophyView("quests");
+    if (guideStep === "city-force-quests-claim-open") {
+      setGuideStep("city-force-quest-claim");
+      showGuideOverlay({
+        title: "Сдача задания",
+        text: "Нажми «Забрать награду», чтобы завершить задание.",
+        showButton: false,
+        preferredSide: "top",
+        cardTop: 110,
+        spotlightRect: getSpotlightRect(btnQuestClaim, 18)
+      });
+      return;
+    }
     if (guideStep === "city-force-quests-open") {
       setGuideStep("trophy-difficulty-info");
       showGuideOverlay({
@@ -5849,11 +5860,13 @@ if ("serviceWorker" in navigator) {
 
   btnTrophyRecords?.addEventListener("click", () => {
     if (isFighting) return;
+    if (["city-force-quests-claim-open", "city-force-quest-claim"].includes(guideStep)) return;
     openLeaderboard();
   });
 
   btnTrophyBack?.addEventListener("click", () => {
     if (isFighting) return;
+    if (["city-force-quests-claim-open", "city-force-quest-claim"].includes(guideStep)) return;
     setTrophyView("hub");
   });
 
@@ -5875,10 +5888,17 @@ if ("serviceWorker" in navigator) {
   const handleBackToLakeClick = () => {
     if (isFighting) return;
     if (currentScene !== SCENE_CITY) return;
+    if (activeQuest?.status === "completed") {
+      showToast("Сначала сдай выполненное задание в трофейной.");
+      return;
+    }
     startTravel("city", "lake");
   };
 
   const handleShopClose = () => {
+    if (["city-force-trophy-claim-open", "city-force-quests-claim-open", "city-force-quest-claim"].includes(guideStep)) {
+      return;
+    }
     if (["city-fishshop-intro", "city-fishshop-single-sell", "city-fishshop-sell-all", "city-gear-buy-bait"].includes(guideStep)) {
       return;
     }
@@ -6084,6 +6104,18 @@ if ("serviceWorker" in navigator) {
     updateQuestReminder();
     audio?.play("quest_complete");
     showToast("Награда получена.");
+    if (guideStep === "city-force-quest-claim") {
+      setGuideStep("city-quest-claim-finish");
+      showGuideOverlay({
+        title: "Задание сдано",
+        text: "Отлично! Награда у тебя. Теперь можно продолжать рыбалку в любом режиме.",
+        buttonText: "Завершить",
+        showButton: true,
+        preferredSide: "top",
+        cardTop: 110,
+        spotlightRect: getSpotlightRect(btnShopClose, 16)
+      });
+    }
   });
 
   function sortInventory(items) {
@@ -6299,6 +6331,20 @@ if ("serviceWorker" in navigator) {
           preferredSide: "top",
           cardTop: 110,
           spotlightRect: getSpotlightRect(btnTrophyQuests)
+        });
+      }, 260);
+      return;
+    }
+    if (guideStep === "city-force-trophy-claim-open" && sceneId === SCENE_BUILDING_TROPHY) {
+      setGuideStep("city-force-quests-claim-open");
+      window.setTimeout(() => {
+        showGuideOverlay({
+          title: "Трофейная",
+          text: "Открой раздел «Задания», чтобы сдать выполненный квест.",
+          showButton: false,
+          preferredSide: "top",
+          cardTop: 110,
+          spotlightRect: getSpotlightRect(btnTrophyQuests, 18)
         });
       }, 260);
     }
@@ -7360,6 +7406,9 @@ if ("serviceWorker" in navigator) {
         if (guideStep === "city-force-trophy-open" && sceneId !== SCENE_BUILDING_TROPHY) {
           return;
         }
+        if (guideStep === "city-force-trophy-claim-open" && sceneId !== SCENE_BUILDING_TROPHY) {
+          return;
+        }
         if (sceneId) openShop(sceneId);
       });
     });
@@ -7562,6 +7611,18 @@ if ("serviceWorker" in navigator) {
     }
     if (destination === SCENE_LAKE) {
       setHint("Тап: заброс", 1.2);
+    } else if (activeQuest?.status === "completed" && guideStep === "none") {
+      setGuideStep("city-force-trophy-claim-open");
+      window.setTimeout(() => {
+        showGuideOverlay({
+          title: "Задание готово к сдаче",
+          text: "Ты в городе. Зайди в трофейную, чтобы сдать квест и получить награду.",
+          showButton: false,
+          preferredSide: "top",
+          cardTop: 110,
+          spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"), 18)
+        });
+      }, 280);
     } else if (!onboarding.firstCityArrivalShown && !onboarding.trophyGuideDone) {
       setGuideStep("city-force-fish-open");
       window.setTimeout(() => {
@@ -7879,6 +7940,15 @@ if ("serviceWorker" in navigator) {
       return;
     }
     if (guideStep === "quest-complete-first-plotva") {
+      setGuideStep("none");
+      hideGuideOverlay();
+      setTutorialPause(false);
+      save();
+      return;
+    }
+    if (guideStep === "city-quest-claim-finish") {
+      onboarding.trophyGuideDone = true;
+      onboarding.firstCityArrivalShown = true;
       setGuideStep("none");
       hideGuideOverlay();
       setTutorialPause(false);
