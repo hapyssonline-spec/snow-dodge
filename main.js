@@ -37,6 +37,8 @@ if ("serviceWorker" in navigator) {
   const bobberLayer = document.getElementById("bobberLayer");
 
   const coinsEl = document.getElementById("coins");
+  const gemsEl = document.getElementById("gems");
+  const btnGemsHud = document.getElementById("btnGemsHud");
   const profileLevelBadge = document.getElementById("profileLevelBadge");
   const hintToast = document.getElementById("hintToast");
 
@@ -177,6 +179,12 @@ if ("serviceWorker" in navigator) {
   const lineList = document.getElementById("lineList");
   const leaderboardOverlay = document.getElementById("leaderboardOverlay");
   const btnLeaderboardClose = document.getElementById("btnLeaderboardClose");
+  const gemsShopOverlay = document.getElementById("gemsShopOverlay");
+  const btnGemsShopClose = document.getElementById("btnGemsShopClose");
+  const gemsPackList = document.getElementById("gemsPackList");
+  const gemsDevPanel = document.getElementById("gemsDevPanel");
+  const btnDevAddGems = document.getElementById("btnDevAddGems");
+  const btnDevResetGems = document.getElementById("btnDevResetGems");
 
   const profileOverlay = document.getElementById("profileOverlay");
   const heroOverlay = document.getElementById("heroOverlay");
@@ -336,6 +344,7 @@ if ("serviceWorker" in navigator) {
     renameOverlay,
     travelOverlay,
     shopOverlay,
+    gemsShopOverlay,
     leaderboardOverlay,
     rotateOverlay,
     sceneFade
@@ -1973,6 +1982,88 @@ if ("serviceWorker" in navigator) {
     }, 1300);
   }
 
+  function renderGemsHud(balance) {
+    if (gemsEl) gemsEl.textContent = String(Math.max(0, Math.floor(Number(balance) || 0)));
+  }
+
+  function openGemsShop() {
+    if (!gemsShopOverlay) return;
+    gemsShopOverlay.classList.remove("hidden");
+    gemsShopOverlay.setAttribute("aria-hidden", "false");
+    updateModalLayerState();
+    eventBus.emit(EVENTS.SHOP_OPEN, { source: "gems_hud" });
+    logEvent("shop_open", { source: "gems_hud" });
+  }
+
+  function closeGemsShop() {
+    if (!gemsShopOverlay) return;
+    gemsShopOverlay.classList.add("hidden");
+    gemsShopOverlay.setAttribute("aria-hidden", "true");
+    updateModalLayerState();
+  }
+
+  function createGemsPackItem(pack) {
+    const row = document.createElement("div");
+    row.className = "gemsPackItem";
+
+    const meta = document.createElement("div");
+    meta.className = "gemsPackMeta";
+    const title = document.createElement("div");
+    title.className = "gemsPackTitle";
+    title.textContent = pack.title;
+    const amount = document.createElement("div");
+    amount.className = "gemsPackAmount";
+    amount.textContent = `${pack.granted} 💎`;
+    meta.append(title, amount);
+
+    if (pack.bonusPct > 0) {
+      const bonus = document.createElement("span");
+      bonus.className = "gemsPackBonus";
+      bonus.textContent = `+${pack.bonusPct}% bonus`;
+      meta.appendChild(bonus);
+    }
+
+    const buyBtn = document.createElement("button");
+    buyBtn.className = "chipBtn gemsBuyBtn btn--singleLine";
+    buyBtn.innerHTML = '<span class="btnText">Купить</span>';
+    buyBtn.addEventListener("click", async () => {
+      eventBus.emit(EVENTS.SHOP_PURCHASE_CLICK, { packId: pack.id });
+      logEvent("shop_purchase_click", { packId: pack.id });
+      const result = await purchaseProvider.purchasePack(pack.id);
+      if (result?.success && Number.isFinite(result.grantedGems)) {
+        gemsService.add(result.grantedGems, `shop_${pack.id}`);
+        showToast(`Покупка успешна: +${Math.floor(result.grantedGems)} 💎`);
+      } else {
+        const details = result?.error ? ` (${result.error})` : "";
+        showToast(`Покупка недоступна${DEV_MODE ? details : ""}`);
+      }
+    });
+
+    row.append(meta, buyBtn);
+    return row;
+  }
+
+  function renderGemsShop() {
+    if (!gemsPackList) return;
+    gemsPackList.innerHTML = "";
+    gemsPacks.forEach((pack) => {
+      gemsPackList.appendChild(createGemsPackItem(pack));
+    });
+  }
+
+  function initGemsUi() {
+    eventBus.on(EVENTS.GEMS_CHANGED, ({ balance }) => renderGemsHud(balance));
+    renderGemsHud(gemsService.getBalance());
+    btnGemsHud?.addEventListener("click", openGemsShop);
+    btnGemsShopClose?.addEventListener("click", closeGemsShop);
+    gemsShopOverlay?.addEventListener("click", (event) => {
+      if (event.target === gemsShopOverlay) {
+        closeGemsShop();
+      }
+    });
+    renderGemsShop();
+  }
+
   function showXPGain(result) {
     if (!xpToast || !result) return;
     const lines = [
@@ -3504,7 +3595,88 @@ if ("serviceWorker" in navigator) {
 
   let nickRegistry = loadNickRegistry();
 
+  const EVENTS = {
+    GEMS_CHANGED: "GEMS_CHANGED",
+    SHOP_OPEN: "SHOP_OPEN",
+    SHOP_PURCHASE_CLICK: "SHOP_PURCHASE_CLICK",
+    CURRENCY_ADD: "CURRENCY_ADD"
+  };
+
+  function createEventBus() {
+    const listeners = new Map();
+    return {
+      on(eventName, handler) {
+        if (!listeners.has(eventName)) listeners.set(eventName, new Set());
+        listeners.get(eventName).add(handler);
+        return () => listeners.get(eventName)?.delete(handler);
+      },
+      emit(eventName, payload) {
+        const handlers = listeners.get(eventName);
+        if (!handlers) return;
+        handlers.forEach((handler) => {
+          try {
+            handler(payload);
+          } catch (error) {
+            console.warn("[EventBus] handler error", eventName, error);
+          }
+        });
+      }
+    };
+  }
+
+  const eventBus = createEventBus();
+
+  function logEvent(name, payload = {}) {
+    console.log(`[analytics] ${name}`, payload);
+    eventBus.emit(name, payload);
+  }
+
+  const gemsShopConfig = window.GEMS_SHOP_CONFIG || { provider: "mock", packs: [] };
+
+  function sanitizePackConfig(pack) {
+    if (!pack || typeof pack !== "object") return null;
+    const gems = Math.max(0, Math.floor(Number(pack.gems) || 0));
+    const bonusPct = Math.max(0, Math.floor(Number(pack.bonusPct) || 0));
+    if (!pack.id || !pack.title || gems <= 0) return null;
+    return {
+      id: String(pack.id),
+      title: String(pack.title),
+      gems,
+      bonusPct,
+      granted: gems + Math.floor((gems * bonusPct) / 100)
+    };
+  }
+
+  const gemsPacks = Array.isArray(gemsShopConfig.packs)
+    ? gemsShopConfig.packs.map(sanitizePackConfig).filter(Boolean)
+    : [];
+
+  class MockPurchaseProvider {
+    async purchasePack(packId) {
+      const pack = gemsPacks.find((entry) => entry.id === packId);
+      if (!pack) return { success: false, error: "PACK_NOT_FOUND" };
+      return { success: true, grantedGems: pack.granted };
+    }
+  }
+
+  class YandexPurchaseProvider {
+    async purchasePack(packId) {
+      // TODO(yandex-games): подключить YaGames SDK.
+      // TODO(yandex-games): вызвать purchase по packId.
+      // TODO(yandex-games): подтвердить/провалидировать покупку на стороне SDK/бэкенда.
+      return { success: false, error: "NOT_IMPLEMENTED" };
+    }
+  }
+
+  function createPurchaseProvider() {
+    const provider = (gemsShopConfig.provider || "mock").toLowerCase();
+    return provider === "yandex" ? new YandexPurchaseProvider() : new MockPurchaseProvider();
+  }
+
+  const purchaseProvider = createPurchaseProvider();
+
   const stats = {
+
     coins: 0,
     bestCoin: 0,
     totalFishCaught: 0,
@@ -3521,6 +3693,7 @@ if ("serviceWorker" in navigator) {
 
   const player = {
     coins: 0,
+    gems: 0,
     activeBaitId: null,
     baitInventory: {},
     rodTier: 1,
@@ -3533,6 +3706,53 @@ if ("serviceWorker" in navigator) {
     playerXPToNext: 60,
     castCount: 0
   };
+
+  class GemsService {
+    constructor({ playerState, emitter, onSave }) {
+      this.playerState = playerState;
+      this.emitter = emitter;
+      this.onSave = onSave;
+    }
+
+    getBalance() {
+      const value = Number(this.playerState.gems);
+      if (!Number.isFinite(value) || value < 0) return 0;
+      return Math.floor(value);
+    }
+
+    add(amount, reason = "unknown") {
+      const normalized = Math.floor(Number(amount) || 0);
+      if (normalized <= 0) {
+        console.warn("[GemsService] add noop", { amount, reason });
+        return;
+      }
+      const nextBalance = this.getBalance() + normalized;
+      this.playerState.gems = nextBalance;
+      this.emitter.emit(EVENTS.GEMS_CHANGED, { balance: nextBalance, delta: normalized, reason });
+      logEvent("currency_add", { amount: normalized, reason, balance: nextBalance });
+      this.emitter.emit(EVENTS.CURRENCY_ADD, { amount: normalized, reason, balance: nextBalance });
+      this.onSave?.();
+    }
+
+    set(amount, reason = "dev_set") {
+      const normalized = Math.max(0, Math.floor(Number(amount) || 0));
+      const prev = this.getBalance();
+      const delta = normalized - prev;
+      this.playerState.gems = normalized;
+      this.emitter.emit(EVENTS.GEMS_CHANGED, { balance: normalized, delta, reason });
+      if (delta > 0) {
+        logEvent("currency_add", { amount: delta, reason, balance: normalized });
+        this.emitter.emit(EVENTS.CURRENCY_ADD, { amount: delta, reason, balance: normalized });
+      }
+      this.onSave?.();
+    }
+  }
+
+  const gemsService = new GemsService({
+    playerState: player,
+    emitter: eventBus,
+    onSave: () => save()
+  });
 
   let inventory = [];
   let fishJournalStats = {};
@@ -3797,6 +4017,8 @@ if ("serviceWorker" in navigator) {
       if (obj.storageVersion >= 3) {
         const savedPlayer = obj.player || {};
         player.coins = Number(savedPlayer.coins || stats.coins || 0);
+        const savedGems = Number(savedPlayer.gems);
+        player.gems = Number.isFinite(savedGems) && savedGems >= 0 ? Math.floor(savedGems) : 0;
         player.activeBaitId = savedPlayer.activeBaitId || null;
         player.baitInventory = savedPlayer.baitInventory || {};
         if (player.activeBaitId && (player.baitInventory[player.activeBaitId] || 0) <= 0) {
@@ -3821,8 +4043,10 @@ if ("serviceWorker" in navigator) {
         }
       } else {
         player.coins = stats.coins;
+        player.gems = 0;
         progression.load();
       }
+      eventBus.emit(EVENTS.GEMS_CHANGED, { balance: gemsService.getBalance(), delta: 0, reason: "load" });
       if (obj.storageVersion >= 5) {
         foundTrash = (obj.foundTrash && typeof obj.foundTrash === "object") ? obj.foundTrash : {};
         collectorRodUnlocked = !!obj.collectorRodUnlocked;
@@ -3886,6 +4110,7 @@ if ("serviceWorker" in navigator) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         storageVersion: STORAGE_VERSION,
         coins: player.coins,
+        gems: player.gems,
         bestCoin: stats.bestCoin,
         totalFishCaught: stats.totalFishCaught,
         totalGoldEarned: stats.totalGoldEarned,
@@ -3913,6 +4138,7 @@ if ("serviceWorker" in navigator) {
         leaderboards: leaderboardProvider.save(),
         player: {
           coins: player.coins,
+          gems: player.gems,
           activeBaitId: player.activeBaitId,
           baitInventory: player.baitInventory,
           rodTier: player.rodTier,
@@ -3935,6 +4161,7 @@ if ("serviceWorker" in navigator) {
   function resetProgress() {
     stats.coins = 0;
     player.coins = 0;
+    player.gems = 0;
     stats.bestCoin = 0;
     stats.totalFishCaught = 0;
     stats.totalGoldEarned = 0;
@@ -3973,6 +4200,7 @@ if ("serviceWorker" in navigator) {
     onboarding.firstTutorialInventoryHintShown = false;
     cityUnlockedToastShown = false;
     save();
+    eventBus.emit(EVENTS.GEMS_CHANGED, { balance: gemsService.getBalance(), delta: 0, reason: "reset" });
     updateHUD();
     renderInventory();
     renderTrashJournal();
@@ -4014,6 +4242,7 @@ if ("serviceWorker" in navigator) {
 
   function updateHUD() {
     if (coinsEl) coinsEl.textContent = String(player.coins);
+    if (gemsEl) gemsEl.textContent = String(gemsService.getBalance());
     if (profileLevelBadge) profileLevelBadge.textContent = String(player.playerLevel);
     const cityUnlocked = isCityUnlocked();
     btnCity?.classList.toggle("is-locked", !cityUnlocked);
@@ -4608,19 +4837,40 @@ if ("serviceWorker" in navigator) {
     });
   }
 
+  if (gemsDevPanel) {
+    gemsDevPanel.classList.toggle("hidden", !DEV_MODE);
+  }
+  btnDevAddGems?.addEventListener("click", () => {
+    if (!DEV_MODE) return;
+    gemsService.add(100, "dev_add_100");
+    showToast("DEV: +100 💎");
+  });
+  btnDevResetGems?.addEventListener("click", () => {
+    if (!DEV_MODE) return;
+    gemsService.set(0, "dev_set_0");
+    showToast("DEV: gems = 0");
+  });
+
   document.addEventListener("keydown", (event) => {
-    if (!DEV_TRASH_TEST) return;
-    if (event.code === "KeyR") {
+    if (DEV_TRASH_TEST && event.code === "KeyR") {
       resetRareBoostCharges();
       showToast("TEST: заряды сброшены.");
     }
-    if (event.code === "KeyF") {
+    if (DEV_TRASH_TEST && event.code === "KeyF") {
       foundTrash = Object.fromEntries(trashItems.map((item) => [item.id, true]));
       unlockCollectorRod();
       renderTrashJournal();
       updateHUD();
       save();
       showToast("TEST: журнал заполнен.");
+    }
+    if (DEV_MODE && event.code === "KeyG") {
+      gemsService.add(100, "dev_hotkey_add_100");
+      showToast("DEV: +100 💎");
+    }
+    if (DEV_MODE && event.code === "Digit0") {
+      gemsService.set(0, "dev_hotkey_set_0");
+      showToast("DEV: gems = 0");
     }
   });
 
@@ -7766,6 +8016,7 @@ if ("serviceWorker" in navigator) {
     if (btnPlay) btnPlay.disabled = true;
 
     load();
+    initGemsUi();
     updateMuteButton();
     updateHUD();
     updateLeaderboardsFromStats();
