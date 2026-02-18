@@ -384,6 +384,18 @@ img, a{
   to{ transform: translate3d(0,60%,0); }
 }
 
+@media (pointer: coarse), (max-width: 1024px){
+  #snowLayer{
+    opacity:0 !important;
+  }
+
+  #snowLayer::before,
+  #snowLayer::after{
+    animation:none !important;
+    content:none;
+  }
+}
+
 #cityTooltip{
   position:absolute;
   padding:6px 10px;
