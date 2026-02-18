@@ -8769,6 +8769,8 @@ if ("serviceWorker" in navigator) {
     const frameDt = Math.min(MAX_FRAME_DELTA, Math.max(0, (t - lastTime) / 1000));
     lastTime = t;
 
+    accumulator = Math.min(0.2, accumulator + frameDt);
+
     const targetInterval = getTargetFrameInterval();
     frameBudgetCarry += frameDt;
     if (frameBudgetCarry + 0.000001 < targetInterval) {
@@ -8795,7 +8797,6 @@ if ("serviceWorker" in navigator) {
       }
     }
 
-    accumulator = Math.min(0.2, accumulator + frameDt);
     while (accumulator >= FIXED_STEP) {
       update(FIXED_STEP);
       accumulator -= FIXED_STEP;
