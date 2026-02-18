@@ -1321,6 +1321,10 @@ if ("serviceWorker" in navigator) {
     };
   }
 
+  function getFirstBaitBuyButton() {
+    return baitList?.querySelector(".shopItem .shopControls .invBtn") || null;
+  }
+
   function setGuideSpotlight(rect) {
     if (!tutorialSpotlight) return;
     if (!rect) {
@@ -2934,7 +2938,7 @@ if ("serviceWorker" in navigator) {
 
   function renderTrophyQuest() {
     if (!trophyQuestSection || !trophyActiveSection) return;
-    const showQuestPicker = !activeQuest || guideStep === "trophy-refresh-info";
+    const showQuestPicker = !activeQuest;
     if (!showQuestPicker) {
       trophyQuestSection.classList.add("hidden");
       trophyActiveSection.classList.remove("hidden");
@@ -5275,6 +5279,9 @@ if ("serviceWorker" in navigator) {
   });
 
   btnShopClose?.addEventListener("click", () => {
+    if (["city-fishshop-intro", "city-fishshop-single-sell", "city-fishshop-sell-all", "city-gear-buy-bait"].includes(guideStep)) {
+      return;
+    }
     transitionTo(SCENE_CITY);
   });
 
@@ -5333,6 +5340,7 @@ if ("serviceWorker" in navigator) {
   });
 
   btnSellAll?.addEventListener("click", () => {
+    if (guideStep === "city-fishshop-single-sell") return;
     const items = inventory.slice();
     if (items.length === 0) {
       showToast("Нет рыбы для продажи.");
@@ -5347,6 +5355,20 @@ if ("serviceWorker" in navigator) {
     renderFishShopInventory();
     renderInventory();
     showToast(`Продано: +${total} монет`);
+    if (guideStep === "city-fishshop-sell-all") {
+      setGuideStep("city-fishshop-balance");
+      window.setTimeout(() => {
+        showGuideOverlay({
+          title: "Отличная работа!",
+          text: "Баланс монет увеличился. Поздравляем с первой продажей!",
+          buttonText: "Далее",
+          showButton: true,
+          preferredSide: "bottom",
+          cardTop: 420,
+          spotlightRect: getSpotlightRect(coinsEl, 16)
+        });
+      }, 140);
+    }
   });
 
   gearTabButtons.forEach((btn) => {
@@ -5366,13 +5388,6 @@ if ("serviceWorker" in navigator) {
       selectedQuestDifficulty = difficulty;
       updateQuestDifficultyButtons();
       updateQuestPreviewUI();
-      if (guideStep === "trophy-refresh-info") {
-        onboarding.trophyGuideDone = true;
-        onboarding.firstCityArrivalShown = true;
-        setGuideStep("none");
-        hideGuideOverlay();
-        save();
-      }
     });
   });
 
@@ -5395,13 +5410,6 @@ if ("serviceWorker" in navigator) {
     save();
     updateQuestPreviewUI();
     updateQuestRefreshUI();
-    if (guideStep === "trophy-refresh-info") {
-      onboarding.trophyGuideDone = true;
-      onboarding.firstCityArrivalShown = true;
-      setGuideStep("none");
-      hideGuideOverlay();
-      save();
-    }
   });
 
   btnQuestAccept?.addEventListener("click", () => {
@@ -5419,15 +5427,15 @@ if ("serviceWorker" in navigator) {
     renderTrophyQuest();
     audio?.play("quest_accept");
     if (guideStep === "trophy-difficulty-info") {
-      setGuideStep("trophy-refresh-info");
+      setGuideStep("trophy-back-to-lake-hint");
       showGuideOverlay({
-        title: "Обновление заданий",
-        text: "Теперь можно переключаться между заданиями по сложности или обновить варианты кнопкой «Обновить задания», если текущие не подходят.",
+        title: "Отлично, задание взято",
+        text: "Вернуться на озеро можно кнопкой «На рыбалку». Не спеши — можешь сначала осмотреться в городе.",
         buttonText: "Понятно",
         showButton: true,
         preferredSide: "top",
-        cardTop: 170,
-        spotlightRect: getSpotlightRect(btnQuestRefresh, 18)
+        cardTop: 110,
+        spotlightRect: getSpotlightRect(btnBackToLake, 18)
       });
     }
   });
@@ -5616,6 +5624,36 @@ if ("serviceWorker" in navigator) {
     if (isFighting) return;
     transitionTo(sceneId);
     renderShop(sceneId);
+    if (guideStep === "city-force-fish-open" && sceneId === SCENE_BUILDING_FISHSHOP) {
+      setGuideStep("city-fishshop-intro");
+      window.setTimeout(() => {
+        showGuideOverlay({
+          title: "Рыбная лавка",
+          text: "Здесь можно продавать рыбу за монеты.",
+          buttonText: "Далее",
+          showButton: true,
+          preferredSide: "top",
+          cardTop: 100,
+          spotlightRect: getSpotlightRect(shopInvList, 14)
+        });
+      }, 260);
+      return;
+    }
+    if (guideStep === "city-force-gear-open" && sceneId === SCENE_BUILDING_GEARSHOP) {
+      setGuideStep("city-gear-buy-bait");
+      window.setTimeout(() => {
+        renderGearShop();
+        showGuideOverlay({
+          title: "Лавка снастей",
+          text: "Купи любую наживку, чтобы продолжить обучение.",
+          showButton: false,
+          preferredSide: "top",
+          cardTop: 100,
+          spotlightRect: getSpotlightRect(getFirstBaitBuyButton(), 18)
+        });
+      }, 260);
+      return;
+    }
     if (guideStep === "city-force-trophy-open" && sceneId === SCENE_BUILDING_TROPHY) {
       setGuideStep("city-force-quests-open");
       window.setTimeout(() => {
@@ -5623,6 +5661,8 @@ if ("serviceWorker" in navigator) {
           title: "Загляни в задания",
           text: "Теперь открой раздел «Задания».",
           showButton: false,
+          preferredSide: "top",
+          cardTop: 110,
           spotlightRect: getSpotlightRect(btnTrophyQuests)
         });
       }, 260);
@@ -5855,6 +5895,17 @@ if ("serviceWorker" in navigator) {
     renderFishShopInventory();
     renderInventory();
     showToast(`Продано: +${item.sellValue} монет`);
+    if (guideStep === "city-fishshop-single-sell") {
+      setGuideStep("city-fishshop-sell-all");
+      showGuideOverlay({
+        title: "Массовая продажа",
+        text: "Можно продать весь улов сразу. Нажми «Продать всё».",
+        showButton: false,
+        preferredSide: "top",
+        cardTop: 100,
+        spotlightRect: getSpotlightRect(btnSellAll, 18)
+      });
+    }
   }
 
   function updateGearTabs() {
@@ -5905,6 +5956,18 @@ if ("serviceWorker" in navigator) {
           updateHUD();
           updateProfileStatsUI();
           refreshProfileGearPicker();
+          if (guideStep === "city-gear-buy-bait") {
+            setGuideStep("city-gear-done");
+            showGuideOverlay({
+              title: "Покупка завершена",
+              text: "Отлично! Теперь перейди в трофейную, чтобы взять задание.",
+              buttonText: "Далее",
+              showButton: true,
+              preferredSide: "top",
+              cardTop: 110,
+              spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"), 18)
+            });
+          }
         });
         const useBtn = document.createElement("button");
         useBtn.className = "invBtn secondary btn--singleLine";
@@ -6466,6 +6529,12 @@ if ("serviceWorker" in navigator) {
         if (currentScene !== SCENE_CITY) return;
         stopUiEvent(event);
         const sceneId = sceneMap[hitbox.dataset.scene];
+        if (guideStep === "city-force-fish-open" && sceneId !== SCENE_BUILDING_FISHSHOP) {
+          return;
+        }
+        if (guideStep === "city-force-gear-open" && sceneId !== SCENE_BUILDING_GEARSHOP) {
+          return;
+        }
         if (guideStep === "city-force-trophy-open" && sceneId !== SCENE_BUILDING_TROPHY) {
           return;
         }
@@ -6577,14 +6646,15 @@ if ("serviceWorker" in navigator) {
     if (destination === SCENE_LAKE) {
       setHint("Тап: заброс", 1.2);
     } else if (!onboarding.firstCityArrivalShown && !onboarding.trophyGuideDone) {
-      setGuideStep("city-intro-fish");
+      setGuideStep("city-force-fish-open");
       window.setTimeout(() => {
         showGuideOverlay({
-          title: "Рыбная лавка",
-          text: "Здесь ты продаёшь рыбу за монеты.",
-          buttonText: "Далее",
-          showButton: true,
-          spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "fish"))
+          title: "Город",
+          text: "Сначала зайди в рыбную лавку — туда мы отправимся первым делом.",
+          showButton: false,
+          preferredSide: "top",
+          cardTop: 110,
+          spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "fish"), 18)
         });
       }, 280);
     }
@@ -6811,35 +6881,52 @@ if ("serviceWorker" in navigator) {
       save();
       return;
     }
-    if (guideStep === "city-intro-fish") {
-      setGuideStep("city-intro-gear");
+    if (guideStep === "city-fishshop-intro") {
+      setGuideStep("city-fishshop-single-sell");
       showGuideOverlay({
-        title: "Лавка снастей",
-        text: "Здесь покупаются удочки, лески и наживки.",
-        buttonText: "Далее",
+        title: "Точечная продажа",
+        text: "Можно продать одну рыбу кнопкой «Продать».",
+        buttonText: "Понятно",
         showButton: true,
-        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "gear"))
+        preferredSide: "top",
+        cardTop: 100,
+        spotlightRect: getSpotlightRect(shopInvList?.querySelector(".shopItem .invBtn"), 18)
       });
       return;
     }
-    if (guideStep === "city-intro-gear") {
-      setGuideStep("city-intro-trophy");
+    if (guideStep === "city-fishshop-single-sell") {
+      setGuideStep("city-fishshop-sell-all");
       showGuideOverlay({
-        title: "Трофейная",
-        text: "В трофейной можно брать задания и получать награды.",
-        buttonText: "Открыть трофейную",
-        showButton: true,
-        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"))
+        title: "Продажа всего улова",
+        text: "Или продай всю рыбу сразу кнопкой «Продать всё». Нажми её сейчас.",
+        showButton: false,
+        preferredSide: "top",
+        cardTop: 100,
+        spotlightRect: getSpotlightRect(btnSellAll, 18)
       });
       return;
     }
-    if (guideStep === "city-intro-trophy") {
+    if (guideStep === "city-fishshop-balance") {
+      setGuideStep("city-force-gear-open");
+      showGuideOverlay({
+        title: "Первая продажа",
+        text: "Отлично! Баланс монет вырос. Теперь зайди в лавку снастей.",
+        showButton: false,
+        preferredSide: "top",
+        cardTop: 110,
+        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "gear"), 18)
+      });
+      return;
+    }
+    if (guideStep === "city-gear-done") {
       setGuideStep("city-force-trophy-open");
       showGuideOverlay({
-        title: "Сделай шаг",
-        text: "Нажми на «Трофейную», чтобы посмотреть задания.",
+        title: "Трофейная",
+        text: "Теперь открой трофейную и возьми первое задание.",
         showButton: false,
-        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"))
+        preferredSide: "top",
+        cardTop: 110,
+        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"), 18)
       });
       return;
     }
@@ -6866,12 +6953,13 @@ if ("serviceWorker" in navigator) {
       save();
       return;
     }
-    if (guideStep === "trophy-refresh-info") {
+    if (guideStep === "trophy-back-to-lake-hint") {
       onboarding.trophyGuideDone = true;
       onboarding.firstCityArrivalShown = true;
       setGuideStep("none");
       hideGuideOverlay();
       save();
+      return;
     }
   });
 
