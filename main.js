@@ -232,6 +232,8 @@ if ("serviceWorker" in navigator) {
   const btnExchangeSubmit = document.getElementById("btnExchangeSubmit");
   const shopTabIndicator = document.getElementById("shopTabIndicator");
   const shopTabButtons = Array.from(document.querySelectorAll(".shopTabBtn"));
+  let shopTabIndicatorAnimRaf = 0;
+  let shopTabIndicatorAnimToken = 0;
   const shopTabPanels = {
     gems: document.getElementById("gemsTabPanel"),
     coins: document.getElementById("coinsTabPanel"),
@@ -2203,6 +2205,38 @@ if ("serviceWorker" in navigator) {
     if (gemsEl) gemsEl.textContent = String(Math.max(0, Math.floor(Number(balance) || 0)));
   }
 
+  function animateShopTabIndicator(targetLeft, targetWidth) {
+    if (!shopTabIndicator) return;
+    const token = ++shopTabIndicatorAnimToken;
+    const startLeft = Number.parseFloat(shopTabIndicator.dataset.left || shopTabIndicator.style.getPropertyValue("--shop-tab-left") || "0") || 0;
+    const startWidth = Number.parseFloat(shopTabIndicator.dataset.width || shopTabIndicator.style.width || "0") || 0;
+    const nextWidth = Number.isFinite(targetWidth) ? targetWidth : startWidth;
+    const nextLeft = Number.isFinite(targetLeft) ? targetLeft : startLeft;
+    const durationMs = 190;
+    const startTs = performance.now();
+
+    if (shopTabIndicatorAnimRaf) cancelAnimationFrame(shopTabIndicatorAnimRaf);
+
+    const tick = (ts) => {
+      if (token !== shopTabIndicatorAnimToken) return;
+      const t = Math.min(1, (ts - startTs) / durationMs);
+      const eased = 1 - ((1 - t) ** 3);
+      const left = startLeft + (nextLeft - startLeft) * eased;
+      const width = startWidth + (nextWidth - startWidth) * eased;
+      shopTabIndicator.style.width = `${width}px`;
+      shopTabIndicator.style.transform = `translateX(${left}px)`;
+      shopTabIndicator.dataset.left = `${left}`;
+      shopTabIndicator.dataset.width = `${width}`;
+      if (t < 1) {
+        shopTabIndicatorAnimRaf = requestAnimationFrame(tick);
+      } else {
+        shopTabIndicatorAnimRaf = 0;
+      }
+    };
+
+    shopTabIndicatorAnimRaf = requestAnimationFrame(tick);
+  }
+
   function setActiveShopTab(tab, { emit = true } = {}) {
     const safeTab = ["gems", "coins", "exchange"].includes(tab) ? tab : "gems";
     shopTabButtons.forEach((button) => {
@@ -2218,9 +2252,7 @@ if ("serviceWorker" in navigator) {
     });
     const activeBtn = shopTabButtons.find((button) => button.dataset.shopTab === safeTab);
     if (activeBtn && shopTabIndicator) {
-      const left = activeBtn.offsetLeft;
-      shopTabIndicator.style.width = `${activeBtn.offsetWidth}px`;
-      shopTabIndicator.style.transform = `translateX(${left}px)`;
+      animateShopTabIndicator(activeBtn.offsetLeft, activeBtn.offsetWidth);
     }
     if (emit) {
       eventBus.emit(EVENTS.SHOP_OPEN, { tab: safeTab });
@@ -2259,7 +2291,7 @@ if ("serviceWorker" in navigator) {
 
   function createGemsPackItem(pack) {
     const row = document.createElement("div");
-    row.className = "gemsPackItem";
+    row.className = "gemsPackItem gemsPackItem--gems";
 
     const meta = document.createElement("div");
     meta.className = "gemsPackMeta";
@@ -2284,7 +2316,7 @@ if ("serviceWorker" in navigator) {
     }
 
     const buyBtn = document.createElement("button");
-    buyBtn.className = "chipBtn gemsBuyBtn btn--singleLine";
+    buyBtn.className = "chipBtn gemsBuyBtn gemsBuyBtn--gems btn--singleLine";
     buyBtn.innerHTML = `<span class="btnText">${pack.priceYan} yan</span>`;
     buyBtn.dataset.baseLabel = `${pack.priceYan} yan`;
     buyBtn.addEventListener("click", async () => {
@@ -2322,7 +2354,7 @@ if ("serviceWorker" in navigator) {
 
   function createCoinPackItem(pack) {
     const row = document.createElement("div");
-    row.className = "gemsPackItem";
+    row.className = "gemsPackItem gemsPackItem--coins";
 
     const meta = document.createElement("div");
     meta.className = "gemsPackMeta";
@@ -2347,7 +2379,7 @@ if ("serviceWorker" in navigator) {
     }
 
     const buyBtn = document.createElement("button");
-    buyBtn.className = "chipBtn gemsBuyBtn btn--singleLine";
+    buyBtn.className = "chipBtn gemsBuyBtn gemsBuyBtn--coins btn--singleLine";
     buyBtn.innerHTML = `<span class="btnText">${pack.priceYan} yan</span>`;
     buyBtn.dataset.baseLabel = `${pack.priceYan} yan`;
     buyBtn.addEventListener("click", async () => {
@@ -2402,7 +2434,8 @@ if ("serviceWorker" in navigator) {
       if (isRecommended) {
         const badge = document.createElement("span");
         badge.className = "shopBestValueBadge";
-        badge.textContent = "Best value";
+        badge.textContent = "Лучшее предложение";
+        badge.classList.add("shopBestValueBadge--gems");
         row.appendChild(badge);
       }
       if (isSuggested) row.dataset.recommended = "1";
@@ -2424,7 +2457,8 @@ if ("serviceWorker" in navigator) {
         row.classList.add("is-recommended");
         const badge = document.createElement("span");
         badge.className = "shopBestValueBadge";
-        badge.textContent = "Best value";
+        badge.textContent = "Лучшее предложение";
+        badge.classList.add("shopBestValueBadge--coins");
         row.appendChild(badge);
       }
       coinsPackList.appendChild(row);
