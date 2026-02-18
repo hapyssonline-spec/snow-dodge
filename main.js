@@ -2314,7 +2314,7 @@ if ("serviceWorker" in navigator) {
       rarity: "common",
       chance: 0.3,
       minKg: 0.1,
-      maxKg: 1.2,
+      maxKg: 1.5,
       modeKg: 0.35,
       pricePerKg: 45,
       story: "Серебристая тень у кромки льда. Говорят, плотва первая проверяет приманку и первая же выдаёт рыбака.",
@@ -2441,7 +2441,7 @@ if ("serviceWorker" in navigator) {
   ];
 
   const FISH_WEIGHT_LIMITS = {
-    plotva: { min: 0.1, max: 1.2 },
+    plotva: { min: 0.1, max: 1.5 },
     okun: { min: 0.15, max: 2.0 },
     karas_serebryanyy: { min: 0.2, max: 3.5 },
     lesh: { min: 0.5, max: 6.0 },
@@ -2481,7 +2481,7 @@ if ("serviceWorker" in navigator) {
   };
 
   const FIXED_QUEST_TARGETS = {
-    easy: { speciesId: "karas_serebryanyy", targetWeightKg: 1.5 },
+    easy: { speciesId: "plotva", minWeightKg: 0.3, maxWeightKg: 1.5 },
     medium: { speciesId: "plotva", targetWeightKg: 0.8 },
     hard: { speciesId: "shchuka", targetWeightKg: 6.0 }
   };
@@ -2940,7 +2940,10 @@ if ("serviceWorker" in navigator) {
     const species = pickQuestSpecies(difficulty);
     const fixed = FIXED_QUEST_TARGETS[difficulty];
     const { minWeight, maxWeight } = fixed
-      ? { minWeight: fixed.targetWeightKg, maxWeight: fixed.targetWeightKg }
+      ? {
+        minWeight: Number.isFinite(fixed.minWeightKg) ? fixed.minWeightKg : fixed.targetWeightKg,
+        maxWeight: Number.isFinite(fixed.maxWeightKg) ? fixed.maxWeightKg : fixed.targetWeightKg
+      }
       : buildQuestRange(species, difficulty);
     const reward = buildQuestReward(species, difficulty, minWeight, maxWeight);
     return {
@@ -5376,7 +5379,7 @@ if ("serviceWorker" in navigator) {
       setGuideStep("trophy-difficulty-info");
       showGuideOverlay({
         title: "Сложности заданий",
-        text: "Сейчас возьми первое задание. Для старта по умолчанию выбрано лёгкое задание с карасём.",
+        text: "Сейчас возьми первое задание. Для старта по умолчанию выбрано лёгкое задание на плотву 0.3–1.5 кг.",
         buttonText: "",
         showButton: false,
         spotlightRect: getSpotlightRect(btnQuestAccept)
@@ -5420,6 +5423,33 @@ if ("serviceWorker" in navigator) {
       return;
     }
     transitionTo(SCENE_CITY);
+    if (guideStep === "city-fishshop-close") {
+      setGuideStep("city-force-gear-open");
+      window.setTimeout(() => {
+        showGuideOverlay({
+          title: "Первая продажа",
+          text: "Отлично! Баланс монет вырос. Теперь зайди в лавку снастей.",
+          showButton: false,
+          preferredSide: "top",
+          cardTop: 110,
+          spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "gear"), 18)
+        });
+      }, 260);
+      return;
+    }
+    if (guideStep === "city-gear-close") {
+      setGuideStep("city-force-trophy-open");
+      window.setTimeout(() => {
+        showGuideOverlay({
+          title: "Трофейная",
+          text: "Теперь открой трофейную и возьми первое задание.",
+          showButton: false,
+          preferredSide: "top",
+          cardTop: 110,
+          spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"), 18)
+        });
+      }, 260);
+    }
   });
 
   btnCatchKeep?.addEventListener("click", () => {
@@ -5441,7 +5471,7 @@ if ("serviceWorker" in navigator) {
         setGuideStep("tutorial-first-catch-inventory");
         showGuideOverlay({
           title: "Первый улов!",
-          text: "Отлично! Это твой первый улов — карась на 1.5 кг. Открой инвентарь, рассмотри добычу и дальше попробуй поймать рыбу уже полностью сам.",
+          text: "Отлично! Это твой первый улов — плотва от 0.3 до 1.5 кг. Открой инвентарь, рассмотри добычу и дальше попробуй поймать рыбу уже полностью сам.",
           buttonText: "Понятно",
           showButton: true,
           spotlightRect: getSpotlightRect(btnInventory)
@@ -6197,15 +6227,14 @@ if ("serviceWorker" in navigator) {
           updateProfileStatsUI();
           refreshProfileGearPicker();
           if (guideStep === "city-gear-buy-bait") {
-            setGuideStep("city-gear-done");
+            setGuideStep("city-gear-close");
             showGuideOverlay({
               title: "Покупка завершена",
-              text: "Отлично! Теперь перейди в трофейную, чтобы взять задание.",
-              buttonText: "Далее",
-              showButton: true,
+              text: "Отлично! Теперь нажми на крестик вверху, чтобы выйти из магазина.",
+              showButton: false,
               preferredSide: "top",
-              cardTop: 110,
-              spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"), 18)
+              cardTop: 100,
+              spotlightRect: getSpotlightRect(btnShopClose, 16)
             });
           }
         });
@@ -7210,26 +7239,14 @@ if ("serviceWorker" in navigator) {
       return;
     }
     if (guideStep === "city-fishshop-balance") {
-      setGuideStep("city-force-gear-open");
+      setGuideStep("city-fishshop-close");
       showGuideOverlay({
-        title: "Первая продажа",
-        text: "Отлично! Баланс монет вырос. Теперь зайди в лавку снастей.",
+        title: "Выход из лавки",
+        text: "Теперь нажми на крестик вверху, чтобы выйти из текущего домика.",
         showButton: false,
         preferredSide: "top",
-        cardTop: 110,
-        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "gear"), 18)
-      });
-      return;
-    }
-    if (guideStep === "city-gear-done") {
-      setGuideStep("city-force-trophy-open");
-      showGuideOverlay({
-        title: "Трофейная",
-        text: "Теперь открой трофейную и возьми первое задание.",
-        showButton: false,
-        preferredSide: "top",
-        cardTop: 110,
-        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "trophy"), 18)
+        cardTop: 100,
+        spotlightRect: getSpotlightRect(btnShopClose, 16)
       });
       return;
     }
