@@ -1029,7 +1029,7 @@ if ("serviceWorker" in navigator) {
           this.step = "fight-demo-tap-tension";
           this.showOverlay();
           this.highlightTensionSweetSpot();
-          this.showCard("Контроль натяжения", "Натяжение в центре. Нажми по индикатору натяжения, чтобы продолжить.", "", false);
+          this.showCard("Контроль натяжения", "Натяжение в центре. Тапни по экрану, чтобы продолжить.", "", false);
         }, 900);
         return;
       }
@@ -1078,11 +1078,10 @@ if ("serviceWorker" in navigator) {
         return;
       }
       if (this.step === "fight-demo-tap-tension") {
-        if (!this.pointInAllowedRect(event.clientX, event.clientY)) return;
-        game.reelProgress = clamp(game.reelProgress + 0.18, 0, 1);
+        game.progress = clamp(game.progress + game.need * 0.15, 0, game.need);
         this.step = "fight-demo-reel-progress";
         this.highlightReelProgress();
-        this.showCard("Выматывание выросло", "Видишь, шкала выматывания немного увеличилась.", "Далее");
+        this.showCard("Выматывание выросло", "Видишь, выматывание поднялось на 15%.", "Далее");
       }
     }
 
