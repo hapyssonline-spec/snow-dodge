@@ -3652,21 +3652,26 @@ button:disabled{
   position:fixed;
   left:12px;
   right:12px;
-  top:50%;
+  top:var(--tutorial-card-top, calc(50% - 120px));
   bottom:auto;
-  transform:translateY(-50%);
+  transform:translateY(0);
   display:flex;
   justify-content:center;
+  transition:top .24s ease;
+}
+.tutorialOverlay.is-visible .tutorialCardWrap{
+  animation:tutorialCardIntro 1s ease;
 }
 .tutorialCard{ width:min(560px, 100%); background:rgba(15,26,36,.96); border:1px solid rgba(190,223,255,.3); border-radius:18px; padding:14px; box-shadow:0 14px 34px rgba(0,0,0,.35); }
 .tutorialCard h3{ margin:0 0 8px; font-size:26px; }
 .tutorialCard p{ margin:0 0 12px; line-height:1.4; color:#e5eefc; }
 .tutorialSwipeHint{ position:fixed; left:50%; bottom:120px; width:120px; height:220px; transform:translateX(-50%); pointer-events:none; }
-.tutorialSwipeLine{ position:absolute; left:58px; bottom:36px; width:4px; height:144px; border-radius:4px; background:linear-gradient(180deg, rgba(123,211,255,0), rgba(123,211,255,.9)); }
-.tutorialSwipeArrow{ position:absolute; top:4px; left:46px; font-size:36.4px; color:#7bd3ff; animation:tutorialPulse 1.1s ease-in-out infinite; }
-.tutorialSwipeHand{ position:absolute; left:42px; bottom:0; font-size:44.2px; animation:tutorialSwipe 1.3s ease-in-out infinite; }
-@keyframes tutorialSwipe{ 0%{ transform:translateY(0); opacity:.5;} 70%{ transform:translateY(-130px); opacity:1;} 100%{ transform:translateY(-130px); opacity:0;} }
+.tutorialSwipeLine{ position:absolute; left:calc(50% - 2px); bottom:36px; width:4px; height:144px; border-radius:4px; background:linear-gradient(180deg, rgba(123,211,255,0), rgba(123,211,255,.9)); }
+.tutorialSwipeArrow{ position:absolute; top:4px; left:50%; transform:translateX(-50%); font-size:36px; color:#7bd3ff; animation:tutorialPulse 1.1s ease-in-out infinite; }
+.tutorialSwipeHand{ position:absolute; left:50%; bottom:0; transform:translateX(-50%); font-size:44px; animation:tutorialSwipe 1.3s ease-in-out infinite; }
+@keyframes tutorialSwipe{ 0%{ transform:translateX(-50%) translateY(0); opacity:.5;} 70%{ transform:translateX(-50%) translateY(-130px); opacity:1;} 100%{ transform:translateX(-50%) translateY(-130px); opacity:0;} }
 @keyframes tutorialPulse{ 0%,100%{ opacity:.5;} 50%{ opacity:1;} }
+@keyframes tutorialCardIntro{ 0%{ transform:translateY(18px); opacity:.15; } 100%{ transform:translateY(0); opacity:1; } }
 
 
 #app[data-effects="reduced"] .catchXpGain{

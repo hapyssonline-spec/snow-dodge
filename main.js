@@ -252,6 +252,7 @@ if ("serviceWorker" in navigator) {
   const tutorialText = document.getElementById("tutorialText");
   const tutorialNextBtn = document.getElementById("tutorialNextBtn");
   const tutorialSwipeHint = document.getElementById("tutorialSwipeHint");
+  const tutorialCardWrap = tutorialOverlay?.querySelector(".tutorialCardWrap");
   const audio = window.audioManager;
 
   const disableUiClickSfx = (button) => {
@@ -835,6 +836,46 @@ if ("serviceWorker" in navigator) {
   const CITY_UNLOCK_LEVEL = 2;
   const FINDING_LOCK_CASTS = 5;
 
+  function positionTutorialCard({ spotlightRect = null, preferredSide = "auto" } = {}) {
+    if (!tutorialCardWrap) return;
+
+    const viewportH = window.innerHeight || 0;
+    const cardRect = tutorialCardWrap.getBoundingClientRect();
+    const cardHeight = cardRect.height || 220;
+    const safeTop = 76;
+    const safeBottomPad = 24;
+    const minTop = safeTop;
+    const maxTop = Math.max(minTop, viewportH - safeBottomPad - cardHeight);
+
+    if (!spotlightRect) {
+      const centeredTop = clamp(Math.round((viewportH - cardHeight) * 0.5), minTop, maxTop);
+      tutorialCardWrap.style.setProperty("--tutorial-card-top", `${centeredTop}px`);
+      tutorialCardWrap.dataset.side = "center";
+      return;
+    }
+
+    const gap = 18;
+    const rectTop = spotlightRect.top;
+    const rectBottom = spotlightRect.top + spotlightRect.height;
+    const aboveTop = clamp(Math.round(rectTop - cardHeight - gap), minTop, maxTop);
+    const belowTop = clamp(Math.round(rectBottom + gap), minTop, maxTop);
+    const spaceAbove = rectTop - minTop;
+    const spaceBelow = viewportH - rectBottom - safeBottomPad;
+
+    let side = "below";
+    if (preferredSide === "top") {
+      side = "above";
+    } else if (preferredSide === "bottom") {
+      side = "below";
+    } else if (spaceAbove > spaceBelow) {
+      side = "above";
+    }
+
+    const targetTop = side === "above" ? aboveTop : belowTop;
+    tutorialCardWrap.style.setProperty("--tutorial-card-top", `${targetTop}px`);
+    tutorialCardWrap.dataset.side = side;
+  }
+
   function setTutorialPause(enabled) {
     tutorialPauseGameplay = !!enabled;
   }
@@ -872,9 +913,9 @@ if ("serviceWorker" in navigator) {
       setTimeout(() => {
         if (!this.active) return;
         this.showOverlay();
-        this.showCard("Обучение началось", "Сейчас быстро разберёмся с управлением, и ты сразу поймаешь первую рыбу.", "Начать");
+        this.showCard("Обучение началось", "Сейчас быстро разберёмся с управлением, и ты сразу поймаешь первую рыбу.", "Начать", true, { preferredSide: "auto" });
         this.step = "intro";
-      }, 3000);
+      }, 40);
     }
 
     resetForDev() {
@@ -897,13 +938,15 @@ if ("serviceWorker" in navigator) {
       setTimeout(() => tutorialOverlay.classList.add("hidden"), 220);
     }
 
-    showCard(title, text, buttonText = "Далее", showButton = true) {
+    showCard(title, text, buttonText = "Далее", showButton = true, { preferredSide = "auto", spotlightRect = null } = {}) {
       if (tutorialTitle) tutorialTitle.textContent = title;
       if (tutorialText) tutorialText.textContent = text;
       if (tutorialNextBtn) {
         tutorialNextBtn.classList.toggle("hidden", !showButton);
         if (showButton) setButtonText(tutorialNextBtn, buttonText);
       }
+      const nextSpotlight = spotlightRect || tutorialSpotlight?.getBoundingClientRect?.() || null;
+      requestAnimationFrame(() => positionTutorialCard({ spotlightRect: nextSpotlight, preferredSide }));
     }
 
     setSpotlightRect(rect) {
@@ -993,18 +1036,18 @@ if ("serviceWorker" in navigator) {
       if (this.step === "intro") {
         this.step = "hero";
         this.highlightHero();
-        this.showCard("Это ты", "Это твой персонаж. Отсюда начинается рыбалка.", "Далее");
+        this.showCard("Это ты", "Это твой персонаж. Отсюда начинается рыбалка.", "Далее", true, { preferredSide: "top" });
         return;
       }
       if (this.step === "hero") {
         this.step = "cast";
         this.highlightWaterRight();
-        this.showCard("Заброс", "Нажми на воду справа — произойдёт заброс удочки. Нажми сейчас.", "Ожидаю тап", false);
+        this.showCard("Заброс", "Нажми на воду справа — произойдёт заброс удочки. Нажми сейчас.", "Ожидаю тап", false, { preferredSide: "bottom" });
         return;
       }
       if (this.step === "bite-info") {
         this.waitingForBiteDemo = true;
-        this.showCard("Поклёвка", "Смотри на поплавок. Через мгновение он поплывёт вправо.", "Наблюдаю", false);
+        this.showCard("Поклёвка", "Смотри на поплавок. Через мгновение он поплывёт вправо.", "Наблюдаю", false, { preferredSide: "top" });
         setTutorialPause(false);
         return;
       }
@@ -1070,7 +1113,7 @@ if ("serviceWorker" in navigator) {
         castTo(p.x, y);
         this.step = "bite-info";
         this.followBobberSpotlight();
-        this.showCard("Поклёвка", "Когда поплавок начинает плыть правее — это поклёвка.", "Показать");
+        this.showCard("Поклёвка", "Когда поплавок начинает плыть правее — это поклёвка.", "Показать", true, { preferredSide: "top" });
         return;
       }
       if (this.step === "swipe") {
@@ -1138,7 +1181,7 @@ if ("serviceWorker" in navigator) {
         this.stopFollowBobberSpotlight();
         this.setSpotlightRect(null);
         tutorialSwipeHint?.classList.remove("hidden");
-        this.showCard("Рыба клюнула!", "Чтобы подсечь — проведи пальцем снизу вверх.", "", false);
+        this.showCard("Рыба клюнула!", "Чтобы подсечь — проведи пальцем снизу вверх.", "", false, { preferredSide: "bottom", spotlightRect: null });
       }, 700);
     }
 
@@ -1237,6 +1280,7 @@ if ("serviceWorker" in navigator) {
     tutorialSwipeHint?.classList.add("hidden");
     tutorialSpotlight?.classList.remove("is-following");
     setGuideSpotlight(spotlightRect);
+    requestAnimationFrame(() => positionTutorialCard({ spotlightRect, preferredSide: "auto" }));
     tutorialOverlay?.classList.remove("hidden");
     tutorialOverlay?.setAttribute("aria-hidden", "false");
     if (tutorialOverlay) tutorialOverlay.style.pointerEvents = showButton ? "auto" : "none";
