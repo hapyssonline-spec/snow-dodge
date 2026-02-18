@@ -846,6 +846,10 @@ if ("serviceWorker" in navigator) {
     const cardHeight = (cardRect.height || 220) / localScale;
     const minTop = 92;
     const maxTop = Math.max(minTop, viewportH - 24 - cardHeight);
+    const overlayTop = overlayRect?.top || 0;
+    const spotlightRect = tutorialSpotlight?.getBoundingClientRect?.() || null;
+    const hasSpotlight = !!(spotlightRect && spotlightRect.width > 6 && spotlightRect.height > 6);
+    const spotlightGap = 18;
 
     const manualTopByStep = {
       intro: 180,
@@ -862,14 +866,50 @@ if ("serviceWorker" in navigator) {
       done: 320
     };
 
-    let targetTop = manualTopByStep[step];
-    if (typeof targetTop !== "number") {
-      if (preferredSide === "top") {
-        targetTop = 140;
-      } else if (preferredSide === "bottom") {
-        targetTop = Math.max(minTop, viewportH - cardHeight - 280);
+    let targetTop = (viewportH - cardHeight) * 0.5;
+    if (hasSpotlight) {
+      const spotlightTop = (spotlightRect.top - overlayTop) / localScale;
+      const spotlightBottom = spotlightTop + spotlightRect.height / localScale;
+      const aboveTop = spotlightTop - cardHeight - spotlightGap;
+      const belowTop = spotlightBottom + spotlightGap;
+      const canPlaceAbove = aboveTop >= minTop;
+      const canPlaceBelow = belowTop <= maxTop;
+
+      if (preferredSide === "top" && canPlaceAbove) {
+        targetTop = aboveTop;
+      } else if (preferredSide === "bottom" && canPlaceBelow) {
+        targetTop = belowTop;
+      } else if (canPlaceAbove && canPlaceBelow) {
+        const spaceAbove = spotlightTop - minTop;
+        const spaceBelow = maxTop - spotlightBottom;
+        targetTop = spaceAbove >= spaceBelow ? aboveTop : belowTop;
+      } else if (canPlaceAbove) {
+        targetTop = aboveTop;
+      } else if (canPlaceBelow) {
+        targetTop = belowTop;
       } else {
-        targetTop = (viewportH - cardHeight) * 0.5;
+        const manualTop = manualTopByStep[step];
+        if (typeof manualTop === "number") {
+          targetTop = manualTop;
+        }
+      }
+
+      const targetBottom = targetTop + cardHeight;
+      const intersectsSpotlight = targetBottom > spotlightTop - spotlightGap && targetTop < spotlightBottom + spotlightGap;
+      if (intersectsSpotlight) {
+        const moveAbove = spotlightTop - cardHeight - spotlightGap;
+        const moveBelow = spotlightBottom + spotlightGap;
+        const aboveFits = moveAbove >= minTop;
+        const belowFits = moveBelow <= maxTop;
+        if (aboveFits && belowFits) {
+          const aboveDelta = Math.abs(moveAbove - targetTop);
+          const belowDelta = Math.abs(moveBelow - targetTop);
+          targetTop = aboveDelta <= belowDelta ? moveAbove : moveBelow;
+        } else if (aboveFits) {
+          targetTop = moveAbove;
+        } else if (belowFits) {
+          targetTop = moveBelow;
+        }
       }
     }
 
