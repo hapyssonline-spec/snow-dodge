@@ -832,7 +832,7 @@ if ("serviceWorker" in navigator) {
 
   const TUTORIAL_TEST_SPECIES_ID = "karas_serebryanyy";
   const TUTORIAL_TEST_WEIGHT_KG = 1.5;
-  const CITY_UNLOCK_LEVEL = 3;
+  const CITY_UNLOCK_LEVEL = 2;
   const FINDING_LOCK_CASTS = 5;
 
   function setTutorialPause(enabled) {
@@ -3911,7 +3911,7 @@ if ("serviceWorker" in navigator) {
     setGuideStep("city-unlock");
     showGuideOverlay({
       title: "Город открыт",
-      text: "Достигнут 3 уровень! Теперь можно отправиться в город и продать рыбу.",
+      text: `Достигнут ${CITY_UNLOCK_LEVEL} уровень! Теперь можно отправиться в город и продать рыбу.`,
       buttonText: "Отлично",
       showButton: true,
       spotlightRect: getSpotlightRect(btnCity)
