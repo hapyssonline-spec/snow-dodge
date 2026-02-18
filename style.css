@@ -96,6 +96,15 @@ img, a{
   background: rgba(10, 24, 44, 0.72);
 }
 
+.stage{
+  contain: layout paint style;
+}
+
+.stage.is-hidden{
+  display:none !important;
+  pointer-events:none !important;
+}
+
 #gameRoot{
   position:absolute;
   top:0;
@@ -3753,7 +3762,7 @@ button:disabled{
   transition:none !important;
   animation:none !important;
 }
-.tutorialCard{ width:min(560px, 100%); background:rgba(15,26,36,.96); border:1px solid rgba(190,223,255,.3); border-radius:18px; padding:14px; box-shadow:0 14px 34px rgba(0,0,0,.35); backdrop-filter: blur(6px); }
+.tutorialCard{ width:min(560px, 100%); background:rgba(15,26,36,.96); border:1px solid rgba(190,223,255,.3); border-radius:18px; padding:14px; box-shadow:0 14px 34px rgba(0,0,0,.35); }
 .tutorialCard h3{ margin:0 0 8px; font-size:26px; }
 .tutorialCard p{ margin:0 0 12px; line-height:1.4; color:#e5eefc; }
 .tutorialSwipeHint{ position:fixed; left:50%; bottom:120px; width:120px; height:220px; transform:translateX(-50%); pointer-events:none; }
@@ -3762,7 +3771,7 @@ button:disabled{
 .tutorialSwipeHand{ position:absolute; left:50%; bottom:0; transform:translateX(-50%); font-size:44px; animation:tutorialSwipe 1.3s ease-in-out infinite; }
 @keyframes tutorialSwipe{ 0%{ transform:translateX(-50%) translateY(0); opacity:.5;} 70%{ transform:translateX(-50%) translateY(-130px); opacity:1;} 100%{ transform:translateX(-50%) translateY(-130px); opacity:0;} }
 @keyframes tutorialPulse{ 0%,100%{ opacity:.5;} 50%{ opacity:1;} }
-@keyframes tutorialCardIntro{ 0%{ transform:translateY(18px) scale(.98); opacity:.15; filter:blur(4px); } 100%{ transform:translateY(0) scale(1); opacity:1; filter:blur(0); } }
+@keyframes tutorialCardIntro{ 0%{ transform:translateY(18px) scale(.98); opacity:.15; } 100%{ transform:translateY(0) scale(1); opacity:1; } }
 @keyframes tutorialSpotPulse{ 0%,100%{ box-shadow:0 0 0 9999px rgba(4,10,18,.5), 0 0 0 1px rgba(170, 230, 255, .7), 0 0 26px rgba(120, 220, 255, .45);} 50%{ box-shadow:0 0 0 9999px rgba(4,10,18,.56), 0 0 0 2px rgba(190, 240, 255, .95), 0 0 36px rgba(120, 220, 255, .65);} }
 
 
