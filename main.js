@@ -865,6 +865,10 @@ if ("serviceWorker" in navigator) {
       retry: 320,
       done: 320
     };
+    const forcedTopByStep = {
+      "fight-progress": 360,
+      "fight-demo-reel-progress": 360
+    };
 
     const manualTop = manualTopByStep[step];
     let targetTop = typeof manualTop === "number" ? manualTop : (viewportH - cardHeight) * 0.5;
@@ -913,6 +917,8 @@ if ("serviceWorker" in navigator) {
 
     if (typeof forcedTop === "number" && Number.isFinite(forcedTop)) {
       targetTop = forcedTop;
+    } else if (typeof forcedTopByStep[step] === "number") {
+      targetTop = forcedTopByStep[step];
     }
 
     targetTop = clamp(Math.round(targetTop), minTop, maxTop);
@@ -3549,7 +3555,8 @@ if ("serviceWorker" in navigator) {
     cityUnlockHintShown: false,
     firstCityArrivalShown: false,
     trophyGuideDone: false,
-    findingTutorialDone: false
+    findingTutorialDone: false,
+    firstTutorialInventoryHintShown: false
   };
   let guideStep = "none";
 
@@ -3821,6 +3828,7 @@ if ("serviceWorker" in navigator) {
         onboarding.firstCityArrivalShown = !!obj.onboarding.firstCityArrivalShown;
         onboarding.trophyGuideDone = !!obj.onboarding.trophyGuideDone;
         onboarding.findingTutorialDone = !!obj.onboarding.findingTutorialDone;
+        onboarding.firstTutorialInventoryHintShown = !!obj.onboarding.firstTutorialInventoryHintShown;
       }
       if (obj.storageVersion >= 7) {
         if (obj.questPreview && typeof obj.questPreview === "object") {
@@ -3955,6 +3963,7 @@ if ("serviceWorker" in navigator) {
     onboarding.firstCityArrivalShown = false;
     onboarding.trophyGuideDone = false;
     onboarding.findingTutorialDone = false;
+    onboarding.firstTutorialInventoryHintShown = false;
     cityUnlockedToastShown = false;
     save();
     updateHUD();
@@ -5014,11 +5023,31 @@ if ("serviceWorker" in navigator) {
 
   btnCatchKeep?.addEventListener("click", () => {
     if (!pendingCatch) return;
+    const showFirstTutorialInventoryHint = !onboarding.firstTutorialInventoryHintShown
+      && pendingCatch.catchType === "fish"
+      && pendingCatch.speciesId === TUTORIAL_TEST_SPECIES_ID
+      && Math.abs((pendingCatch.weightKg || 0) - TUTORIAL_TEST_WEIGHT_KG) < 0.001;
     addCatch(pendingCatch);
     save();
     pendingCatch = null;
     transitionTo(SCENE_LAKE);
     setHint("Тап: заброс", 1.2);
+    if (showFirstTutorialInventoryHint) {
+      setTimeout(() => {
+        if (currentScene !== SCENE_LAKE) return;
+        if (guideStep !== "none") return;
+        onboarding.firstTutorialInventoryHintShown = true;
+        setGuideStep("tutorial-first-catch-inventory");
+        showGuideOverlay({
+          title: "Первый улов!",
+          text: "Отлично! Это твой первый улов — карась на 1.5 кг. Открой инвентарь, рассмотри добычу и дальше попробуй поймать рыбу уже полностью сам.",
+          buttonText: "Понятно",
+          showButton: true,
+          spotlightRect: getSpotlightRect(btnInventory)
+        });
+        save();
+      }, 420);
+    }
   });
 
   btnFindingContinue?.addEventListener("click", () => {
@@ -6569,6 +6598,12 @@ if ("serviceWorker" in navigator) {
     }
     if (guideStep === "trash-journal-intro") {
       onboarding.findingTutorialDone = true;
+      setGuideStep("none");
+      hideGuideOverlay();
+      save();
+      return;
+    }
+    if (guideStep === "tutorial-first-catch-inventory") {
       setGuideStep("none");
       hideGuideOverlay();
       save();
