@@ -3449,41 +3449,49 @@ if ("serviceWorker" in navigator) {
 
   function pickFishState(reel, tension, cadence) {
     const zones = reel.zones;
-    const weights = {
-      CALM: 0.28,
-      REST: 0.2,
-      PULL: 0.24,
-      DASH: 0.15 * reel.fishAI.tune.dashBias,
-      PANIC: 0.13 * reel.fishAI.tune.dashBias
-    };
+    let calmWeight = 0.28;
+    let restWeight = 0.2;
+    let pullWeight = 0.24;
+    let dashWeight = 0.15 * reel.fishAI.tune.dashBias;
+    let panicWeight = 0.13 * reel.fishAI.tune.dashBias;
 
     const inSweet = tension >= zones.sweetMin && tension <= zones.sweetMax;
     if (tension < zones.safeMin) {
-      weights.PULL += 0.12;
-      weights.DASH += 0.1;
-      weights.REST -= 0.08;
+      pullWeight += 0.12;
+      dashWeight += 0.1;
+      restWeight -= 0.08;
     }
     if (tension > zones.dangerMin) {
-      weights.PANIC += 0.12;
-      weights.DASH += 0.06;
-      weights.CALM -= 0.1;
+      panicWeight += 0.12;
+      dashWeight += 0.06;
+      calmWeight -= 0.1;
     }
     if (inSweet) {
-      weights.REST += 0.12;
-      weights.CALM += 0.1;
-      weights.DASH -= 0.05;
+      restWeight += 0.12;
+      calmWeight += 0.1;
+      dashWeight -= 0.05;
     }
-    if (cadence < 0.16) weights.PANIC += 0.08;
-    if (cadence > 0.75) weights.DASH += 0.08;
+    if (cadence < 0.16) panicWeight += 0.08;
+    if (cadence > 0.75) dashWeight += 0.08;
 
-    const entries = Object.entries(weights).map(([key, value]) => [key, Math.max(0.05, value)]);
-    const total = entries.reduce((sum, entry) => sum + entry[1], 0);
+    const calm = Math.max(0.05, calmWeight);
+    const rest = Math.max(0.05, restWeight);
+    const pull = Math.max(0.05, pullWeight);
+    const dash = Math.max(0.05, dashWeight);
+    const panic = Math.max(0.05, panicWeight);
+
+    const total = calm + rest + pull + dash + panic;
     let roll = Math.random() * total;
-    for (const [key, value] of entries) {
-      roll -= value;
-      if (roll <= 0) return key;
-    }
-    return "CALM";
+
+    roll -= calm;
+    if (roll <= 0) return "CALM";
+    roll -= rest;
+    if (roll <= 0) return "REST";
+    roll -= pull;
+    if (roll <= 0) return "PULL";
+    roll -= dash;
+    if (roll <= 0) return "DASH";
+    return "PANIC";
   }
 
   function buildReelModel(catchData) {
@@ -3516,6 +3524,7 @@ if ("serviceWorker" in navigator) {
       slackFlash: 0,
       slackHintCooldown: 0,
       tapHistory: [],
+      tapHistorySum: 0,
       tapCadence: 0.45,
       overload: 0,
       tapFlash: 0,
@@ -3772,7 +3781,8 @@ if ("serviceWorker" in navigator) {
     viewportOffsetX = (screenW - W * viewportScale) / 2;
     viewportOffsetY = (screenH - H * viewportScale) / 2;
 
-    DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    const dprCeil = isMobileDevice() ? MAX_MOBILE_DPR : MAX_DESKTOP_DPR;
+    DPR = Math.max(1, Math.min(dprCeil, window.devicePixelRatio || 1));
     canvas.width = Math.floor(W * DPR);
     canvas.height = Math.floor(H * DPR);
     canvas.style.width = `${W}px`;
@@ -8023,8 +8033,12 @@ if ("serviceWorker" in navigator) {
       // tap cadence tracking
       if (Number.isFinite(game.lastTap)) {
         reel.tapHistory.push(game.lastTap);
-        if (reel.tapHistory.length > TAP_HISTORY) reel.tapHistory.shift();
-        const avg = reel.tapHistory.reduce((sum, v) => sum + v, 0) / reel.tapHistory.length;
+        reel.tapHistorySum += game.lastTap;
+        if (reel.tapHistory.length > TAP_HISTORY) {
+          const removedTap = reel.tapHistory.shift();
+          reel.tapHistorySum -= Number.isFinite(removedTap) ? removedTap : 0;
+        }
+        const avg = reel.tapHistory.length > 0 ? reel.tapHistorySum / reel.tapHistory.length : 0.45;
         reel.tapCadence = clamp(avg, 0.08, 1.2);
       }
       game.lastTap = 0;
@@ -8082,6 +8096,7 @@ if ("serviceWorker" in navigator) {
   function onMove(e) {
     if (orientationLocked) return;
     if (!pointerDown) return;
+    if (game.mode !== "BITE") return;
     e.preventDefault();
     const p = getXY(e);
     if (!p.inBounds) return;
@@ -8089,7 +8104,7 @@ if ("serviceWorker" in navigator) {
     lastY = p.y;
 
     // swipe up during bite
-    if (game.mode === "BITE" && !swipeDone) {
+    if (!swipeDone) {
       const dy = p.y - startY;
       const dx = p.x - startX;
 
@@ -8127,9 +8142,33 @@ if ("serviceWorker" in navigator) {
   canvas.addEventListener("pointercancel", onUp, { passive: false });
 
   // ===== Update loop =====
+  const MOBILE_MEDIA_QUERY = "(pointer: coarse), (max-width: 1024px)";
+  const mobileMatchMedia = window.matchMedia?.(MOBILE_MEDIA_QUERY) || null;
+  let mobileDevice = mobileMatchMedia ? mobileMatchMedia.matches : false;
+  const isMobileDevice = () => mobileDevice;
+  const MAX_MOBILE_DPR = 2;
+  const MAX_DESKTOP_DPR = 3;
+  const TARGET_FPS_MOBILE = 45;
+  const TARGET_FPS_DESKTOP = 60;
+  const FIXED_STEP = 1 / 60;
+  const MAX_FRAME_DELTA = 0.05;
+
   let lastTime = 0;
+  let accumulator = 0;
+  let frameBudgetCarry = 0;
+  let gameLoopPaused = document.hidden;
   let lowFpsFrames = 0;
   const LOW_FPS_THRESHOLD = 44;
+
+  const getTargetFrameInterval = () => 1 / (isMobileDevice() ? TARGET_FPS_MOBILE : TARGET_FPS_DESKTOP);
+
+  const handleDeviceProfileChange = () => {
+    const nextMobile = mobileMatchMedia ? mobileMatchMedia.matches : false;
+    if (nextMobile === mobileDevice) return;
+    mobileDevice = nextMobile;
+    layout();
+  };
+  mobileMatchMedia?.addEventListener?.("change", handleDeviceProfileChange);
 
   function update(dt) {
     if (orientationLocked) return;
@@ -8738,11 +8777,25 @@ if ("serviceWorker" in navigator) {
 
   function loop(t) {
     if (!lastTime) lastTime = t;
-    const dt = Math.min(0.033, (t - lastTime) / 1000);
+    const frameDt = Math.min(MAX_FRAME_DELTA, Math.max(0, (t - lastTime) / 1000));
     lastTime = t;
 
+    const targetInterval = getTargetFrameInterval();
+    frameBudgetCarry += frameDt;
+    if (frameBudgetCarry + 0.000001 < targetInterval) {
+      requestAnimationFrame(loop);
+      return;
+    }
+    frameBudgetCarry = Math.max(0, frameBudgetCarry - targetInterval);
+
+    if (gameLoopPaused) {
+      accumulator = 0;
+      requestAnimationFrame(loop);
+      return;
+    }
+
     if (!reducedEffects) {
-      const fps = dt > 0 ? 1 / dt : 60;
+      const fps = frameDt > 0 ? 1 / frameDt : 60;
       if (fps < LOW_FPS_THRESHOLD) {
         lowFpsFrames += 1;
       } else {
@@ -8753,12 +8806,26 @@ if ("serviceWorker" in navigator) {
       }
     }
 
-    update(dt);
+    accumulator = Math.min(0.2, accumulator + frameDt);
+    while (accumulator >= FIXED_STEP) {
+      update(FIXED_STEP);
+      accumulator -= FIXED_STEP;
+    }
+
     updateFightHud();
     draw();
 
     requestAnimationFrame(loop);
   }
+
+  document.addEventListener("visibilitychange", () => {
+    gameLoopPaused = document.hidden;
+    if (!gameLoopPaused) {
+      lastTime = 0;
+      accumulator = 0;
+      frameBudgetCarry = 0;
+    }
+  });
 
   // ===== Service Worker (optional) =====
   // Если не хочешь кеширования — можешь удалить sw.js и блок ниже.
