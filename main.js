@@ -279,6 +279,10 @@ if ("serviceWorker" in navigator) {
   const tutorialSwipeHint = document.getElementById("tutorialSwipeHint");
   const tutorialCardWrap = tutorialOverlay?.querySelector(".tutorialCardWrap");
   const audio = window.audioManager;
+  window.__ICEFISH_DEV__ = window.__ICEFISH_DEV__ ?? /localhost|127\.0\.0\.1/.test(location.hostname);
+  const { StageBase, StageManager } = window.icefishStages || {};
+  const stageManager = StageManager ? new StageManager() : null;
+
 
   const disableUiClickSfx = (button) => {
     if (button) button.dataset.sfx = "none";
@@ -1035,15 +1039,33 @@ if ("serviceWorker" in navigator) {
       this.practiceMode = false;
       this.swipeStart = null;
       this.pendingRetry = false;
-      this.bind();
+      this.stage = null;
+      this.localTimers = new Set();
     }
 
-    bind() {
-      tutorialNextBtn?.addEventListener("click", () => this.onNext());
-      tutorialOverlay?.addEventListener("pointerdown", (event) => this.onPointerDown(event), { passive: false });
-      tutorialOverlay?.addEventListener("pointermove", (event) => this.onPointerMove(event), { passive: false });
-      tutorialOverlay?.addEventListener("pointerup", (event) => this.onPointerUp(event), { passive: false });
-      window.addEventListener("resize", () => this.refreshSpotlight());
+    attachToStage(stage) {
+      this.stage = stage || null;
+      if (!this.stage) return;
+      this.stage.on(tutorialNextBtn, "click", () => this.onNext());
+      this.stage.on(tutorialOverlay, "pointerdown", (event) => this.onPointerDown(event), { passive: false });
+      this.stage.on(tutorialOverlay, "pointermove", (event) => this.onPointerMove(event), { passive: false });
+      this.stage.on(tutorialOverlay, "pointerup", (event) => this.onPointerUp(event), { passive: false });
+      this.stage.on(window, "resize", () => this.refreshSpotlight());
+    }
+
+    clearLocalTimers() {
+      this.localTimers.forEach((id) => window.clearTimeout(id));
+      this.localTimers.clear();
+    }
+
+    delay(fn, ms) {
+      if (this.stage?.setTimeout) return this.stage.setTimeout(fn, ms);
+      const id = window.setTimeout(() => {
+        this.localTimers.delete(id);
+        fn();
+      }, ms);
+      this.localTimers.add(id);
+      return id;
     }
 
     shouldStart() {
@@ -1056,7 +1078,7 @@ if ("serviceWorker" in navigator) {
       tutorialActive = true;
       this.step = "delay";
       setTutorialPause(true);
-      setTimeout(() => {
+      this.delay(() => {
         if (!this.active) return;
         this.showOverlay();
         this.showCard("Обучение началось", "Сейчас быстро разберёмся с управлением, и ты сразу поймаешь первую рыбу.", "Начать", true);
@@ -1081,7 +1103,7 @@ if ("serviceWorker" in navigator) {
       if (!tutorialOverlay) return;
       tutorialOverlay.classList.remove("is-visible");
       tutorialOverlay.setAttribute("aria-hidden", "true");
-      setTimeout(() => tutorialOverlay.classList.add("hidden"), 220);
+      this.delay(() => tutorialOverlay.classList.add("hidden"), 220);
     }
 
     showCard(title, text, buttonText = "Далее", showButton = true, { spotlightRect = null, preferredSide = "auto" } = {}) {
@@ -1207,7 +1229,7 @@ if ("serviceWorker" in navigator) {
         this.step = "fight-demo-prep";
         this.hideOverlay();
         setTutorialPause(false);
-        setTimeout(() => {
+        this.delay(() => {
           if (!this.active || this.step !== "fight-demo-prep") return;
           const zones = game.reel?.zones;
           if (zones) {
@@ -1300,7 +1322,7 @@ if ("serviceWorker" in navigator) {
       tutorialSwipeHint?.classList.add("hidden");
       setTutorialPause(false);
       hook();
-      setTimeout(() => {
+      this.delay(() => {
         if (!this.active) return;
         setTutorialPause(true);
         this.step = "fight-progress";
@@ -1319,7 +1341,7 @@ if ("serviceWorker" in navigator) {
       if (!this.active) return;
       if (!this.waitingForBiteDemo && !this.practiceMode) return;
       this.waitingForBiteDemo = false;
-      setTimeout(() => {
+      this.delay(() => {
         if (!this.active || game.mode !== "BITE") return;
         setTutorialPause(true);
         this.step = "swipe";
@@ -1342,6 +1364,7 @@ if ("serviceWorker" in navigator) {
       tutorialCompleted = true;
       this.finish(false);
       save();
+      if (stageManager) stageManager.go("world", { sceneId: SCENE_LAKE });
     }
 
     onPracticeFail() {
@@ -1359,6 +1382,7 @@ if ("serviceWorker" in navigator) {
       this.waitingForBiteDemo = true;
       this.step = "practice-cast";
       this.hideOverlay();
+      this.clearLocalTimers();
       setTutorialPause(false);
       cancelWaitingState();
       game.mode = "IDLE";
@@ -5780,7 +5804,7 @@ if ("serviceWorker" in navigator) {
     renderInventory();
   });
 
-  btnCity?.addEventListener("click", () => {
+  const handleCityClick = () => {
     if (isFighting) return;
     if (currentScene !== SCENE_LAKE) return;
     if (!isCityUnlocked()) {
@@ -5788,19 +5812,23 @@ if ("serviceWorker" in navigator) {
       return;
     }
     startTravel("lake", "city");
-  });
+  };
 
-  btnBackToLake?.addEventListener("click", () => {
+  const handleBackToLakeClick = () => {
     if (isFighting) return;
     if (currentScene !== SCENE_CITY) return;
     startTravel("city", "lake");
-  });
+  };
 
-  btnShopClose?.addEventListener("click", () => {
+  const handleShopClose = () => {
     if (["city-fishshop-intro", "city-fishshop-single-sell", "city-fishshop-sell-all", "city-gear-buy-bait"].includes(guideStep)) {
       return;
     }
-    transitionTo(SCENE_CITY);
+    if (stageManager) {
+      stageManager.go("world", { sceneId: SCENE_CITY });
+    } else {
+      transitionTo(SCENE_CITY);
+    }
     if (guideStep === "city-fishshop-close") {
       setGuideStep("city-force-gear-open");
       window.setTimeout(() => {
@@ -5828,7 +5856,7 @@ if ("serviceWorker" in navigator) {
         });
       }, 260);
     }
-  });
+  };
 
   btnCatchKeep?.addEventListener("click", () => {
     if (!pendingCatch) return;
@@ -6167,8 +6195,12 @@ if ("serviceWorker" in navigator) {
 
   function openShop(sceneId) {
     if (isFighting) return;
-    transitionTo(sceneId);
-    renderShop(sceneId);
+    if (stageManager) {
+      stageManager.go("shop", { sceneId });
+    } else {
+      transitionTo(sceneId);
+      renderShop(sceneId);
+    }
     if (guideStep === "city-force-fish-open" && sceneId === SCENE_BUILDING_FISHSHOP) {
       setGuideStep("city-fishshop-intro");
       window.setTimeout(() => {
@@ -7253,6 +7285,84 @@ if ("serviceWorker" in navigator) {
     });
   }
 
+  function initStageSystem() {
+    if (!stageManager || !StageBase) return;
+
+    class WorldStage extends StageBase {
+      enter(params = {}) {
+        super.enter(params);
+        gameLoopPaused = false;
+        lastTime = 0;
+        accumulator = 0;
+        frameBudgetCarry = 0;
+        const sceneId = params.sceneId || currentScene || SCENE_LAKE;
+        setScene(sceneId);
+        this.on(btnCity, "click", handleCityClick);
+        this.on(btnBackToLake, "click", handleBackToLakeClick);
+        this.on(btnShopClose, "click", handleShopClose);
+        scheduleGameLoop();
+      }
+
+      exit() {
+        stopGameLoop();
+        gameLoopPaused = true;
+        super.exit();
+      }
+    }
+
+    class ShopStage extends StageBase {
+      enter(params = {}) {
+        super.enter(params);
+        const sceneId = params.sceneId || currentScene || SCENE_BUILDING_FISHSHOP;
+        transitionTo(sceneId);
+        renderShop(sceneId);
+      }
+
+      exit() {
+        super.exit();
+        shopOverlay?.classList.add("hidden");
+      }
+    }
+
+    class TutorialStage extends StageBase {
+      enter(params = {}) {
+        super.enter(params);
+        tutorialManager?.attachToStage?.(this);
+        if (params.start !== false) tutorialManager?.start();
+      }
+
+      exit() {
+        tutorialManager?.finish?.();
+        super.exit();
+      }
+    }
+
+    class TravelStage extends StageBase {
+      enter(params = {}) {
+        super.enter(params);
+        setTravelOverlayVisible(true);
+        setTravelUiLocked(true);
+        this.startRaf(() => {
+          updateTravelUi();
+          if (Date.now() >= travel.t0 + travel.durationMs) {
+            finishTravel();
+          }
+        });
+      }
+
+      exit() {
+        setTravelOverlayVisible(false);
+        setTravelUiLocked(false);
+        super.exit();
+      }
+    }
+
+    stageManager.register("world", new WorldStage({ name: "world" }));
+    stageManager.register("shop", new ShopStage({ name: "shop", rootEl: shopOverlay }));
+    stageManager.register("tutorial", new TutorialStage({ name: "tutorial", rootEl: tutorialOverlay }));
+    stageManager.register("travel", new TravelStage({ name: "travel", rootEl: travelOverlay }));
+  }
+
   function showOverlay() {
     overlay?.classList.remove("hidden");
     updateModalLayerState();
@@ -7352,7 +7462,11 @@ if ("serviceWorker" in navigator) {
     if (!travel.active || travel.arrivalHandled) return;
     travel.arrivalHandled = true;
     const destination = travel.to === "city" ? SCENE_CITY : SCENE_LAKE;
-    transitionTo(destination);
+    if (stageManager) {
+      stageManager.go("world", { sceneId: destination, fromTravel: true });
+    } else {
+      transitionTo(destination);
+    }
     if (destination === SCENE_LAKE) {
       setHint("Тап: заброс", 1.2);
     } else if (!onboarding.firstCityArrivalShown && !onboarding.trophyGuideDone) {
@@ -7397,6 +7511,9 @@ if ("serviceWorker" in navigator) {
     const message = to === "city" ? "Поездка в город" : "Возвращаемся к озеру";
     setTravelMessage(message, 5000);
     updateTravelUi();
+    if (stageManager) {
+      stageManager.go("travel", { from, to });
+    }
   }
 
   let catchOverlayVisible = false;
@@ -7562,7 +7679,11 @@ if ("serviceWorker" in navigator) {
     refreshDailyCharges();
     game.rareBoostActive = false;
     setHintTexts(null, null);
-    setScene(SCENE_LAKE);
+    if (stageManager) {
+      stageManager.go("world", { sceneId: SCENE_LAKE });
+    } else {
+      setScene(SCENE_LAKE);
+    }
     idleHintShown = false;
     if (castHintCount < 2) {
       setHint("Тап: заброс", 1.4);
@@ -8157,6 +8278,8 @@ if ("serviceWorker" in navigator) {
   let gameLoopPaused = document.hidden;
   let lowFpsFrames = 0;
   const LOW_FPS_THRESHOLD = 44;
+  let loopRafId = null;
+  const frameMonitor = { enabled: Boolean(window.__ICEFISH_DEV__), longFrames: 0, frames: 0, fpsTime: 0, fps: 0 };
 
   const getTargetFrameInterval = () => 1 / (isMobileDevice() ? TARGET_FPS_MOBILE : TARGET_FPS_DESKTOP);
   const isCanvasGameplayScene = (sceneId) => [SCENE_LAKE, SCENE_CATCH_MODAL, SCENE_FINDING_MODAL].includes(sceneId);
@@ -8766,6 +8889,21 @@ if ("serviceWorker" in navigator) {
     ctx.closePath();
   }
 
+  function scheduleGameLoop() {
+    if (loopRafId != null) return;
+    loopRafId = requestAnimationFrame((ts) => {
+      loopRafId = null;
+      loop(ts);
+    });
+  }
+
+  function stopGameLoop() {
+    if (loopRafId != null) {
+      cancelAnimationFrame(loopRafId);
+      loopRafId = null;
+    }
+  }
+
   function loop(t) {
     if (!lastTime) lastTime = t;
     const frameDt = Math.min(MAX_FRAME_DELTA, Math.max(0, (t - lastTime) / 1000));
@@ -8776,14 +8914,14 @@ if ("serviceWorker" in navigator) {
     const targetInterval = getTargetFrameInterval();
     frameBudgetCarry += frameDt;
     if (frameBudgetCarry + 0.000001 < targetInterval) {
-      requestAnimationFrame(loop);
+      scheduleGameLoop();
       return;
     }
     frameBudgetCarry = Math.max(0, frameBudgetCarry - targetInterval);
 
     if (gameLoopPaused) {
       accumulator = 0;
-      requestAnimationFrame(loop);
+      scheduleGameLoop();
       return;
     }
 
@@ -8793,8 +8931,21 @@ if ("serviceWorker" in navigator) {
         ctx.clearRect(0, 0, W, H);
         canvasNeedsClear = false;
       }
-      requestAnimationFrame(loop);
+      scheduleGameLoop();
       return;
+    }
+
+    if (frameMonitor.enabled) {
+      frameMonitor.frames += 1;
+      frameMonitor.fpsTime += frameDt;
+      if (frameDt > 0.05) frameMonitor.longFrames += 1;
+      if (frameMonitor.fpsTime >= 1) {
+        frameMonitor.fps = Math.round(frameMonitor.frames / frameMonitor.fpsTime);
+        console.info(`[Perf] fps=${frameMonitor.fps}, longFrames=${frameMonitor.longFrames}`);
+        frameMonitor.frames = 0;
+        frameMonitor.fpsTime = 0;
+        frameMonitor.longFrames = 0;
+      }
     }
 
     if (!reducedEffects) {
@@ -8817,7 +8968,7 @@ if ("serviceWorker" in navigator) {
     updateFightHud();
     draw();
 
-    requestAnimationFrame(loop);
+    scheduleGameLoop();
   }
 
   document.addEventListener("visibilitychange", () => {
@@ -8901,7 +9052,12 @@ if ("serviceWorker" in navigator) {
     if (orientationLocked) {
       layout();
     }
-    setScene(SCENE_LAKE);
+    initStageSystem();
+    if (stageManager) {
+      await stageManager.go("world", { sceneId: SCENE_LAKE });
+    } else {
+      setScene(SCENE_LAKE);
+    }
     setLakeState("idle");
     startPlaySession();
     if (!profile) {
@@ -8917,7 +9073,7 @@ if ("serviceWorker" in navigator) {
     setHint("Нажми «Играть».");
     if (btnPlay) btnPlay.disabled = false;
 
-    requestAnimationFrame(loop);
+    scheduleGameLoop();
   }
 
   // ===== Boot =====

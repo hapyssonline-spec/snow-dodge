@@ -20,7 +20,7 @@
 </head>
 <body>
   <div id="app">
-    <div id="gameRoot">
+    <div id="gameRoot" class="stage stage--world">
       <div id="gameLayer">
       <main id="stage">
         <div id="sceneRoot">
@@ -459,7 +459,7 @@
         </div>
       </div>
 
-      <div id="travelOverlay" class="hidden modal modalOverlay" aria-hidden="true">
+      <div id="travelOverlay" class="hidden modal modalOverlay stage stage--travel" aria-hidden="true">
         <div class="travelWrap modalCard">
           <div class="travelHeader modalHeader">
             <div id="travelMessage" class="travelMessage travelTitle" aria-live="polite"></div>
@@ -481,7 +481,7 @@
         </div>
       </div>
 
-      <div id="shopOverlay" class="hidden modal modalOverlay">
+      <div id="shopOverlay" class="hidden modal modalOverlay stage stage--shop">
         <div class="shopCard modalCard">
           <div class="shopHeader modalHeader">
             <div id="shopTitle" class="shopTitle modalTitle modalHeaderTitle">Магазин</div>
@@ -660,7 +660,7 @@
         </div>
       </div>
 
-      <div id="tutorialOverlay" class="tutorialOverlay hidden" aria-hidden="true">
+      <div id="tutorialOverlay" class="tutorialOverlay hidden stage stage--tutorial" aria-hidden="true">
         <div id="tutorialSpotlight" class="tutorialSpotlight"></div>
         <div class="tutorialHeader">
           <div class="tutorialHeaderBadge">🎣 Обучение началось</div>
@@ -684,6 +684,8 @@
 
   <!-- cache-bust: audio manager + main.js v79 (cache refresh) -->
   <script src="audio/AudioManager.js?v=2"></script>
+  <script src="stage/StageBase.js?v=1"></script>
+  <script src="stage/StageManager.js?v=1"></script>
   <script src="config/gemsShop.js?v=2"></script>
   <script src="config/coinShop.js?v=1"></script>
   <script src="config/exchange.js?v=1"></script>
