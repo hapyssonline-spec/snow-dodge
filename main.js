@@ -270,8 +270,6 @@ if ("serviceWorker" in navigator) {
   const fishHintWeight = document.getElementById("fishHintWeight");
   const fishHintSpecies = document.getElementById("fishHintSpecies");
   const booksIntroOverlay = document.getElementById("booksIntroOverlay");
-  const btnBooksIntroClose = document.getElementById("btnBooksIntroClose");
-  const btnBooksIntroOk = document.getElementById("btnBooksIntroOk");
   const rareBoostHud = document.getElementById("rareBoostHud");
   const tutorialOverlay = document.getElementById("tutorialOverlay");
   const tutorialSpotlight = document.getElementById("tutorialSpotlight");
@@ -6881,6 +6879,16 @@ if ("serviceWorker" in navigator) {
     inWater: false,
     wave: 0,
     settled: false,
+    idleBaseX: 0,
+    idleBaseY: 0,
+    swayPhase: 0,
+    swayAccum: 0,
+    swayX: 0,
+    swayY: 0,
+    biteKickElapsed: 0,
+    biteKickDuration: 0,
+    biteKickX: 0,
+    biteKickY: 0
   };
 
   // CastAnimator: replaces the old CSS/WebAnimation + ballistic timers with a single timed controller.
@@ -7185,19 +7193,20 @@ if ("serviceWorker" in navigator) {
     save();
     booksIntroOverlay.classList.remove("hidden");
     booksIntroOverlay.setAttribute("aria-hidden", "false");
+    if (booksIntroAutoHideTimer) window.clearTimeout(booksIntroAutoHideTimer);
+    booksIntroAutoHideTimer = window.setTimeout(() => {
+      hideBooksIntroModal();
+    }, 4000);
   }
 
   function hideBooksIntroModal() {
+    if (booksIntroAutoHideTimer) window.clearTimeout(booksIntroAutoHideTimer);
+    booksIntroAutoHideTimer = null;
     booksIntroOverlay?.classList.add("hidden");
     booksIntroOverlay?.setAttribute("aria-hidden", "true");
   }
 
-  btnBooksIntroOk?.addEventListener("click", hideBooksIntroModal);
-  btnBooksIntroClose?.addEventListener("click", hideBooksIntroModal);
-  booksIntroOverlay?.addEventListener("click", (event) => {
-    if (event.target !== booksIntroOverlay) return;
-    hideBooksIntroModal();
-  });
+  let booksIntroAutoHideTimer = null;
 
   function showFightContextHintOverlay(step, targetEl, text, secondLine = "") {
     if (!targetEl || guideStep !== "none" || tutorialManager?.active) return;
@@ -7936,6 +7945,14 @@ if ("serviceWorker" in navigator) {
       scheduleBite();
     }
     setFishing(true);
+    bobber.idleBaseX = bobber.x;
+    bobber.idleBaseY = scene.lakeY + 18;
+    bobber.swayPhase = 0;
+    bobber.swayAccum = 0;
+    bobber.swayX = 0;
+    bobber.swayY = 0;
+    bobber.biteKickElapsed = 0;
+    bobber.biteKickDuration = 0;
     setMsg("Ждём поклёвку…", 1.0);
     if (!reducedEffects) {
       nextRippleAt = scene.t + rand(1.4, 2.6);
@@ -7956,6 +7973,10 @@ if ("serviceWorker" in navigator) {
   function enterBite() {
     game.mode = "BITE";
     game.t = 0;
+    bobber.biteKickElapsed = 0;
+    bobber.biteKickDuration = 0.42;
+    bobber.biteKickX = 10;
+    bobber.biteKickY = 14;
     triggerBite();
     beep(820, 0.08, 0.05);
     setMsg("ПОКЛЁВКА! Свайп вверх.", 1.0);
@@ -8224,6 +8245,7 @@ if ("serviceWorker" in navigator) {
   }
 
   function onDown(e) {
+    ensureGameLoopRunning();
     if (orientationLocked) return;
     const p = getXY(e);
     if (!p.inBounds) return;
@@ -8384,7 +8406,37 @@ if ("serviceWorker" in navigator) {
   let lowFpsFrames = 0;
   const LOW_FPS_THRESHOLD = 44;
   let loopRafId = null;
+  const BOBBER_SWAY_FRAME = 1 / 15;
   const frameMonitor = { enabled: Boolean(window.__ICEFISH_DEV__), longFrames: 0, frames: 0, fpsTime: 0, fps: 0 };
+
+  function shouldRunContinuousLoop() {
+    if (gameLoopPaused || orientationLocked) return false;
+    if (travel.active || tutorialManager?.active || tutorialPauseGameplay) return true;
+    if (!isCanvasGameplayScene(currentScene)) return false;
+    if (isFighting) return true;
+    if (castController.active) return true;
+    if (bobber.visible || ripples.length > 0) return true;
+    return ["CASTING", "WAITING", "BITE", "HOOKED", "REELING"].includes(game.mode);
+  }
+
+  function ensureGameLoopRunning() {
+    if (loopRafId == null) {
+      scheduleGameLoop();
+    }
+  }
+
+  function advanceBobberSway(dt, speed, amplitude) {
+    bobber.swayAccum += dt;
+    let steps = 0;
+    while (bobber.swayAccum >= BOBBER_SWAY_FRAME && steps < 4) {
+      bobber.swayAccum -= BOBBER_SWAY_FRAME;
+      bobber.swayPhase += BOBBER_SWAY_FRAME * speed;
+      steps += 1;
+    }
+    const phase = bobber.swayPhase;
+    bobber.swayX = Math.sin(phase * 1.2) * 0.95 * amplitude;
+    bobber.swayY = Math.sin(phase * 2.1) * 1.6 * amplitude;
+  }
 
   function getTargetFrameInterval() {
     const tutorialVisible = tutorialOverlay && !tutorialOverlay.classList.contains("hidden") && tutorialOverlay.classList.contains("is-visible");
@@ -8468,7 +8520,20 @@ if ("serviceWorker" in navigator) {
         }
 
         if (game.mode === "WAITING" && bobber.settled) {
-          bobber.y = scene.lakeY + 18;
+          bobber.idleBaseX = bobber.idleBaseX || bobber.x;
+          bobber.idleBaseY = scene.lakeY + 18;
+          advanceBobberSway(dt, waveSpeed * 5.2, motionScale);
+          bobber.x = bobber.idleBaseX + bobber.swayX;
+          bobber.y = bobber.idleBaseY + bobber.swayY;
+        } else if (game.mode === "BITE" && bobber.inWater) {
+          bobber.idleBaseX = bobber.idleBaseX || bobber.x;
+          bobber.idleBaseY = scene.lakeY + 18;
+          advanceBobberSway(dt, Math.max(4.4, waveSpeed * 6.4), motionScale);
+          bobber.biteKickElapsed = Math.min(bobber.biteKickDuration, bobber.biteKickElapsed + dt);
+          const kickProgress = bobber.biteKickDuration > 0 ? bobber.biteKickElapsed / bobber.biteKickDuration : 1;
+          const kick = Math.sin(Math.PI * clamp(kickProgress, 0, 1));
+          bobber.x = bobber.idleBaseX + bobber.swayX + bobber.biteKickX * kick;
+          bobber.y = bobber.idleBaseY + bobber.swayY + bobber.biteKickY * kick;
         } else {
           bobber.wave += dt * waveSpeed * (reducedEffects ? 0.6 : 1);
           bobber.y = scene.lakeY + 18 + Math.sin(bobber.wave * 6.0) * amp * motionScale + jiggle;
@@ -9031,14 +9096,18 @@ if ("serviceWorker" in navigator) {
     const targetInterval = getTargetFrameInterval();
     frameBudgetCarry += frameDt;
     if (frameBudgetCarry + 0.000001 < targetInterval) {
-      scheduleGameLoop();
+      if (shouldRunContinuousLoop()) {
+        scheduleGameLoop();
+      }
       return;
     }
     frameBudgetCarry = Math.max(0, frameBudgetCarry - targetInterval);
 
     if (gameLoopPaused) {
       accumulator = 0;
-      scheduleGameLoop();
+      if (shouldRunContinuousLoop()) {
+        scheduleGameLoop();
+      }
       return;
     }
 
@@ -9048,7 +9117,9 @@ if ("serviceWorker" in navigator) {
         ctx.clearRect(0, 0, W, H);
         canvasNeedsClear = false;
       }
-      scheduleGameLoop();
+      if (shouldRunContinuousLoop()) {
+        scheduleGameLoop();
+      }
       return;
     }
 
@@ -9085,7 +9156,9 @@ if ("serviceWorker" in navigator) {
     updateFightHud();
     draw();
 
-    scheduleGameLoop();
+    if (shouldRunContinuousLoop()) {
+      scheduleGameLoop();
+    }
   }
 
   document.addEventListener("visibilitychange", () => {
@@ -9094,6 +9167,7 @@ if ("serviceWorker" in navigator) {
       lastTime = 0;
       accumulator = 0;
       frameBudgetCarry = 0;
+      ensureGameLoopRunning();
     }
   });
 
