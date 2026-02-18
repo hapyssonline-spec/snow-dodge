@@ -839,13 +839,18 @@ if ("serviceWorker" in navigator) {
   function positionTutorialCard({ spotlightRect = null, preferredSide = "auto" } = {}) {
     if (!tutorialCardWrap) return;
 
-    const viewportH = window.innerHeight || 0;
+    const overlayRect = tutorialOverlay?.getBoundingClientRect?.();
+    const overlayTop = overlayRect?.top || 0;
+    const overlayHeightViewport = overlayRect?.height || window.innerHeight || 0;
+    const localScale = viewportScale || 1;
+    const viewportH = overlayHeightViewport / localScale;
     const cardRect = tutorialCardWrap.getBoundingClientRect();
-    const cardHeight = cardRect.height || 220;
+    const cardHeight = (cardRect.height || 220) / localScale;
     const safeTop = 92;
     const safeBottomPad = 24;
     const minTop = safeTop;
     const maxTop = Math.max(minTop, viewportH - safeBottomPad - cardHeight);
+    const toLocalY = (viewportY) => (viewportY - overlayTop) / localScale;
 
     const resolveSide = ({ availableAbove = 0, availableBelow = 0 } = {}) => {
       if (preferredSide === "top") return availableAbove >= cardHeight ? "above" : "below";
@@ -871,8 +876,8 @@ if ("serviceWorker" in navigator) {
     }
 
     const gap = 18;
-    const rectTop = spotlightRect.top;
-    const rectBottom = spotlightRect.top + spotlightRect.height;
+    const rectTop = toLocalY(spotlightRect.top);
+    const rectBottom = toLocalY(spotlightRect.top + spotlightRect.height);
     const availableAbove = Math.max(0, rectTop - minTop - gap);
     const availableBelow = Math.max(0, maxTop - rectBottom - gap);
     const side = resolveSide({ availableAbove, availableBelow });
