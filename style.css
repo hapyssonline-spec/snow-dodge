@@ -753,15 +753,31 @@ img, a{
   display:none;
   flex:1 1 auto;
   min-width:0;
-  max-width:50%;
+  max-width:58%;
   font-size:clamp(12px, 2vw, 13px);
   font-weight:500;
   opacity:0.65;
   color:rgba(255,255,255,0.75);
   text-align:right;
+}
+
+.fishHintText.is-visible{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.fishHintLine{
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+}
+
+.fishHintLine.is-highlighted{
+  border:1px solid rgba(156, 219, 255, .85);
+  border-radius:8px;
+  padding:2px 6px;
+  box-shadow:0 0 0 1px rgba(60,130,180,.28), 0 0 14px rgba(100, 185, 255, .3);
 }
 .reelBar{
   position:relative;
@@ -2745,8 +2761,71 @@ img, a{
 
 .gearTabs{
   display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap:8px;
+}
+
+.bookCard.is-purchased{
+  border-color:rgba(126, 214, 168, .45);
+}
+
+.bookCard.is-locked{
+  opacity:.55;
+}
+
+.bookCard.is-locked .bookLockBadge{
+  display:inline-flex;
+}
+
+.bookLockBadge{
+  display:none;
+  font-size:14px;
+}
+
+.bookCard.is-shaking{
+  animation:bookShake .35s ease;
+}
+
+.bookCard.is-pulse-target{
+  box-shadow:0 0 0 2px rgba(150, 210, 255, .8), 0 0 20px rgba(125, 200, 255, .5);
+}
+
+.bookCard.is-unlocking{
+  animation:bookUnlock 1.1s ease;
+}
+
+.bookPriceRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.bookPricePill{
+  border:1px solid var(--stroke);
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:14px;
+}
+
+.booksIntroCard{
+  max-width:460px;
+}
+
+.booksIntroText{
+  margin:0 0 12px;
+}
+
+@keyframes bookShake{
+  0%,100%{ transform:translateX(0); }
+  25%{ transform:translateX(-4px); }
+  50%{ transform:translateX(5px); }
+  75%{ transform:translateX(-3px); }
+}
+
+@keyframes bookUnlock{
+  0%{ filter:brightness(.65); box-shadow:0 0 0 0 rgba(150,210,255,.1); }
+  45%{ filter:brightness(1.15); box-shadow:0 0 0 2px rgba(150,210,255,.9), 0 0 24px rgba(150,210,255,.7); }
+  100%{ filter:brightness(1); box-shadow:0 0 0 0 rgba(150,210,255,0); }
 }
 
 .gearTabBtn{

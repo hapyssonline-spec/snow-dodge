@@ -177,6 +177,7 @@ if ("serviceWorker" in navigator) {
   const baitList = document.getElementById("baitList");
   const rodList = document.getElementById("rodList");
   const lineList = document.getElementById("lineList");
+  const booksList = document.getElementById("booksList");
   const leaderboardOverlay = document.getElementById("leaderboardOverlay");
   const btnLeaderboardClose = document.getElementById("btnLeaderboardClose");
   const gemsShopOverlay = document.getElementById("gemsShopOverlay");
@@ -253,6 +254,10 @@ if ("serviceWorker" in navigator) {
   const reelPercent = fightHud?.querySelector(".reelPercent");
   const breakHint = document.getElementById("breakHint");
   const fishHintText = document.getElementById("fishHintText");
+  const fishHintWeight = document.getElementById("fishHintWeight");
+  const fishHintSpecies = document.getElementById("fishHintSpecies");
+  const booksIntroOverlay = document.getElementById("booksIntroOverlay");
+  const btnBooksIntroOk = document.getElementById("btnBooksIntroOk");
   const rareBoostHud = document.getElementById("rareBoostHud");
   const tutorialOverlay = document.getElementById("tutorialOverlay");
   const tutorialSpotlight = document.getElementById("tutorialSpotlight");
@@ -575,6 +580,41 @@ if ("serviceWorker" in navigator) {
   };
 
   const BITE_DELAY_RANGE_MS = { min: 5000, max: 10000 };
+  const BOOKS_CONFIG = [
+    {
+      id: "common-sense",
+      title: "COMMON SENSE",
+      shortTitle: "Чутьё обычной рыбы",
+      description: "Улучшает ранние подсказки веса и вида для обычной рыбы.",
+      coinsPrice: 6000,
+      requiresBookId: null,
+      rarity: "common",
+      effect: { weightShift: 1, speciesShift: 1 }
+    },
+    {
+      id: "rare-sense",
+      title: "RARE SENSE",
+      shortTitle: "Чутьё редкой рыбы",
+      description: "Улучшает подсказки для редкой рыбы.",
+      coinsPrice: 30000,
+      gemsPrice: 199,
+      requiresBookId: "common-sense",
+      rarity: "rare",
+      effect: { weightShift: 1, speciesShift: 1 }
+    },
+    {
+      id: "epic-sense",
+      title: "EPIC SENSE",
+      shortTitle: "Чутьё эпической рыбы",
+      description: "Позднее, но более точное чтение поведения эпической рыбы.",
+      coinsPrice: 90000,
+      gemsPrice: 399,
+      requiresBookId: "rare-sense",
+      rarity: "epic",
+      effect: { weightShift: 1, speciesShift: 1, delayedSpecies: true }
+    }
+  ];
+  const BOOK_UNKNOWN_LABEL = "??????";
   const CAUGHT_SPECIES_KEY = "caughtSpeciesSet";
   const fishIdAliases = {
     roach: "plotva",
@@ -642,6 +682,7 @@ if ("serviceWorker" in navigator) {
   function writeCaughtSpecies(set) {
     try {
       localStorage.setItem(CAUGHT_SPECIES_KEY, JSON.stringify(Array.from(set)));
+      caughtSpeciesCache = new Set(set);
     } catch {}
   }
 
@@ -714,6 +755,32 @@ if ("serviceWorker" in navigator) {
     return formatKg(Number(item.weightKg) || 0);
   };
   const formatCoins = (value) => `${value} монет`;
+
+  function isBookPurchased(bookId) {
+    if (bookId === "common-sense") return hasCommonSenseBook;
+    if (bookId === "rare-sense") return hasRareSenseBook;
+    if (bookId === "epic-sense") return hasEpicSenseBook;
+    return false;
+  }
+
+  function markBookPurchased(bookId) {
+    if (bookId === "common-sense") hasCommonSenseBook = true;
+    if (bookId === "rare-sense") hasRareSenseBook = true;
+    if (bookId === "epic-sense") hasEpicSenseBook = true;
+  }
+
+  function getBookState(book) {
+    if (isBookPurchased(book.id)) return "PURCHASED";
+    if (book.requiresBookId && !isBookPurchased(book.requiresBookId)) return "LOCKED";
+    return "AVAILABLE";
+  }
+
+  function getBookForRarity(rarity) {
+    if (rarity === "common" || rarity === "uncommon") return hasCommonSenseBook ? BOOKS_CONFIG[0] : null;
+    if (rarity === "rare") return hasRareSenseBook ? BOOKS_CONFIG[1] : null;
+    if (rarity === "epic") return hasEpicSenseBook ? BOOKS_CONFIG[2] : null;
+    return null;
+  }
   const formatDuration = (ms) => {
     const total = Math.max(0, Math.ceil(ms / 1000));
     const hours = Math.floor(total / 3600);
@@ -1391,6 +1458,8 @@ if ("serviceWorker" in navigator) {
       this.confusionGroups = options.confusionGroups;
       this.rarityRank = options.rarityRank;
       this.devMode = options.devMode;
+      this.getBookForRarity = options.getBookForRarity;
+      this.hasCaughtSpecies = options.hasCaughtSpecies;
       this.reset();
     }
 
@@ -1442,13 +1511,16 @@ if ("serviceWorker" in navigator) {
       this.secondCandidate = realFirst ? this.mateSpecies : this.realSpecies;
       this.rareSecondCandidate = Math.random() < 0.5 ? this.firstCandidate : this.secondCandidate;
       this.isRarePlus = (this.rarityRank[this.rarity] ?? 0) >= this.rarityRank.rare;
+      this.currentBook = this.getBookForRarity?.(this.rarity) || null;
     }
 
     update(progress) {
       if (!this.active) return;
       this.maxProgress = Math.max(this.maxProgress, progress);
 
-      const nextWeightStage = this.maxProgress >= 0.3 ? Math.floor((this.maxProgress - 0.3) / 0.05) : -1;
+      const weightShift = this.currentBook?.effect?.weightShift || 0;
+      const weightStart = Math.max(0.1, 0.3 - weightShift * 0.05);
+      const nextWeightStage = this.maxProgress >= weightStart ? Math.floor((this.maxProgress - weightStart) / 0.05) : -1;
       if (nextWeightStage > this.weightStage) {
         let currentStage = this.weightStage;
         while (currentStage < nextWeightStage) {
@@ -1462,9 +1534,16 @@ if ("serviceWorker" in navigator) {
       }
 
       let nextSpeciesStage = -1;
-      if (this.maxProgress >= 0.8) {
+      const speciesShift = this.currentBook?.effect?.speciesShift || 0;
+      let speciesStageOne = Math.max(0.35, 0.6 - speciesShift * 0.08);
+      let speciesStageTwo = Math.max(speciesStageOne + 0.12, 0.8 - speciesShift * 0.08);
+      if (this.currentBook?.effect?.delayedSpecies) {
+        speciesStageOne = Math.max(speciesStageOne, 0.68);
+        speciesStageTwo = Math.max(speciesStageTwo, 0.87);
+      }
+      if (this.maxProgress >= speciesStageTwo) {
         nextSpeciesStage = 2;
-      } else if (this.maxProgress >= 0.6) {
+      } else if (this.maxProgress >= speciesStageOne) {
         nextSpeciesStage = 1;
       }
       if (nextSpeciesStage > this.speciesStage) {
@@ -1482,15 +1561,23 @@ if ("serviceWorker" in navigator) {
 
     buildSpeciesHint() {
       if (!this.speciesStage || !this.firstCandidate || !this.secondCandidate) return null;
+      if (this.rarity === "legendary") {
+        return BOOK_UNKNOWN_LABEL;
+      }
+      const hideReal = !this.hasCaughtSpecies?.(this.speciesId);
+      const knownRealName = hideReal ? BOOK_UNKNOWN_LABEL : this.realSpecies;
+      const first = this.firstCandidate === this.realSpecies ? knownRealName : this.firstCandidate;
+      const second = this.secondCandidate === this.realSpecies ? knownRealName : this.secondCandidate;
+      const rareSecond = this.rareSecondCandidate === this.realSpecies ? knownRealName : this.rareSecondCandidate;
       if (this.speciesStage === 1) {
         return this.isRarePlus
-          ? `${this.firstCandidate} / ${this.secondCandidate} / ???`
-          : `${this.firstCandidate} / ${this.secondCandidate}`;
+          ? `${first} / ${second} / ???`
+          : `${first} / ${second}`;
       }
       if (this.speciesStage === 2) {
         return this.isRarePlus
-          ? `??? / ${this.rareSecondCandidate}`
-          : `${this.firstCandidate} / ${this.secondCandidate}`;
+          ? `??? / ${rareSecond}`
+          : `${first} / ${second}`;
       }
       return null;
     }
@@ -2451,7 +2538,9 @@ if ("serviceWorker" in navigator) {
     fishTable: fishSpeciesTable,
     confusionGroups,
     rarityRank,
-    devMode: DEV_MODE
+    devMode: DEV_MODE,
+    getBookForRarity: (rarity) => getBookForRarity(rarity),
+    hasCaughtSpecies: (speciesId) => caughtSpeciesCache.has(speciesId)
   });
 
   function runRevealSimulation(attempts = 1000) {
@@ -3574,7 +3663,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== Persistent state =====
   const STORAGE_KEY = "icefish_v1";
-  const STORAGE_VERSION = 11;
+  const STORAGE_VERSION = 12;
   const NICK_REGISTRY_KEY = "icefish_nick_registry";
 
   function loadNickRegistry() {
@@ -3750,6 +3839,25 @@ if ("serviceWorker" in navigator) {
       }
       this.onSave?.();
     }
+
+    canSpend(amount) {
+      const normalized = Math.max(0, Math.floor(Number(amount) || 0));
+      if (normalized <= 0) return true;
+      return this.getBalance() >= normalized;
+    }
+
+    spend(amount, reason = "unknown") {
+      const normalized = Math.max(0, Math.floor(Number(amount) || 0));
+      if (normalized <= 0) return { success: false, error: "INVALID_AMOUNT" };
+      const balance = this.getBalance();
+      if (balance < normalized) return { success: false, error: "INSUFFICIENT_GEMS", balance };
+      const nextBalance = balance - normalized;
+      this.playerState.gems = nextBalance;
+      this.emitter.emit(EVENTS.GEMS_CHANGED, { balance: nextBalance, delta: -normalized, reason });
+      logEvent("currency_spend", { amount: normalized, reason, balance: nextBalance });
+      this.onSave?.();
+      return { success: true, balance: nextBalance };
+    }
   }
 
   const gemsService = new GemsService({
@@ -3771,6 +3879,15 @@ if ("serviceWorker" in navigator) {
   let selectedQuestDifficulty = "easy";
   let questRefreshTicker = null;
   let selectedGearTab = "bait";
+  let hasCommonSenseBook = false;
+  let hasRareSenseBook = false;
+  let hasEpicSenseBook = false;
+  const booksTutorialFlags = {
+    tutorialBooksIntroShown: false,
+    tutorialWeightHintShown: false,
+    tutorialSpeciesHintShown: false
+  };
+  let previousHintVisibility = { weight: false, species: false };
   let currentScene = SCENE_LAKE;
   let pendingCatch = null;
   let pendingFinding = null;
@@ -3790,6 +3907,7 @@ if ("serviceWorker" in navigator) {
     firstTutorialInventoryHintShown: false
   };
   let guideStep = "none";
+  let caughtSpeciesCache = readCaughtSpecies();
 
   const progression = {
     xpRequired(level) {
@@ -4065,6 +4183,14 @@ if ("serviceWorker" in navigator) {
         onboarding.findingTutorialDone = !!obj.onboarding.findingTutorialDone;
         onboarding.firstTutorialInventoryHintShown = !!obj.onboarding.firstTutorialInventoryHintShown;
       }
+      hasCommonSenseBook = !!obj.hasCommonSenseBook;
+      hasRareSenseBook = !!obj.hasRareSenseBook;
+      hasEpicSenseBook = !!obj.hasEpicSenseBook;
+      if (obj.booksTutorial && typeof obj.booksTutorial === "object") {
+        booksTutorialFlags.tutorialBooksIntroShown = !!obj.booksTutorial.tutorialBooksIntroShown;
+        booksTutorialFlags.tutorialWeightHintShown = !!obj.booksTutorial.tutorialWeightHintShown;
+        booksTutorialFlags.tutorialSpeciesHintShown = !!obj.booksTutorial.tutorialSpeciesHintShown;
+      }
       if (obj.storageVersion >= 7) {
         if (obj.questPreview && typeof obj.questPreview === "object") {
           QUEST_DIFFICULTY_KEYS.forEach((key) => {
@@ -4096,6 +4222,7 @@ if ("serviceWorker" in navigator) {
       if (profile?.nickname) {
         registerNickname(profile.nickname);
       }
+      caughtSpeciesCache = readCaughtSpecies();
       const unlockAdjusted = enforceGearUnlocks();
       refreshDailyCharges();
       audio?.setSfxVolume(sfxVolume);
@@ -4156,6 +4283,10 @@ if ("serviceWorker" in navigator) {
         questPreview: questPreviews,
         questCooldowns,
         questRefreshState,
+        hasCommonSenseBook,
+        hasRareSenseBook,
+        hasEpicSenseBook,
+        booksTutorial: { ...booksTutorialFlags },
         tutorialCompleted,
         onboarding
       }));
@@ -4197,6 +4328,12 @@ if ("serviceWorker" in navigator) {
     questCooldowns = { easyAvailableAt: 0, mediumAvailableAt: 0, hardAvailableAt: 0 };
     questRefreshState = { refreshCount: 0, nextRefreshAt: 0 };
     tutorialCompleted = false;
+    hasCommonSenseBook = false;
+    hasRareSenseBook = false;
+    hasEpicSenseBook = false;
+    booksTutorialFlags.tutorialBooksIntroShown = false;
+    booksTutorialFlags.tutorialWeightHintShown = false;
+    booksTutorialFlags.tutorialSpeciesHintShown = false;
     onboarding.cityUnlockHintShown = false;
     onboarding.firstCityArrivalShown = false;
     onboarding.trophyGuideDone = false;
@@ -5917,6 +6054,109 @@ if ("serviceWorker" in navigator) {
     gearTabPanels.forEach((panel) => {
       panel.classList.toggle("is-active", panel.dataset.gearPanel === selectedGearTab);
     });
+    if (selectedGearTab === "books") {
+      logEvent("book_tab_open", { from: "gear_shop" });
+    }
+  }
+
+  function animateBookCard(bookId, className, duration = 1200) {
+    const el = booksList?.querySelector(`[data-book-id="${bookId}"]`);
+    if (!el) return;
+    el.classList.add(className);
+    window.setTimeout(() => el.classList.remove(className), duration);
+  }
+
+  function handleLockedBookClick(book) {
+    const required = BOOKS_CONFIG.find((entry) => entry.id === book.requiresBookId);
+    logEvent("book_locked_click", { bookId: book.id, requiredBookId: book.requiresBookId });
+    showToast(`Сначала купи «${required?.shortTitle || "предыдущую книгу"}»`);
+    animateBookCard(book.id, "is-shaking", 360);
+    if (required?.id) {
+      const requiredCard = booksList?.querySelector(`[data-book-id="${required.id}"]`);
+      if (requiredCard) {
+        requiredCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      animateBookCard(required.id, "is-pulse-target", 1500);
+    }
+  }
+
+  function attemptBookPurchase(book, currency) {
+    const state = getBookState(book);
+    if (state === "LOCKED") {
+      handleLockedBookClick(book);
+      return;
+    }
+    if (state === "PURCHASED") return;
+    if (currency === "coins") {
+      if (player.coins < book.coinsPrice) {
+        logEvent("book_purchase", { bookId: book.id, currency, price: book.coinsPrice, success: false });
+        showToast("Недостаточно монет");
+        return;
+      }
+      player.coins -= book.coinsPrice;
+    }
+    if (currency === "gems") {
+      if (!gemsService.canSpend(book.gemsPrice)) {
+        logEvent("book_purchase", { bookId: book.id, currency, price: book.gemsPrice, success: false });
+        showToast("Недостаточно гемов — в магазин");
+        openGemsShop();
+        return;
+      }
+      gemsService.spend(book.gemsPrice, `book_${book.id}`);
+    }
+    markBookPurchased(book.id);
+    save();
+    updateHUD();
+    renderGearShop();
+    showToast("Книга приобретена");
+    logEvent("book_purchase", { bookId: book.id, currency, price: currency === "coins" ? book.coinsPrice : book.gemsPrice, success: true });
+    const nextBook = BOOKS_CONFIG.find((entry) => entry.requiresBookId === book.id && getBookState(entry) === "AVAILABLE");
+    if (nextBook) {
+      logEvent("book_unlocked", { bookId: nextBook.id });
+      animateBookCard(nextBook.id, "is-unlocking", 1100);
+    }
+    if (book.id === "common-sense" && !booksTutorialFlags.tutorialBooksIntroShown) {
+      showBooksIntroModal();
+    }
+  }
+
+  function renderBooksShop() {
+    if (!booksList) return;
+    booksList.innerHTML = "";
+    BOOKS_CONFIG.forEach((book) => {
+      const state = getBookState(book);
+      const card = document.createElement("div");
+      card.className = `shopItem bookCard ${state === "LOCKED" ? "is-locked" : ""} ${state === "PURCHASED" ? "is-purchased" : ""}`;
+      card.dataset.bookId = book.id;
+      card.innerHTML = `
+        <div class="shopItemHeader">
+          <div class="shopItemTitle">${book.shortTitle} <span class="bookLockBadge">🔒</span></div>
+          <div class="shopItemMeta">${state === "PURCHASED" ? "Куплена" : "Доступна"}</div>
+        </div>
+        <div class="shopItemMeta">${book.description}</div>
+      `;
+      const priceRow = document.createElement("div");
+      priceRow.className = "bookPriceRow";
+      const buyCoins = document.createElement("button");
+      buyCoins.className = "invBtn btn--singleLine";
+      setButtonText(buyCoins, `Купить за ${book.coinsPrice} 🪙`);
+      buyCoins.disabled = state !== "AVAILABLE" || player.coins < book.coinsPrice;
+      buyCoins.addEventListener("click", () => attemptBookPurchase(book, "coins"));
+      priceRow.appendChild(buyCoins);
+      if (book.gemsPrice) {
+        const buyGems = document.createElement("button");
+        buyGems.className = "invBtn secondary btn--singleLine";
+        setButtonText(buyGems, `или ${book.gemsPrice} 💎`);
+        buyGems.disabled = state !== "AVAILABLE";
+        buyGems.addEventListener("click", () => attemptBookPurchase(book, "gems"));
+        priceRow.appendChild(buyGems);
+      }
+      if (state === "LOCKED") {
+        card.addEventListener("click", () => handleLockedBookClick(book));
+      }
+      card.appendChild(priceRow);
+      booksList.appendChild(card);
+    });
   }
 
   function renderGearShop() {
@@ -6102,6 +6342,8 @@ if ("serviceWorker" in navigator) {
         lineList.appendChild(item);
       }
     }
+
+    renderBooksShop();
 
     renderShopStats();
   }
@@ -6435,11 +6677,72 @@ if ("serviceWorker" in navigator) {
     event.preventDefault();
   }, { passive: false });
 
+  function showBooksIntroModal() {
+    if (!booksIntroOverlay || booksTutorialFlags.tutorialBooksIntroShown) return;
+    booksTutorialFlags.tutorialBooksIntroShown = true;
+    logEvent("tutorial_books_shown", { step: "table" });
+    save();
+    booksIntroOverlay.classList.remove("hidden");
+    booksIntroOverlay.setAttribute("aria-hidden", "false");
+  }
+
+  btnBooksIntroOk?.addEventListener("click", () => {
+    booksIntroOverlay?.classList.add("hidden");
+    booksIntroOverlay?.setAttribute("aria-hidden", "true");
+  });
+  booksIntroOverlay?.addEventListener("click", (event) => {
+    if (event.target !== booksIntroOverlay) return;
+    booksIntroOverlay.classList.add("hidden");
+    booksIntroOverlay.setAttribute("aria-hidden", "true");
+  });
+
+  function showFightContextHint(targetEl, text, secondLine = "") {
+    if (!targetEl || !hintToast) return;
+    targetEl.classList.add("is-highlighted");
+    hintToast.innerHTML = secondLine ? `${text}<br>${secondLine}` : text;
+    hintToast.classList.remove("hidden");
+    hintToast.classList.add("show");
+    window.setTimeout(() => {
+      targetEl.classList.remove("is-highlighted");
+      hintToast.classList.remove("show");
+      window.setTimeout(() => hintToast.classList.add("hidden"), 180);
+    }, 2500);
+  }
+
+  function maybeRunBooksFightTutorial(weightVisible, speciesVisible, speciesText) {
+    if (!hasCommonSenseBook) {
+      previousHintVisibility = { weight: weightVisible, species: speciesVisible };
+      return;
+    }
+    if (weightVisible && !previousHintVisibility.weight && !booksTutorialFlags.tutorialWeightHintShown) {
+      booksTutorialFlags.tutorialWeightHintShown = true;
+      logEvent("tutorial_books_shown", { step: "weight" });
+      showFightContextHint(fishHintWeight, "Теперь ты способен понимать величину рыбы.");
+      save();
+    }
+    if (speciesVisible && !previousHintVisibility.species && !booksTutorialFlags.tutorialSpeciesHintShown) {
+      booksTutorialFlags.tutorialSpeciesHintShown = true;
+      const unknownNote = speciesText && speciesText.includes(BOOK_UNKNOWN_LABEL)
+        ? "Если ты видишь ??????, значит этот вид тебе ещё неизвестен."
+        : "";
+      logEvent("tutorial_books_shown", { step: "species" });
+      showFightContextHint(fishHintSpecies, "По поведению рыбы ты научился понимать, кто тянет леску.", unknownNote);
+      save();
+    }
+    previousHintVisibility = { weight: weightVisible, species: speciesVisible };
+  }
+
   function setHintTexts(weightTextOrNull, speciesTextOrNull) {
     if (!fishHintText) return;
-    fishHintText.textContent = "";
-    fishHintText.setAttribute("aria-hidden", "true");
-    lastFishHintText = "";
+    const weightText = weightTextOrNull || "";
+    const speciesText = speciesTextOrNull || "";
+    if (fishHintWeight) fishHintWeight.textContent = weightText ? `Вес: ${weightText}` : "";
+    if (fishHintSpecies) fishHintSpecies.textContent = speciesText ? `Вид: ${speciesText}` : "";
+    const visible = Boolean(weightText || speciesText);
+    fishHintText.classList.toggle("is-visible", visible);
+    fishHintText.setAttribute("aria-hidden", visible ? "false" : "true");
+    lastFishHintText = `${weightText}|${speciesText}`;
+    maybeRunBooksFightTutorial(Boolean(weightText), Boolean(speciesText), speciesText);
   }
 
   function scheduleRevealHintHide(delay = 260) {
@@ -7083,6 +7386,7 @@ if ("serviceWorker" in navigator) {
     game.lastTap = 999;
     setFishing(true);
     setFightState(true);
+    previousHintVisibility = { weight: false, species: false };
     setHintTexts(null, null);
     setHint("Жми", 0.9);
   }

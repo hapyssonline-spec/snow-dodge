@@ -103,7 +103,10 @@
           </div>
           <div class="bottomRow">
             <div id="breakHint" class="breakHint">Срыв: 12%</div>
-            <div id="fishHintText" class="fishHintText" aria-hidden="true"></div>
+            <div id="fishHintText" class="fishHintText" aria-hidden="true">
+              <div id="fishHintWeight" class="fishHintLine fishHintWeight"></div>
+              <div id="fishHintSpecies" class="fishHintLine fishHintSpecies"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -553,6 +556,7 @@
                 <button class="gearTabBtn is-active btn--singleLine" data-gear-tab="bait" role="tab" aria-selected="true"><span class="btnText">Наживки</span></button>
                 <button class="gearTabBtn btn--singleLine" data-gear-tab="rod" role="tab" aria-selected="false"><span class="btnText">Удочки</span></button>
                 <button class="gearTabBtn btn--singleLine" data-gear-tab="line" role="tab" aria-selected="false"><span class="btnText">Лески</span></button>
+                <button class="gearTabBtn btn--singleLine" data-gear-tab="books" role="tab" aria-selected="false"><span class="btnText">Книги</span></button>
               </div>
               <div class="gearTabPanels">
                 <div class="gearTabPanel is-active" data-gear-panel="bait" role="tabpanel">
@@ -563,6 +567,9 @@
                 </div>
                 <div class="gearTabPanel" data-gear-panel="line" role="tabpanel">
                   <div id="lineList" class="shopList scrollable"></div>
+                </div>
+                <div class="gearTabPanel" data-gear-panel="books" role="tabpanel">
+                  <div id="booksList" class="shopList scrollable"></div>
                 </div>
               </div>
             </div>
@@ -612,6 +619,18 @@
       <div id="toast" class="toast hidden"></div>
       <div id="xpToast" class="xpToast hidden"></div>
       <div id="hintToast" class="hintToast hidden" aria-live="polite"></div>
+
+      <div id="booksIntroOverlay" class="hidden modal modalOverlay" aria-hidden="true">
+        <div class="modalCard booksIntroCard">
+          <div class="modalHeader">
+            <div class="modalTitle modalHeaderTitle">Новое чутьё</div>
+          </div>
+          <div class="modalBody">
+            <p class="booksIntroText">Теперь во время вываживания ты начнёшь лучше чувствовать вес и поведение рыбы.</p>
+            <button id="btnBooksIntroOk" class="chipBtn btn--singleLine"><span class="btnText">Ок</span></button>
+          </div>
+        </div>
+      </div>
 
       <div id="rotateOverlay" class="rotateOverlay hidden" role="status" aria-live="polite">
         <div class="rotateCard">
