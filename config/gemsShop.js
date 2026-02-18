@@ -1,5 +1,6 @@
 window.GEMS_SHOP_CONFIG = {
   provider: "mock",
+  recommendedPackId: "pack_360",
   packs: [
     { id: "pack_30", title: "Starter", gems: 30, bonusPct: 0, priceYan: 49 },
     { id: "pack_80", title: "Popular", gems: 80, bonusPct: 10, priceYan: 99 },

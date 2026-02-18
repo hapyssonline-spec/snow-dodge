@@ -2256,12 +2256,14 @@ if ("serviceWorker" in navigator) {
     const amount = document.createElement("div");
     amount.className = "gemsPackAmount";
     setTextWithCurrencyIcons(amount, `${pack.granted} 💎`);
-    const total = document.createElement("div");
-    total.className = "shopPackTotal";
-    setTextWithCurrencyIcons(total, `Итого: ${pack.granted} 💎`);
-    meta.append(title, amount, total);
+    meta.append(title, amount);
 
     if (pack.bonusPct > 0) {
+      const bonusHint = document.createElement("div");
+      bonusHint.className = "shopPackBonusHint";
+      setTextWithCurrencyIcons(bonusHint, `${pack.gems} 💎 → ${pack.granted} 💎`);
+      meta.appendChild(bonusHint);
+
       const bonus = document.createElement("span");
       bonus.className = "gemsPackBonus";
       bonus.textContent = `+${pack.bonusPct}%`;
@@ -2312,16 +2314,16 @@ if ("serviceWorker" in navigator) {
     meta.append(title, amount);
 
     if (pack.bonusPct > 0) {
+      const bonusHint = document.createElement("div");
+      bonusHint.className = "shopPackBonusHint";
+      setTextWithCurrencyIcons(bonusHint, `${formatCoins(pack.baseCoins)} 🪙 → ${formatCoins(pack.grantedCoins)} 🪙`);
+      meta.appendChild(bonusHint);
+
       const bonus = document.createElement("span");
       bonus.className = "gemsPackBonus";
       bonus.textContent = `+${pack.bonusPct}%`;
       meta.appendChild(bonus);
     }
-
-    const total = document.createElement("div");
-    total.className = "shopPackTotal";
-    setTextWithCurrencyIcons(total, `Итого: ${formatCoins(pack.grantedCoins)} 🪙`);
-    meta.appendChild(total);
 
     const buyBtn = document.createElement("button");
     buyBtn.className = "chipBtn gemsBuyBtn btn--singleLine";
@@ -2352,20 +2354,39 @@ if ("serviceWorker" in navigator) {
     const suggestedPackId = gemsShopOverlay?.dataset?.suggestedPackId || "";
     gemsPacks.forEach((pack) => {
       const row = createGemsPackItem(pack);
-      if (suggestedPackId && pack.id === suggestedPackId) {
+      const isSuggested = suggestedPackId && pack.id === suggestedPackId;
+      const isRecommended = pack.id === recommendedGemsPackId;
+      if (isSuggested || isRecommended) {
         row.classList.add("is-recommended");
-        row.dataset.recommended = "1";
       }
+      if (isRecommended) {
+        const badge = document.createElement("span");
+        badge.className = "shopBestValueBadge";
+        badge.textContent = "Best value";
+        row.appendChild(badge);
+      }
+      if (isSuggested) row.dataset.recommended = "1";
       gemsPackList.appendChild(row);
     });
-    const suggestedRow = gemsPackList.querySelector('[data-recommended="1"]');
+    const suggestedRow = gemsPackList.querySelector('[data-recommended="1"]')
+      || gemsPackList.querySelector('.gemsPackItem.is-recommended');
     suggestedRow?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
   function renderCoinShop() {
     if (!coinsPackList) return;
     coinsPackList.innerHTML = "";
-    coinPacks.forEach((pack) => coinsPackList.appendChild(createCoinPackItem(pack)));
+    coinPacks.forEach((pack) => {
+      const row = createCoinPackItem(pack);
+      if (pack.id === recommendedCoinsPackId) {
+        row.classList.add("is-recommended");
+        const badge = document.createElement("span");
+        badge.className = "shopBestValueBadge";
+        badge.textContent = "Best value";
+        row.appendChild(badge);
+      }
+      coinsPackList.appendChild(row);
+    });
   }
 
   function updateExchangeUi() {
@@ -4046,6 +4067,8 @@ if ("serviceWorker" in navigator) {
   const gemsShopConfig = window.GEMS_SHOP_CONFIG || { provider: "mock", packs: [] };
   const coinShopConfig = window.COIN_SHOP_CONFIG || { provider: "mock", packs: [] };
   const exchangeConfig = window.EXCHANGE_CONFIG || { rateCoinsPerGem: 500 };
+  const recommendedGemsPackId = String(gemsShopConfig.recommendedPackId || "pack_360");
+  const recommendedCoinsPackId = String(coinShopConfig.recommendedPackId || "coin_154k");
 
   function sanitizePackConfig(pack) {
     if (!pack || typeof pack !== "object") return null;
