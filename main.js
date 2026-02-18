@@ -7357,7 +7357,7 @@ if ("serviceWorker" in navigator) {
       }
     }
 
-    stageManager.register("world", new WorldStage({ name: "world", rootEl: gameRoot }));
+    stageManager.register("world", new WorldStage({ name: "world" }));
     stageManager.register("shop", new ShopStage({ name: "shop", rootEl: shopOverlay }));
     stageManager.register("tutorial", new TutorialStage({ name: "tutorial", rootEl: tutorialOverlay }));
     stageManager.register("travel", new TravelStage({ name: "travel", rootEl: travelOverlay }));
