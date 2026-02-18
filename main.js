@@ -269,6 +269,7 @@ if ("serviceWorker" in navigator) {
   const fishHintWeight = document.getElementById("fishHintWeight");
   const fishHintSpecies = document.getElementById("fishHintSpecies");
   const booksIntroOverlay = document.getElementById("booksIntroOverlay");
+  const btnBooksIntroClose = document.getElementById("btnBooksIntroClose");
   const btnBooksIntroOk = document.getElementById("btnBooksIntroOk");
   const rareBoostHud = document.getElementById("rareBoostHud");
   const tutorialOverlay = document.getElementById("tutorialOverlay");
@@ -7135,14 +7136,16 @@ if ("serviceWorker" in navigator) {
     booksIntroOverlay.setAttribute("aria-hidden", "false");
   }
 
-  btnBooksIntroOk?.addEventListener("click", () => {
+  function hideBooksIntroModal() {
     booksIntroOverlay?.classList.add("hidden");
     booksIntroOverlay?.setAttribute("aria-hidden", "true");
-  });
+  }
+
+  btnBooksIntroOk?.addEventListener("click", hideBooksIntroModal);
+  btnBooksIntroClose?.addEventListener("click", hideBooksIntroModal);
   booksIntroOverlay?.addEventListener("click", (event) => {
     if (event.target !== booksIntroOverlay) return;
-    booksIntroOverlay.classList.add("hidden");
-    booksIntroOverlay.setAttribute("aria-hidden", "true");
+    hideBooksIntroModal();
   });
 
   function showFightContextHint(targetEl, text, secondLine = "") {

@@ -973,7 +973,8 @@ img, a{
 #app[data-effects="reduced"] #profileOverlay,
 #app[data-effects="reduced"] #profileSetupOverlay,
 #app[data-effects="reduced"] #renameOverlay,
-#app[data-effects="reduced"] #leaderboardOverlay{
+#app[data-effects="reduced"] #leaderboardOverlay,
+#app[data-effects="reduced"] #booksIntroOverlay{
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -996,6 +997,12 @@ img, a{
 }
 
 #renameOverlay{
+  backdrop-filter: blur(10px);
+  background: rgba(6,12,20,.72);
+  z-index:8;
+}
+
+#booksIntroOverlay{
   backdrop-filter: blur(10px);
   background: rgba(6,12,20,.72);
   z-index:8;
