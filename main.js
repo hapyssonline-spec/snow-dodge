@@ -147,8 +147,36 @@ if ("serviceWorker" in navigator) {
       textNode.className = "btnText";
       button.appendChild(textNode);
     }
-    textNode.textContent = text;
+    setTextWithCurrencyIcons(textNode, text);
   };
+
+  const CURRENCY_ICON_CLASS_MAP = {
+    "💎": "currencyIcon currencyIcon--gem",
+    "🪙": "currencyIcon currencyIcon--coin"
+  };
+
+  function setTextWithCurrencyIcons(target, text) {
+    if (!target) return;
+    const safeText = `${text ?? ""}`;
+    const hasCurrencyEmoji = /[💎🪙]/.test(safeText);
+    if (!hasCurrencyEmoji) {
+      target.textContent = safeText;
+      return;
+    }
+
+    target.textContent = "";
+    for (const symbol of safeText) {
+      const iconClass = CURRENCY_ICON_CLASS_MAP[symbol];
+      if (!iconClass) {
+        target.append(document.createTextNode(symbol));
+        continue;
+      }
+      const icon = document.createElement("span");
+      icon.className = iconClass;
+      icon.setAttribute("aria-hidden", "true");
+      target.append(icon);
+    }
+  }
 
   const shopOverlay = document.getElementById("shopOverlay");
   const shopTitle = document.getElementById("shopTitle");
@@ -2227,10 +2255,10 @@ if ("serviceWorker" in navigator) {
     title.textContent = pack.title;
     const amount = document.createElement("div");
     amount.className = "gemsPackAmount";
-    amount.textContent = `${pack.granted} 💎`;
+    setTextWithCurrencyIcons(amount, `${pack.granted} 💎`);
     const total = document.createElement("div");
     total.className = "shopPackTotal";
-    total.textContent = `Итого: ${pack.granted} 💎`;
+    setTextWithCurrencyIcons(total, `Итого: ${pack.granted} 💎`);
     meta.append(title, amount, total);
 
     if (pack.bonusPct > 0) {
@@ -2280,7 +2308,7 @@ if ("serviceWorker" in navigator) {
     title.textContent = pack.title;
     const amount = document.createElement("div");
     amount.className = "gemsPackAmount";
-    amount.textContent = `${formatCoins(pack.grantedCoins)} 🪙`;
+    setTextWithCurrencyIcons(amount, `${formatCoins(pack.grantedCoins)} 🪙`);
     meta.append(title, amount);
 
     if (pack.bonusPct > 0) {
@@ -2292,7 +2320,7 @@ if ("serviceWorker" in navigator) {
 
     const total = document.createElement("div");
     total.className = "shopPackTotal";
-    total.textContent = `Итого: ${formatCoins(pack.grantedCoins)} 🪙`;
+    setTextWithCurrencyIcons(total, `Итого: ${formatCoins(pack.grantedCoins)} 🪙`);
     meta.appendChild(total);
 
     const buyBtn = document.createElement("button");
@@ -2341,12 +2369,12 @@ if ("serviceWorker" in navigator) {
   }
 
   function updateExchangeUi() {
-    if (exchangeRateText) exchangeRateText.textContent = `Курс: 1 💎 = ${exchangeService.getRate()} 🪙`;
+    if (exchangeRateText) setTextWithCurrencyIcons(exchangeRateText, `Курс: 1 💎 = ${exchangeService.getRate()} 🪙`);
     const gemsValue = Number(exchangeInput?.value);
     const isInt = Number.isInteger(gemsValue);
     const valid = isInt && gemsValue >= 1 && exchangeService.canExchange(gemsValue);
     const coins = isInt && gemsValue >= 1 ? exchangeService.computeCoins(gemsValue) : 0;
-    if (exchangeResult) exchangeResult.textContent = `Получишь: ${formatCoins(coins)} 🪙`;
+    if (exchangeResult) setTextWithCurrencyIcons(exchangeResult, `Получишь: ${formatCoins(coins)} 🪙`);
     if (btnExchangeSubmit) btnExchangeSubmit.disabled = !valid || btnExchangeSubmit.dataset.loading === "1";
   }
 
@@ -4293,7 +4321,7 @@ if ("serviceWorker" in navigator) {
       if (!sRect || !tRect) return;
       const chip = document.createElement("div");
       chip.className = `currencyFly${negative ? " is-negative" : ""}`;
-      chip.textContent = text;
+      setTextWithCurrencyIcons(chip, text);
       chip.style.left = `${sRect.left + sRect.width / 2}px`;
       chip.style.top = `${sRect.top + sRect.height / 2}px`;
       chip.style.transform = "translate(-50%, -50%) scale(1)";
