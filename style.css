@@ -3657,10 +3657,14 @@ button:disabled{
   transform:translateY(0);
   display:flex;
   justify-content:center;
-  transition:top .24s ease;
+  transition:top 1s cubic-bezier(.22,.75,.18,1);
 }
 .tutorialOverlay.is-visible .tutorialCardWrap{
   animation:tutorialCardIntro 1s ease;
+}
+.tutorialCardWrap.is-skip-anim{
+  transition:none !important;
+  animation:none !important;
 }
 .tutorialCard{ width:min(560px, 100%); background:rgba(15,26,36,.96); border:1px solid rgba(190,223,255,.3); border-radius:18px; padding:14px; box-shadow:0 14px 34px rgba(0,0,0,.35); }
 .tutorialCard h3{ margin:0 0 8px; font-size:26px; }

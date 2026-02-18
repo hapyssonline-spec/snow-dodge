@@ -836,7 +836,7 @@ if ("serviceWorker" in navigator) {
   const CITY_UNLOCK_LEVEL = 2;
   const FINDING_LOCK_CASTS = 5;
 
-  function positionTutorialCard({ spotlightRect = null, preferredSide = "auto" } = {}) {
+  function positionTutorialCard({ spotlightRect = null } = {}) {
     if (!tutorialCardWrap) return;
 
     const viewportH = window.innerHeight || 0;
@@ -847,7 +847,7 @@ if ("serviceWorker" in navigator) {
     const minTop = safeTop;
     const maxTop = Math.max(minTop, viewportH - safeBottomPad - cardHeight);
 
-    if (!spotlightRect) {
+    if (!spotlightRect || !spotlightRect.width || !spotlightRect.height) {
       const centeredTop = clamp(Math.round((viewportH - cardHeight) * 0.5), minTop, maxTop);
       tutorialCardWrap.style.setProperty("--tutorial-card-top", `${centeredTop}px`);
       tutorialCardWrap.dataset.side = "center";
@@ -857,23 +857,25 @@ if ("serviceWorker" in navigator) {
     const gap = 18;
     const rectTop = spotlightRect.top;
     const rectBottom = spotlightRect.top + spotlightRect.height;
+    const rectCenterY = rectTop + spotlightRect.height * 0.5;
+    const isSpotlightInUpperHalf = rectCenterY < viewportH * 0.5;
+
+    // Rule: spotlight in upper half => card below; spotlight in lower half => card above.
+    const side = isSpotlightInUpperHalf ? "below" : "above";
     const aboveTop = clamp(Math.round(rectTop - cardHeight - gap), minTop, maxTop);
     const belowTop = clamp(Math.round(rectBottom + gap), minTop, maxTop);
-    const spaceAbove = rectTop - minTop;
-    const spaceBelow = viewportH - rectBottom - safeBottomPad;
-
-    let side = "below";
-    if (preferredSide === "top") {
-      side = "above";
-    } else if (preferredSide === "bottom") {
-      side = "below";
-    } else if (spaceAbove > spaceBelow) {
-      side = "above";
-    }
-
     const targetTop = side === "above" ? aboveTop : belowTop;
+
     tutorialCardWrap.style.setProperty("--tutorial-card-top", `${targetTop}px`);
     tutorialCardWrap.dataset.side = side;
+  }
+
+  function completeTutorialCardAnimation() {
+    if (!tutorialCardWrap) return;
+    tutorialCardWrap.classList.add("is-skip-anim");
+    requestAnimationFrame(() => {
+      tutorialCardWrap.classList.remove("is-skip-anim");
+    });
   }
 
   function setTutorialPause(enabled) {
@@ -913,7 +915,7 @@ if ("serviceWorker" in navigator) {
       setTimeout(() => {
         if (!this.active) return;
         this.showOverlay();
-        this.showCard("Обучение началось", "Сейчас быстро разберёмся с управлением, и ты сразу поймаешь первую рыбу.", "Начать", true, { preferredSide: "auto" });
+        this.showCard("Обучение началось", "Сейчас быстро разберёмся с управлением, и ты сразу поймаешь первую рыбу.", "Начать", true);
         this.step = "intro";
       }, 40);
     }
@@ -938,7 +940,7 @@ if ("serviceWorker" in navigator) {
       setTimeout(() => tutorialOverlay.classList.add("hidden"), 220);
     }
 
-    showCard(title, text, buttonText = "Далее", showButton = true, { preferredSide = "auto", spotlightRect = null } = {}) {
+    showCard(title, text, buttonText = "Далее", showButton = true, { spotlightRect = null } = {}) {
       if (tutorialTitle) tutorialTitle.textContent = title;
       if (tutorialText) tutorialText.textContent = text;
       if (tutorialNextBtn) {
@@ -946,7 +948,7 @@ if ("serviceWorker" in navigator) {
         if (showButton) setButtonText(tutorialNextBtn, buttonText);
       }
       const nextSpotlight = spotlightRect || tutorialSpotlight?.getBoundingClientRect?.() || null;
-      requestAnimationFrame(() => positionTutorialCard({ spotlightRect: nextSpotlight, preferredSide }));
+      requestAnimationFrame(() => positionTutorialCard({ spotlightRect: nextSpotlight }));
     }
 
     setSpotlightRect(rect) {
@@ -1033,6 +1035,7 @@ if ("serviceWorker" in navigator) {
 
     onNext() {
       if (!this.active) return;
+      completeTutorialCardAnimation();
       if (this.step === "intro") {
         this.step = "hero";
         this.highlightHero();
@@ -1181,7 +1184,7 @@ if ("serviceWorker" in navigator) {
         this.stopFollowBobberSpotlight();
         this.setSpotlightRect(null);
         tutorialSwipeHint?.classList.remove("hidden");
-        this.showCard("Рыба клюнула!", "Чтобы подсечь — проведи пальцем снизу вверх.", "", false, { preferredSide: "bottom", spotlightRect: null });
+        this.showCard("Рыба клюнула!", "Чтобы подсечь — проведи пальцем снизу вверх.", "", false, { spotlightRect: null });
       }, 700);
     }
 
@@ -1280,7 +1283,7 @@ if ("serviceWorker" in navigator) {
     tutorialSwipeHint?.classList.add("hidden");
     tutorialSpotlight?.classList.remove("is-following");
     setGuideSpotlight(spotlightRect);
-    requestAnimationFrame(() => positionTutorialCard({ spotlightRect, preferredSide: "auto" }));
+    requestAnimationFrame(() => positionTutorialCard({ spotlightRect }));
     tutorialOverlay?.classList.remove("hidden");
     tutorialOverlay?.setAttribute("aria-hidden", "false");
     if (tutorialOverlay) tutorialOverlay.style.pointerEvents = showButton ? "auto" : "none";
@@ -6452,6 +6455,7 @@ if ("serviceWorker" in navigator) {
   });
 
   tutorialNextBtn?.addEventListener("click", () => {
+    completeTutorialCardAnimation();
     if (tutorialManager?.active) return;
     if (guideStep === "city-unlock") {
       onboarding.cityUnlockHintShown = true;
