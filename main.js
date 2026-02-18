@@ -7522,6 +7522,7 @@ if ("serviceWorker" in navigator) {
     }
     updateModalLayerState();
     updateLayerVisibility();
+    canvasNeedsClear = !isCanvasGameplayScene(sceneId);
     maybeShowCityUnlockGuide();
   }
 
@@ -8158,6 +8159,8 @@ if ("serviceWorker" in navigator) {
   const LOW_FPS_THRESHOLD = 44;
 
   const getTargetFrameInterval = () => 1 / (isMobileDevice() ? TARGET_FPS_MOBILE : TARGET_FPS_DESKTOP);
+  const isCanvasGameplayScene = (sceneId) => [SCENE_LAKE, SCENE_CATCH_MODAL, SCENE_FINDING_MODAL].includes(sceneId);
+  let canvasNeedsClear = true;
 
   function update(dt) {
     if (orientationLocked) return;
@@ -8470,8 +8473,7 @@ if ("serviceWorker" in navigator) {
 
   // ===== Drawing =====
   function draw() {
-    if (currentScene === SCENE_CITY || currentScene === SCENE_BUILDING_FISHSHOP || currentScene === SCENE_BUILDING_TROPHY || currentScene === SCENE_BUILDING_GEARSHOP) {
-      ctx.clearRect(0, 0, W, H);
+    if (!isCanvasGameplayScene(currentScene)) {
       return;
     }
     drawLake();
@@ -8769,6 +8771,8 @@ if ("serviceWorker" in navigator) {
     const frameDt = Math.min(MAX_FRAME_DELTA, Math.max(0, (t - lastTime) / 1000));
     lastTime = t;
 
+    accumulator = Math.min(0.2, accumulator + frameDt);
+
     const targetInterval = getTargetFrameInterval();
     frameBudgetCarry += frameDt;
     if (frameBudgetCarry + 0.000001 < targetInterval) {
@@ -8779,6 +8783,16 @@ if ("serviceWorker" in navigator) {
 
     if (gameLoopPaused) {
       accumulator = 0;
+      requestAnimationFrame(loop);
+      return;
+    }
+
+    if (!isCanvasGameplayScene(currentScene) && !travel.active) {
+      accumulator = 0;
+      if (canvasNeedsClear) {
+        ctx.clearRect(0, 0, W, H);
+        canvasNeedsClear = false;
+      }
       requestAnimationFrame(loop);
       return;
     }
@@ -8795,7 +8809,6 @@ if ("serviceWorker" in navigator) {
       }
     }
 
-    accumulator = Math.min(0.2, accumulator + frameDt);
     while (accumulator >= FIXED_STEP) {
       update(FIXED_STEP);
       accumulator -= FIXED_STEP;
@@ -8825,16 +8838,43 @@ if ("serviceWorker" in navigator) {
     } catch {}
   }
 
-  async function preloadSceneAssets() {
-    const images = Array.from(document.images || []);
+  async function preloadImages(images) {
     const waitFor = (img) =>
       new Promise((resolve) => {
-        if (img.complete) return resolve();
+        if (!img || img.complete) return resolve();
         const done = () => resolve();
         img.addEventListener("load", done, { once: true });
         img.addEventListener("error", done, { once: true });
       });
     await Promise.all(images.map(waitFor));
+  }
+
+  function getCriticalSceneImages() {
+    const roots = [lakeScene, topBar, bottomBar, overlay];
+    const unique = new Set();
+    for (const root of roots) {
+      if (!root?.querySelectorAll) continue;
+      for (const img of root.querySelectorAll("img")) unique.add(img);
+    }
+    return Array.from(unique);
+  }
+
+  async function preloadCriticalSceneAssets() {
+    await preloadImages(getCriticalSceneImages());
+  }
+
+  function scheduleDeferredAssetPreload() {
+    const run = () => {
+      const images = Array.from(document.images || []);
+      const critical = new Set(getCriticalSceneImages());
+      const deferred = images.filter((img) => !critical.has(img));
+      preloadImages(deferred);
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(run, { timeout: 3000 });
+      return;
+    }
+    window.setTimeout(run, 1200);
   }
 
   async function boot() {
@@ -8861,8 +8901,6 @@ if ("serviceWorker" in navigator) {
     if (orientationLocked) {
       layout();
     }
-    renderInventory();
-    renderTrashJournal();
     setScene(SCENE_LAKE);
     setLakeState("idle");
     startPlaySession();
@@ -8871,7 +8909,8 @@ if ("serviceWorker" in navigator) {
     }
     registerSW();
 
-    await preloadSceneAssets();
+    await preloadCriticalSceneAssets();
+    scheduleDeferredAssetPreload();
     syncBobberToRodTip();
 
     setOverlayText("Тапни «Играть». Управление: тап — заброс, поклёвка → свайп вверх, затем тапами выматывай.");
