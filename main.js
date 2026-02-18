@@ -3449,41 +3449,49 @@ if ("serviceWorker" in navigator) {
 
   function pickFishState(reel, tension, cadence) {
     const zones = reel.zones;
-    const weights = {
-      CALM: 0.28,
-      REST: 0.2,
-      PULL: 0.24,
-      DASH: 0.15 * reel.fishAI.tune.dashBias,
-      PANIC: 0.13 * reel.fishAI.tune.dashBias
-    };
+    let calmWeight = 0.28;
+    let restWeight = 0.2;
+    let pullWeight = 0.24;
+    let dashWeight = 0.15 * reel.fishAI.tune.dashBias;
+    let panicWeight = 0.13 * reel.fishAI.tune.dashBias;
 
     const inSweet = tension >= zones.sweetMin && tension <= zones.sweetMax;
     if (tension < zones.safeMin) {
-      weights.PULL += 0.12;
-      weights.DASH += 0.1;
-      weights.REST -= 0.08;
+      pullWeight += 0.12;
+      dashWeight += 0.1;
+      restWeight -= 0.08;
     }
     if (tension > zones.dangerMin) {
-      weights.PANIC += 0.12;
-      weights.DASH += 0.06;
-      weights.CALM -= 0.1;
+      panicWeight += 0.12;
+      dashWeight += 0.06;
+      calmWeight -= 0.1;
     }
     if (inSweet) {
-      weights.REST += 0.12;
-      weights.CALM += 0.1;
-      weights.DASH -= 0.05;
+      restWeight += 0.12;
+      calmWeight += 0.1;
+      dashWeight -= 0.05;
     }
-    if (cadence < 0.16) weights.PANIC += 0.08;
-    if (cadence > 0.75) weights.DASH += 0.08;
+    if (cadence < 0.16) panicWeight += 0.08;
+    if (cadence > 0.75) dashWeight += 0.08;
 
-    const entries = Object.entries(weights).map(([key, value]) => [key, Math.max(0.05, value)]);
-    const total = entries.reduce((sum, entry) => sum + entry[1], 0);
+    const calm = Math.max(0.05, calmWeight);
+    const rest = Math.max(0.05, restWeight);
+    const pull = Math.max(0.05, pullWeight);
+    const dash = Math.max(0.05, dashWeight);
+    const panic = Math.max(0.05, panicWeight);
+
+    const total = calm + rest + pull + dash + panic;
     let roll = Math.random() * total;
-    for (const [key, value] of entries) {
-      roll -= value;
-      if (roll <= 0) return key;
-    }
-    return "CALM";
+
+    roll -= calm;
+    if (roll <= 0) return "CALM";
+    roll -= rest;
+    if (roll <= 0) return "REST";
+    roll -= pull;
+    if (roll <= 0) return "PULL";
+    roll -= dash;
+    if (roll <= 0) return "DASH";
+    return "PANIC";
   }
 
   function buildReelModel(catchData) {
@@ -3516,6 +3524,7 @@ if ("serviceWorker" in navigator) {
       slackFlash: 0,
       slackHintCooldown: 0,
       tapHistory: [],
+      tapHistorySum: 0,
       tapCadence: 0.45,
       overload: 0,
       tapFlash: 0,
@@ -8024,8 +8033,12 @@ if ("serviceWorker" in navigator) {
       // tap cadence tracking
       if (Number.isFinite(game.lastTap)) {
         reel.tapHistory.push(game.lastTap);
-        if (reel.tapHistory.length > TAP_HISTORY) reel.tapHistory.shift();
-        const avg = reel.tapHistory.reduce((sum, v) => sum + v, 0) / reel.tapHistory.length;
+        reel.tapHistorySum += game.lastTap;
+        if (reel.tapHistory.length > TAP_HISTORY) {
+          const removedTap = reel.tapHistory.shift();
+          reel.tapHistorySum -= Number.isFinite(removedTap) ? removedTap : 0;
+        }
+        const avg = reel.tapHistory.length > 0 ? reel.tapHistorySum / reel.tapHistory.length : 0.45;
         reel.tapCadence = clamp(avg, 0.08, 1.2);
       }
       game.lastTap = 0;
