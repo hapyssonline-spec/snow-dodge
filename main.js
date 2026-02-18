@@ -8281,7 +8281,7 @@ if ("serviceWorker" in navigator) {
         catchImageSlot.classList.toggle("is-empty", !iconPath);
       }
     }
-    if (catchFullPrice) catchFullPrice.textContent = formatCoins(catchData.sellValue);
+    if (catchFullPrice) catchFullPrice.textContent = formatNumber(catchData.sellValue);
     if (catchXpGain) catchXpGain.classList.add("hidden");
     if (xpResult) {
       const steps = Array.isArray(xpResult.animationSteps) ? xpResult.animationSteps : [];
