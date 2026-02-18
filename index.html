@@ -71,11 +71,11 @@
 
         <div class="topbarSlot topbarSlot-right">
           <button id="btnGemsHud" class="stat stat-compact stat-gems" aria-label="Открыть магазин гемов">
-            <span class="statIcon" aria-hidden="true">💎</span>
+            <span class="statIcon currencyIcon currencyIcon--gem" aria-hidden="true"></span>
             <span id="gems" class="value value-gems">0</span>
           </button>
           <button id="btnCoinsHud" class="stat stat-compact stat-coins" aria-label="Открыть магазин монет">
-            <span class="statIcon" aria-hidden="true">🪙</span>
+            <span class="statIcon currencyIcon currencyIcon--coin" aria-hidden="true"></span>
             <span id="coins" class="value">0</span>
           </button>
         </div>
@@ -260,7 +260,7 @@
           <div class="catchPrices">
             <div class="catchPriceRow catchPriceRow--single">
               <span class="priceLabel">Цена:</span>
-              <span class="catchPriceValueWrap"><span id="catchFullPrice" class="priceValue">0</span><span class="coinIcon" aria-hidden="true">🪙</span></span>
+              <span class="catchPriceValueWrap"><span id="catchFullPrice" class="priceValue">0</span><span class="coinIcon currencyIcon currencyIcon--coin" aria-hidden="true"></span></span>
             </div>
           </div>
           <div id="catchXpBlock" class="catchXpBlock">
@@ -597,10 +597,10 @@
             </div>
             <div id="exchangeTabPanel" class="shopTabPanel" role="tabpanel" aria-hidden="true">
               <div class="exchangePanel">
-                <div id="exchangeRateText" class="exchangeRateText">Курс: 1 💎 = 500 🪙</div>
-                <label class="formLabel" for="exchangeInput">Сколько 💎 обменять</label>
+                <div id="exchangeRateText" class="exchangeRateText">Курс: 1 <span class="currencyIcon currencyIcon--gem" aria-hidden="true"></span> = 500 <span class="currencyIcon currencyIcon--coin" aria-hidden="true"></span></div>
+                <label class="formLabel" for="exchangeInput">Сколько <span class="currencyIcon currencyIcon--gem" aria-hidden="true"></span> обменять</label>
                 <input id="exchangeInput" class="textInput" type="number" min="1" step="1" inputmode="numeric" />
-                <div id="exchangeResult" class="exchangeResult">Получишь: 0 🪙</div>
+                <div id="exchangeResult" class="exchangeResult">Получишь: 0 <span class="currencyIcon currencyIcon--coin" aria-hidden="true"></span></div>
                 <button id="btnExchangeSubmit" class="chipBtn btn--singleLine" disabled><span class="btnText">Обменять</span></button>
               </div>
             </div>

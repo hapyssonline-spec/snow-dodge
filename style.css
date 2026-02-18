@@ -286,6 +286,21 @@ img, a{
   opacity:1;
   filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
 }
+
+.currencyIcon{
+  --currency-icon-size: 22px;
+  display:inline-block;
+  width:var(--currency-icon-size);
+  height:var(--currency-icon-size);
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:contain;
+  vertical-align:-0.18em;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
+}
+
+.currencyIcon--gem{ background-image:url("assets/tiles/gem.png"); }
+.currencyIcon--coin{ background-image:url("assets/tiles/coin.png"); }
 .value{font-size:24.7px; font-weight:900; color:#ffe3a2; text-shadow:0 1px 2px rgba(0,0,0,.34)}
 .center{flex:1; text-align:center}
 .title{
@@ -2531,7 +2546,7 @@ img, a{
 }
 
 .coinIcon{
-  font-size:23.4px;
+  --currency-icon-size: 23px;
   filter: drop-shadow(0 0 6px rgba(255,216,151,.5));
 }
 
@@ -3982,10 +3997,17 @@ button:disabled{
   position:fixed;
   z-index:80;
   pointer-events:none;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
   font-weight:800;
   color:#ecfbff;
   text-shadow:0 4px 8px rgba(0,0,0,.45);
   transition: transform .45s cubic-bezier(.2,.8,.2,1), opacity .45s ease;
+}
+
+.currencyFly .currencyIcon{
+  --currency-icon-size: 20px;
 }
 
 .currencyFly.is-negative{ color:#ffb8c1; }
