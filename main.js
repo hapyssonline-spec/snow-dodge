@@ -1039,18 +1039,18 @@ if ("serviceWorker" in navigator) {
       if (this.step === "intro") {
         this.step = "hero";
         this.highlightHero();
-        this.showCard("Это ты", "Это твой персонаж. Отсюда начинается рыбалка.", "Далее");
+        this.showCard("Это ты", "Это твой персонаж. Отсюда начинается рыбалка.", "Далее", true, { preferredSide: "top" });
         return;
       }
       if (this.step === "hero") {
         this.step = "cast";
         this.highlightWaterRight();
-        this.showCard("Заброс", "Нажми на воду справа — произойдёт заброс удочки. Нажми сейчас.", "Ожидаю тап", false);
+        this.showCard("Заброс", "Нажми на воду справа — произойдёт заброс удочки. Нажми сейчас.", "Ожидаю тап", false, { preferredSide: "bottom" });
         return;
       }
       if (this.step === "bite-info") {
         this.waitingForBiteDemo = true;
-        this.showCard("Поклёвка", "Смотри на поплавок. Через мгновение он поплывёт вправо.", "Наблюдаю", false);
+        this.showCard("Поклёвка", "Смотри на поплавок. Через мгновение он поплывёт вправо.", "Наблюдаю", false, { preferredSide: "top" });
         setTutorialPause(false);
         return;
       }
@@ -1116,7 +1116,7 @@ if ("serviceWorker" in navigator) {
         castTo(p.x, y);
         this.step = "bite-info";
         this.followBobberSpotlight();
-        this.showCard("Поклёвка", "Когда поплавок начинает плыть правее — это поклёвка.", "Показать");
+        this.showCard("Поклёвка", "Когда поплавок начинает плыть правее — это поклёвка.", "Показать", true, { preferredSide: "top" });
         return;
       }
       if (this.step === "swipe") {
