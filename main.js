@@ -3322,9 +3322,28 @@ if ("serviceWorker" in navigator) {
     if (catchData.speciesId !== activeQuest.speciesId) return;
     if (catchData.weightKg < activeQuest.minWeightKg || catchData.weightKg > activeQuest.maxWeightKg) return;
     activeQuest.status = "completed";
+    const shouldShowPlotvaTutorial = !onboarding.firstPlotvaQuestTutorialShown
+      && activeQuest.difficulty === "easy"
+      && activeQuest.speciesId === "plotva";
+    if (shouldShowPlotvaTutorial) {
+      onboarding.firstPlotvaQuestTutorialShown = true;
+    }
     save();
     updateQuestReminder();
     renderTrophyQuest();
+    if (shouldShowPlotvaTutorial && guideStep === "none" && !tutorialManager?.active) {
+      setGuideStep("quest-complete-first-plotva");
+      setTutorialPause(true);
+      showGuideOverlay({
+        title: "Задание выполнено",
+        text: "Вернись в трофейную, чтобы получить награду.",
+        buttonText: "Продолжить",
+        showButton: true,
+        preferredSide: "top",
+        spotlightRect: getSpotlightRect(btnCity, 16)
+      });
+      return;
+    }
     showQuestToast("Цель выполнена", "Загляни в трофейную за наградой");
   }
 
@@ -4319,7 +4338,8 @@ if ("serviceWorker" in navigator) {
     firstCityArrivalShown: false,
     trophyGuideDone: false,
     findingTutorialDone: false,
-    firstTutorialInventoryHintShown: false
+    firstTutorialInventoryHintShown: false,
+    firstPlotvaQuestTutorialShown: false
   };
   let guideStep = "none";
   let caughtSpeciesCache = readCaughtSpecies();
@@ -4597,6 +4617,7 @@ if ("serviceWorker" in navigator) {
         onboarding.trophyGuideDone = !!obj.onboarding.trophyGuideDone;
         onboarding.findingTutorialDone = !!obj.onboarding.findingTutorialDone;
         onboarding.firstTutorialInventoryHintShown = !!obj.onboarding.firstTutorialInventoryHintShown;
+        onboarding.firstPlotvaQuestTutorialShown = !!obj.onboarding.firstPlotvaQuestTutorialShown;
       }
       hasCommonSenseBook = !!obj.hasCommonSenseBook;
       hasRareSenseBook = !!obj.hasRareSenseBook;
@@ -4754,6 +4775,7 @@ if ("serviceWorker" in navigator) {
     onboarding.trophyGuideDone = false;
     onboarding.findingTutorialDone = false;
     onboarding.firstTutorialInventoryHintShown = false;
+    onboarding.firstPlotvaQuestTutorialShown = false;
     cityUnlockedToastShown = false;
     save();
     eventBus.emit(EVENTS.GEMS_CHANGED, { balance: gemsService.getBalance(), delta: 0, reason: "reset" });
@@ -7145,17 +7167,19 @@ if ("serviceWorker" in navigator) {
     booksIntroOverlay.setAttribute("aria-hidden", "true");
   });
 
-  function showFightContextHint(targetEl, text, secondLine = "") {
-    if (!targetEl || !hintToast) return;
+  function showFightContextHintOverlay(step, targetEl, text, secondLine = "") {
+    if (!targetEl || guideStep !== "none" || tutorialManager?.active) return;
     targetEl.classList.add("is-highlighted");
-    hintToast.innerHTML = secondLine ? `${text}<br>${secondLine}` : text;
-    hintToast.classList.remove("hidden");
-    hintToast.classList.add("show");
-    window.setTimeout(() => {
-      targetEl.classList.remove("is-highlighted");
-      hintToast.classList.remove("show");
-      window.setTimeout(() => hintToast.classList.add("hidden"), 180);
-    }, 2500);
+    setGuideStep(step);
+    setTutorialPause(true);
+    showGuideOverlay({
+      title: "Новое чутьё",
+      text: secondLine ? `${text}\n\n${secondLine}` : text,
+      buttonText: "Продолжить",
+      showButton: true,
+      preferredSide: "bottom",
+      spotlightRect: getSpotlightRect(targetEl, 16)
+    });
   }
 
   function maybeRunBooksFightTutorial(weightVisible, speciesVisible, speciesText) {
@@ -7166,7 +7190,7 @@ if ("serviceWorker" in navigator) {
     if (weightVisible && !previousHintVisibility.weight && !booksTutorialFlags.tutorialWeightHintShown) {
       booksTutorialFlags.tutorialWeightHintShown = true;
       logEvent("tutorial_books_shown", { step: "weight" });
-      showFightContextHint(fishHintWeight, "Теперь ты способен понимать величину рыбы.");
+      showFightContextHintOverlay("books-fight-weight", fishHintWeight, "Теперь ты способен понимать вес рыбы.");
       save();
     }
     if (speciesVisible && !previousHintVisibility.species && !booksTutorialFlags.tutorialSpeciesHintShown) {
@@ -7175,7 +7199,12 @@ if ("serviceWorker" in navigator) {
         ? "Если ты видишь ??????, значит этот вид тебе ещё неизвестен."
         : "";
       logEvent("tutorial_books_shown", { step: "species" });
-      showFightContextHint(fishHintSpecies, "По поведению рыбы ты научился понимать, кто тянет леску.", unknownNote);
+      showFightContextHintOverlay(
+        "books-fight-species",
+        fishHintSpecies,
+        "По поведению рыбы ты научился понимать, кто тянет леску.",
+        unknownNote
+      );
       save();
     }
     previousHintVisibility = { weight: weightVisible, species: speciesVisible };
@@ -7799,6 +7828,22 @@ if ("serviceWorker" in navigator) {
       save();
       return;
     }
+    if (guideStep === "books-fight-weight" || guideStep === "books-fight-species") {
+      fishHintWeight?.classList.remove("is-highlighted");
+      fishHintSpecies?.classList.remove("is-highlighted");
+      setGuideStep("none");
+      hideGuideOverlay();
+      setTutorialPause(false);
+      save();
+      return;
+    }
+    if (guideStep === "quest-complete-first-plotva") {
+      setGuideStep("none");
+      hideGuideOverlay();
+      setTutorialPause(false);
+      save();
+      return;
+    }
     if (guideStep === "trophy-back-to-lake-hint") {
       onboarding.trophyGuideDone = true;
       onboarding.firstCityArrivalShown = true;
@@ -8294,6 +8339,8 @@ if ("serviceWorker" in navigator) {
   const MAX_MOBILE_DPR = 2;
   const MAX_DESKTOP_DPR = 3;
   const TARGET_FPS_MOBILE = 45;
+  const TARGET_FPS_MOBILE_WAITING = 30;
+  const TARGET_FPS_UI = 60;
   const TARGET_FPS_DESKTOP = 60;
   const FIXED_STEP = 1 / 60;
   const MAX_FRAME_DELTA = 0.05;
@@ -8307,7 +8354,19 @@ if ("serviceWorker" in navigator) {
   let loopRafId = null;
   const frameMonitor = { enabled: Boolean(window.__ICEFISH_DEV__), longFrames: 0, frames: 0, fpsTime: 0, fps: 0 };
 
-  const getTargetFrameInterval = () => 1 / (isMobileDevice() ? TARGET_FPS_MOBILE : TARGET_FPS_DESKTOP);
+  function getTargetFrameInterval() {
+    const tutorialVisible = tutorialOverlay && !tutorialOverlay.classList.contains("hidden") && tutorialOverlay.classList.contains("is-visible");
+    if (tutorialVisible) {
+      return 1 / TARGET_FPS_UI;
+    }
+    if (isMobileDevice()) {
+      if (currentScene === SCENE_LAKE && game.mode === "WAITING" && !isFighting) {
+        return 1 / TARGET_FPS_MOBILE_WAITING;
+      }
+      return 1 / TARGET_FPS_MOBILE;
+    }
+    return 1 / TARGET_FPS_DESKTOP;
+  }
   const isCanvasGameplayScene = (sceneId) => [SCENE_LAKE, SCENE_CATCH_MODAL, SCENE_FINDING_MODAL].includes(sceneId);
   let canvasNeedsClear = true;
 
