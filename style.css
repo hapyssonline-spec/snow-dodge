@@ -3804,11 +3804,45 @@ button:disabled{
   border-radius:24px;
   box-shadow:0 24px 44px rgba(4, 10, 22, .5);
   overflow:hidden;
+  transform:scale(.92);
+  opacity:0;
+  transition:transform .24s cubic-bezier(.22,1,.36,1), opacity .24s ease;
+}
+
+#gemsShopOverlay:not(.hidden) .gemsShopCard{
+  transform:scale(1);
+  opacity:1;
 }
 
 #gemsShopOverlay .modalBody{
   padding:18px;
 }
+
+.shopTabs{
+  position:relative;
+  display:flex;
+  gap:8px;
+  margin-bottom:14px;
+  padding-bottom:8px;
+}
+
+.shopTabBtn{
+  flex:1;
+}
+
+.shopTabIndicator{
+  position:absolute;
+  left:0;
+  bottom:0;
+  height:3px;
+  width:0;
+  border-radius:999px;
+  background:linear-gradient(90deg, #74d7ff 0%, #b58cff 100%);
+  transition:transform .2s ease, width .2s ease;
+}
+
+.shopTabPanel{ display:none; opacity:0; transform:translateY(6px); }
+.shopTabPanel.is-active{ display:block; opacity:1; transform:translateY(0); transition:opacity .2s ease, transform .2s ease; }
 
 .gemsPackList{
   display:grid;
@@ -3827,7 +3861,16 @@ button:disabled{
   align-items:center;
   justify-content:space-between;
   gap:10px;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
+
+.gemsPackItem:hover{
+  transform:translateY(-2px);
+  border-color: rgba(156, 228, 255, .4);
+  box-shadow:0 12px 24px rgba(0, 0, 0, .25);
+}
+
+.gemsPackItem:active{ transform:scale(.97); }
 
 .gemsPackMeta{
   display:flex;
@@ -3859,6 +3902,52 @@ button:disabled{
 
 .gemsBuyBtn{
   min-width:118px;
+}
+
+.gemsBuyBtn:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+}
+
+.shopPackTotal,
+.exchangeResult,
+.exchangeRateText{
+  color:#cceeff;
+  font-weight:700;
+}
+
+.exchangePanel{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  background:rgba(10, 20, 34, .65);
+  border:1px solid rgba(121, 212, 255, .26);
+  border-radius:16px;
+  padding:14px;
+}
+
+.gemsPackItem.is-success,
+.hud-pop{
+  animation:shopSuccessPulse .18s ease;
+}
+
+.currencyFly{
+  position:fixed;
+  z-index:80;
+  pointer-events:none;
+  font-weight:800;
+  color:#ecfbff;
+  text-shadow:0 4px 8px rgba(0,0,0,.45);
+  transition: transform .45s cubic-bezier(.2,.8,.2,1), opacity .45s ease;
+}
+
+.currencyFly.is-negative{ color:#ffb8c1; }
+
+.shop-shake{ animation:shopShake .3s ease; }
+
+@keyframes shopSuccessPulse{ 0%{ transform:scale(1);} 50%{ transform:scale(1.03);} 100%{ transform:scale(1);} }
+@keyframes shopShake{
+  0%,100%{ transform:translateX(0);} 20%{ transform:translateX(-5px);} 40%{ transform:translateX(5px);} 60%{ transform:translateX(-4px);} 80%{ transform:translateX(4px);} 
 }
 
 .gemsDevPanel{

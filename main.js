@@ -183,6 +183,18 @@ if ("serviceWorker" in navigator) {
   const gemsShopOverlay = document.getElementById("gemsShopOverlay");
   const btnGemsShopClose = document.getElementById("btnGemsShopClose");
   const gemsPackList = document.getElementById("gemsPackList");
+  const coinsPackList = document.getElementById("coinsPackList");
+  const exchangeInput = document.getElementById("exchangeInput");
+  const exchangeResult = document.getElementById("exchangeResult");
+  const exchangeRateText = document.getElementById("exchangeRateText");
+  const btnExchangeSubmit = document.getElementById("btnExchangeSubmit");
+  const shopTabIndicator = document.getElementById("shopTabIndicator");
+  const shopTabButtons = Array.from(document.querySelectorAll(".shopTabBtn"));
+  const shopTabPanels = {
+    gems: document.getElementById("gemsTabPanel"),
+    coins: document.getElementById("coinsTabPanel"),
+    exchange: document.getElementById("exchangeTabPanel")
+  };
   const gemsDevPanel = document.getElementById("gemsDevPanel");
   const btnDevAddGems = document.getElementById("btnDevAddGems");
   const btnDevResetGems = document.getElementById("btnDevResetGems");
@@ -928,7 +940,6 @@ if ("serviceWorker" in navigator) {
     const spotlightGap = 18;
 
     const manualTopByStep = {
-      intro: 180,
       hero: 430,
       cast: 500,
       "bite-info": 220,
@@ -2117,17 +2128,45 @@ if ("serviceWorker" in navigator) {
     if (gemsEl) gemsEl.textContent = String(Math.max(0, Math.floor(Number(balance) || 0)));
   }
 
+  function setActiveShopTab(tab, { emit = true } = {}) {
+    const safeTab = ["gems", "coins", "exchange"].includes(tab) ? tab : "gems";
+    shopTabButtons.forEach((button) => {
+      const isActive = button.dataset.shopTab === safeTab;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+    Object.entries(shopTabPanels).forEach(([key, panel]) => {
+      if (!panel) return;
+      const isActive = key === safeTab;
+      panel.classList.toggle("is-active", isActive);
+      panel.setAttribute("aria-hidden", isActive ? "false" : "true");
+    });
+    const activeBtn = shopTabButtons.find((button) => button.dataset.shopTab === safeTab);
+    if (activeBtn && shopTabIndicator) {
+      const left = activeBtn.offsetLeft;
+      shopTabIndicator.style.width = `${activeBtn.offsetWidth}px`;
+      shopTabIndicator.style.transform = `translateX(${left}px)`;
+    }
+    if (emit) {
+      eventBus.emit(EVENTS.SHOP_OPEN, { tab: safeTab });
+      logEvent("shop_open", { tab: safeTab });
+    }
+  }
+
   function openGemsShop() {
     if (!gemsShopOverlay) return;
     gemsShopOverlay.classList.remove("hidden");
     gemsShopOverlay.setAttribute("aria-hidden", "false");
     updateModalLayerState();
-    eventBus.emit(EVENTS.SHOP_OPEN, { source: "gems_hud" });
-    logEvent("shop_open", { source: "gems_hud" });
+    renderGemsShop();
+    renderCoinShop();
+    updateExchangeUi();
+    requestAnimationFrame(() => setActiveShopTab("gems"));
   }
 
   function closeGemsShop() {
     if (!gemsShopOverlay) return;
+    shopVfx.clear();
     gemsShopOverlay.classList.add("hidden");
     gemsShopOverlay.setAttribute("aria-hidden", "true");
     updateModalLayerState();
@@ -2145,28 +2184,84 @@ if ("serviceWorker" in navigator) {
     const amount = document.createElement("div");
     amount.className = "gemsPackAmount";
     amount.textContent = `${pack.granted} 💎`;
-    meta.append(title, amount);
+    const total = document.createElement("div");
+    total.className = "shopPackTotal";
+    total.textContent = `Итого: ${pack.granted} 💎`;
+    meta.append(title, amount, total);
 
     if (pack.bonusPct > 0) {
       const bonus = document.createElement("span");
       bonus.className = "gemsPackBonus";
-      bonus.textContent = `+${pack.bonusPct}% bonus`;
+      bonus.textContent = `+${pack.bonusPct}%`;
       meta.appendChild(bonus);
     }
 
     const buyBtn = document.createElement("button");
     buyBtn.className = "chipBtn gemsBuyBtn btn--singleLine";
-    buyBtn.innerHTML = '<span class="btnText">Купить</span>';
+    buyBtn.innerHTML = `<span class="btnText">${pack.priceYan} yan</span>`;
     buyBtn.addEventListener("click", async () => {
-      eventBus.emit(EVENTS.SHOP_PURCHASE_CLICK, { packId: pack.id });
-      logEvent("shop_purchase_click", { packId: pack.id });
+      eventBus.emit(EVENTS.SHOP_PURCHASE_CLICK, { tab: "gems", packId: pack.id });
+      logEvent("gem_purchase_click", { packId: pack.id, priceYan: pack.priceYan });
       const result = await purchaseProvider.purchasePack(pack.id);
       if (result?.success && Number.isFinite(result.grantedGems)) {
         gemsService.add(result.grantedGems, `shop_${pack.id}`);
+        logEvent("gem_purchase_result", { packId: pack.id, success: true, grantedGems: result.grantedGems });
+        shopVfx.pulseCard(row);
+        shopVfx.flyCurrency({ sourceEl: row, targetEl: btnGemsHud, text: `+${Math.floor(result.grantedGems)} 💎` });
+        shopVfx.popHud(btnGemsHud);
         showToast(`Покупка успешна: +${Math.floor(result.grantedGems)} 💎`);
       } else {
-        const details = result?.error ? ` (${result.error})` : "";
-        showToast(`Покупка недоступна${DEV_MODE ? details : ""}`);
+        logEvent("gem_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
+        showToast("Покупка недоступна");
+      }
+    });
+
+    row.append(meta, buyBtn);
+    return row;
+  }
+
+  function createCoinPackItem(pack) {
+    const row = document.createElement("div");
+    row.className = "gemsPackItem";
+
+    const meta = document.createElement("div");
+    meta.className = "gemsPackMeta";
+    const title = document.createElement("div");
+    title.className = "gemsPackTitle";
+    title.textContent = pack.title;
+    const amount = document.createElement("div");
+    amount.className = "gemsPackAmount";
+    amount.textContent = `${formatCoins(pack.grantedCoins)} 🪙`;
+    meta.append(title, amount);
+
+    if (pack.bonusPct > 0) {
+      const bonus = document.createElement("span");
+      bonus.className = "gemsPackBonus";
+      bonus.textContent = `+${pack.bonusPct}%`;
+      meta.appendChild(bonus);
+    }
+
+    const total = document.createElement("div");
+    total.className = "shopPackTotal";
+    total.textContent = `Итого: ${formatCoins(pack.grantedCoins)} 🪙`;
+    meta.appendChild(total);
+
+    const buyBtn = document.createElement("button");
+    buyBtn.className = "chipBtn gemsBuyBtn btn--singleLine";
+    buyBtn.innerHTML = `<span class="btnText">${pack.priceYan} yan</span>`;
+    buyBtn.addEventListener("click", async () => {
+      logEvent("coin_purchase_click", { packId: pack.id, priceYan: pack.priceYan });
+      const result = await coinPurchaseProvider.purchasePack(pack.id);
+      if (result?.success && Number.isFinite(result.grantedCoins)) {
+        coinsService.add(result.grantedCoins, `shop_${pack.id}`);
+        logEvent("coin_purchase_result", { packId: pack.id, success: true, grantedCoins: result.grantedCoins });
+        shopVfx.pulseCard(row);
+        shopVfx.flyCurrency({ sourceEl: row, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatCoins(result.grantedCoins)} 🪙` });
+        shopVfx.popHud(coinsEl?.closest('.stat'));
+        showToast(`Покупка успешна: +${formatCoins(result.grantedCoins)} 🪙`);
+      } else {
+        logEvent("coin_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
+        showToast("Покупка недоступна");
       }
     });
 
@@ -2177,22 +2272,87 @@ if ("serviceWorker" in navigator) {
   function renderGemsShop() {
     if (!gemsPackList) return;
     gemsPackList.innerHTML = "";
-    gemsPacks.forEach((pack) => {
-      gemsPackList.appendChild(createGemsPackItem(pack));
-    });
+    gemsPacks.forEach((pack) => gemsPackList.appendChild(createGemsPackItem(pack)));
+  }
+
+  function renderCoinShop() {
+    if (!coinsPackList) return;
+    coinsPackList.innerHTML = "";
+    coinPacks.forEach((pack) => coinsPackList.appendChild(createCoinPackItem(pack)));
+  }
+
+  function updateExchangeUi() {
+    if (exchangeRateText) exchangeRateText.textContent = `Курс: 1 💎 = ${exchangeService.getRate()} 🪙`;
+    const gemsValue = Number(exchangeInput?.value);
+    const isInt = Number.isInteger(gemsValue);
+    const valid = isInt && gemsValue >= 1 && exchangeService.canExchange(gemsValue);
+    const coins = isInt && gemsValue >= 1 ? exchangeService.computeCoins(gemsValue) : 0;
+    if (exchangeResult) exchangeResult.textContent = `Получишь: ${formatCoins(coins)} 🪙`;
+    if (btnExchangeSubmit) btnExchangeSubmit.disabled = !valid || btnExchangeSubmit.dataset.loading === "1";
+  }
+
+  async function submitExchange() {
+    const gemsAmount = Number(exchangeInput?.value);
+    if (!Number.isInteger(gemsAmount) || gemsAmount < 1) return;
+    if (!exchangeService.canExchange(gemsAmount)) {
+      logEvent("exchange_result", { success: false, error: "INSUFFICIENT_GEMS" });
+      shopVfx.shakeButton(btnExchangeSubmit);
+      showToast("Недостаточно гемов");
+      const gemTab = shopTabButtons.find((btn) => btn.dataset.shopTab === "gems");
+      gemTab?.classList.add("hud-pop");
+      setTimeout(() => gemTab?.classList.remove("hud-pop"), 1000);
+      return;
+    }
+
+    if (btnExchangeSubmit) {
+      btnExchangeSubmit.dataset.loading = "1";
+      btnExchangeSubmit.disabled = true;
+      setButtonText(btnExchangeSubmit, "Обмен...");
+    }
+    logEvent("exchange_submit", { gems: gemsAmount, rate: exchangeService.getRate() });
+
+    const result = exchangeService.exchange(gemsAmount);
+    if (result?.success) {
+      const exchangePanel = document.getElementById("exchangeTabPanel");
+      shopVfx.flyCurrency({ sourceEl: exchangePanel, targetEl: btnGemsHud, text: `-${gemsAmount} 💎`, negative: true });
+      shopVfx.flyCurrency({ sourceEl: exchangePanel, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatCoins(result.grantedCoins)} 🪙` });
+      shopVfx.popHud(btnGemsHud);
+      shopVfx.popHud(coinsEl?.closest('.stat'));
+      showToast(`Обмен выполнен: +${formatCoins(result.grantedCoins)} 🪙`);
+      logEvent("exchange_result", { success: true, gems: gemsAmount, coins: result.grantedCoins });
+      if (exchangeInput) exchangeInput.value = "";
+    } else {
+      logEvent("exchange_result", { success: false, error: result?.error || "UNKNOWN" });
+      showToast("Недостаточно гемов");
+      shopVfx.shakeButton(btnExchangeSubmit);
+    }
+
+    if (btnExchangeSubmit) {
+      btnExchangeSubmit.dataset.loading = "0";
+      setButtonText(btnExchangeSubmit, "Обменять");
+    }
+    updateExchangeUi();
   }
 
   function initGemsUi() {
-    eventBus.on(EVENTS.GEMS_CHANGED, ({ balance }) => renderGemsHud(balance));
+    eventBus.on(EVENTS.GEMS_CHANGED, ({ balance }) => {
+      renderGemsHud(balance);
+      updateExchangeUi();
+    });
     renderGemsHud(gemsService.getBalance());
     btnGemsHud?.addEventListener("click", openGemsShop);
     btnGemsShopClose?.addEventListener("click", closeGemsShop);
     gemsShopOverlay?.addEventListener("click", (event) => {
-      if (event.target === gemsShopOverlay) {
-        closeGemsShop();
-      }
+      if (event.target === gemsShopOverlay) closeGemsShop();
     });
+    shopTabButtons.forEach((button) => {
+      button.addEventListener("click", () => setActiveShopTab(button.dataset.shopTab || "gems"));
+    });
+    exchangeInput?.addEventListener("input", updateExchangeUi);
+    btnExchangeSubmit?.addEventListener("click", submitExchange);
     renderGemsShop();
+    renderCoinShop();
+    updateExchangeUi();
   }
 
   function showXPGain(result) {
@@ -3768,23 +3928,47 @@ if ("serviceWorker" in navigator) {
   }
 
   const gemsShopConfig = window.GEMS_SHOP_CONFIG || { provider: "mock", packs: [] };
+  const coinShopConfig = window.COIN_SHOP_CONFIG || { provider: "mock", packs: [] };
+  const exchangeConfig = window.EXCHANGE_CONFIG || { rateCoinsPerGem: 500 };
 
   function sanitizePackConfig(pack) {
     if (!pack || typeof pack !== "object") return null;
     const gems = Math.max(0, Math.floor(Number(pack.gems) || 0));
-    const bonusPct = Math.max(0, Math.floor(Number(pack.bonusPct) || 0));
-    if (!pack.id || !pack.title || gems <= 0) return null;
+    const bonusPct = Math.max(0, Math.min(20, Math.floor(Number(pack.bonusPct) || 0)));
+    const priceYan = Math.max(1, Math.floor(Number(pack.priceYan) || 0));
+    if (!pack.id || !pack.title || gems <= 0 || priceYan <= 0) return null;
     return {
       id: String(pack.id),
       title: String(pack.title),
       gems,
       bonusPct,
+      priceYan,
       granted: gems + Math.floor((gems * bonusPct) / 100)
+    };
+  }
+
+  function sanitizeCoinPackConfig(pack) {
+    if (!pack || typeof pack !== "object") return null;
+    const baseCoins = Math.max(0, Math.floor(Number(pack.baseCoins) || 0));
+    const bonusPct = Math.max(0, Math.min(20, Math.floor(Number(pack.bonusPct) || 0)));
+    const priceYan = Math.max(1, Math.floor(Number(pack.priceYan) || 0));
+    if (!pack.id || !pack.title || baseCoins <= 0 || priceYan <= 0) return null;
+    return {
+      id: String(pack.id),
+      title: String(pack.title),
+      baseCoins,
+      bonusPct,
+      priceYan,
+      grantedCoins: baseCoins + Math.floor((baseCoins * bonusPct) / 100)
     };
   }
 
   const gemsPacks = Array.isArray(gemsShopConfig.packs)
     ? gemsShopConfig.packs.map(sanitizePackConfig).filter(Boolean)
+    : [];
+
+  const coinPacks = Array.isArray(coinShopConfig.packs)
+    ? coinShopConfig.packs.map(sanitizeCoinPackConfig).filter(Boolean)
     : [];
 
   class MockPurchaseProvider {
@@ -3804,13 +3988,34 @@ if ("serviceWorker" in navigator) {
     }
   }
 
+  class MockCoinPurchaseProvider {
+    async purchasePack(packId) {
+      const pack = coinPacks.find((entry) => entry.id === packId);
+      if (!pack) return { success: false, error: "PACK_NOT_FOUND" };
+      return { success: true, grantedCoins: pack.grantedCoins };
+    }
+  }
+
+  class YandexCoinPurchaseProvider {
+    async purchasePack(packId) {
+      // TODO(yandex-games): подключить YaGames SDK для монет.
+      // TODO(yandex-games): вызвать purchase по packId и проверить транзакцию.
+      return { success: false, error: "NOT_IMPLEMENTED" };
+    }
+  }
+
   function createPurchaseProvider() {
     const provider = (gemsShopConfig.provider || "mock").toLowerCase();
     return provider === "yandex" ? new YandexPurchaseProvider() : new MockPurchaseProvider();
   }
 
-  const purchaseProvider = createPurchaseProvider();
+  function createCoinPurchaseProvider() {
+    const provider = (coinShopConfig.provider || "mock").toLowerCase();
+    return provider === "yandex" ? new YandexCoinPurchaseProvider() : new MockCoinPurchaseProvider();
+  }
 
+  const purchaseProvider = createPurchaseProvider();
+  const coinPurchaseProvider = createCoinPurchaseProvider();
   const stats = {
 
     coins: 0,
@@ -3908,6 +4113,129 @@ if ("serviceWorker" in navigator) {
     emitter: eventBus,
     onSave: () => save()
   });
+
+  class CoinsService {
+    constructor({ playerState, onSave }) {
+      this.playerState = playerState;
+      this.onSave = onSave;
+    }
+
+    getBalance() {
+      const value = Number(this.playerState.coins);
+      if (!Number.isFinite(value) || value < 0) return 0;
+      return Math.floor(value);
+    }
+
+    add(amount, reason = "unknown") {
+      const normalized = Math.floor(Number(amount) || 0);
+      if (normalized <= 0) return;
+      this.playerState.coins = this.getBalance() + normalized;
+      logEvent("currency_add", { currency: "coins", amount: normalized, reason, balance: this.playerState.coins });
+      updateHUD();
+      this.onSave?.();
+    }
+
+    canSpend(amount) {
+      const normalized = Math.max(0, Math.floor(Number(amount) || 0));
+      if (normalized <= 0) return true;
+      return this.getBalance() >= normalized;
+    }
+
+    spend(amount, reason = "unknown") {
+      const normalized = Math.max(0, Math.floor(Number(amount) || 0));
+      if (normalized <= 0) return { success: false, error: "INVALID_AMOUNT" };
+      if (!this.canSpend(normalized)) return { success: false, error: "INSUFFICIENT_COINS" };
+      this.playerState.coins = this.getBalance() - normalized;
+      logEvent("currency_spend", { currency: "coins", amount: normalized, reason, balance: this.playerState.coins });
+      updateHUD();
+      this.onSave?.();
+      return { success: true, balance: this.playerState.coins };
+    }
+  }
+
+  class ExchangeService {
+    constructor({ gemsServiceRef, coinsServiceRef, rate }) {
+      this.gemsService = gemsServiceRef;
+      this.coinsService = coinsServiceRef;
+      this.rate = Math.max(1, Math.floor(Number(rate) || 500));
+    }
+
+    getRate() { return this.rate; }
+    computeCoins(gemsAmount) {
+      const gems = Math.max(0, Math.floor(Number(gemsAmount) || 0));
+      return gems * this.rate;
+    }
+    canExchange(gemsAmount) {
+      const gems = Number(gemsAmount);
+      if (!Number.isInteger(gems) || gems < 1) return false;
+      return this.gemsService.canSpend(gems);
+    }
+    exchange(gemsAmount) {
+      const gems = Math.floor(Number(gemsAmount) || 0);
+      if (!this.canExchange(gems)) return { success: false, error: "INSUFFICIENT_GEMS" };
+      const spendResult = this.gemsService.spend(gems, "exchange_gems_to_coins");
+      if (!spendResult.success) return spendResult;
+      const grantedCoins = this.computeCoins(gems);
+      this.coinsService.add(grantedCoins, "exchange_gems_to_coins");
+      return { success: true, grantedCoins, spentGems: gems };
+    }
+  }
+
+  const coinsService = new CoinsService({ playerState: player, onSave: () => save() });
+  const exchangeService = new ExchangeService({
+    gemsServiceRef: gemsService,
+    coinsServiceRef: coinsService,
+    rate: exchangeConfig.rateCoinsPerGem
+  });
+
+  class ShopVfxController {
+    constructor() { this.timers = new Set(); }
+    clear() { this.timers.forEach((id) => clearTimeout(id)); this.timers.clear(); }
+    popHud(target) {
+      if (!target) return;
+      target.classList.remove("hud-pop");
+      target.offsetWidth;
+      target.classList.add("hud-pop");
+      const tid = setTimeout(() => { target.classList.remove("hud-pop"); this.timers.delete(tid); }, 220);
+      this.timers.add(tid);
+    }
+    flyCurrency({ sourceEl, targetEl, text, negative = false }) {
+      const sRect = sourceEl?.getBoundingClientRect?.();
+      const tRect = targetEl?.getBoundingClientRect?.();
+      if (!sRect || !tRect) return;
+      const chip = document.createElement("div");
+      chip.className = `currencyFly${negative ? " is-negative" : ""}`;
+      chip.textContent = text;
+      chip.style.left = `${sRect.left + sRect.width / 2}px`;
+      chip.style.top = `${sRect.top + sRect.height / 2}px`;
+      chip.style.transform = "translate(-50%, -50%) scale(1)";
+      document.body.appendChild(chip);
+      requestAnimationFrame(() => {
+        chip.style.transform = `translate(${(tRect.left + tRect.width / 2) - (sRect.left + sRect.width / 2)}px, ${(tRect.top + tRect.height / 2) - (sRect.top + sRect.height / 2)}px) scale(.85)`;
+        chip.style.opacity = "0";
+      });
+      const tid = setTimeout(() => { chip.remove(); this.timers.delete(tid); }, 470);
+      this.timers.add(tid);
+    }
+    pulseCard(card) {
+      if (!card) return;
+      card.classList.remove("is-success");
+      card.offsetWidth;
+      card.classList.add("is-success");
+      const tid = setTimeout(() => { card.classList.remove("is-success"); this.timers.delete(tid); }, 220);
+      this.timers.add(tid);
+    }
+    shakeButton(btn) {
+      if (!btn) return;
+      btn.classList.remove("shop-shake");
+      btn.offsetWidth;
+      btn.classList.add("shop-shake");
+      const tid = setTimeout(() => { btn.classList.remove("shop-shake"); this.timers.delete(tid); }, 320);
+      this.timers.add(tid);
+    }
+  }
+
+  const shopVfx = new ShopVfxController();
 
   let inventory = [];
   let fishJournalStats = {};
@@ -5511,7 +5839,7 @@ if ("serviceWorker" in navigator) {
         setGuideStep("tutorial-first-catch-inventory");
         showGuideOverlay({
           title: "Первый улов!",
-          text: "Отлично! Это твой первый улов — плотва от 0.3 до 1.5 кг. Открой инвентарь, рассмотри добычу и дальше попробуй поймать рыбу уже полностью сам.",
+          text: "Отлично! Это твой первый улов — карась 1.5 кг. Открой инвентарь, рассмотри добычу и дальше попробуй поймать рыбу уже полностью сам.",
           buttonText: "Понятно",
           showButton: true,
           spotlightRect: getSpotlightRect(btnInventory)
