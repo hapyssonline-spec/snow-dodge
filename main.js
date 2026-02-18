@@ -7692,7 +7692,11 @@ if ("serviceWorker" in navigator) {
     updateHUD();
     save();
     if (tutorialManager?.shouldStart()) {
-      tutorialManager.start();
+      if (stageManager) {
+        stageManager.go("tutorial", { start: true });
+      } else {
+        tutorialManager.start();
+      }
     }
   }
 
