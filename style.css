@@ -2961,7 +2961,8 @@ img, a{
   transform:translateX(-135%);
   mix-blend-mode:screen;
   opacity:0;
-  animation:locationBannerSlash 1.12s cubic-bezier(.16,.84,.3,1) .2s both;
+  animation:none;
+  visibility:hidden;
 }
 .locationBannerOverlay.is-speedup .locationBannerText{ animation-duration:.1s,.35s,.11s; animation-delay:0s,.1s,.45s; }
 .locationBannerOverlay.is-speedup .locationBannerText::before,
