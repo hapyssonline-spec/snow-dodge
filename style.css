@@ -2851,7 +2851,7 @@ img, a{
 }
 
 .confirmPurchaseCard{
-  width:min(92vw, 460px);
+  width:min(94vw, 540px);
   background:linear-gradient(180deg, #1a2942 0%, #101b2e 100%);
   border:1px solid rgba(118, 201, 255, .28);
   border-radius:22px;
@@ -2871,17 +2871,27 @@ img, a{
   width:100%;
 }
 
+.confirmPurchaseCard .modalHeader{
+  justify-content:center;
+  padding:16px 18px 0;
+}
+
+.confirmPurchaseCard .modalBody{
+  padding:18px 20px 20px;
+}
+
 .confirmPurchaseText{
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:10px;
   font-size:17px;
+  line-height:1.35;
 }
 
 .confirmPurchasePrimary{ font-weight:800; }
 .confirmPurchaseLine{ color:#e7f6ff; }
 .confirmPurchaseSubline{ color:var(--muted); font-size:14px; }
-.confirmPurchaseActions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+.confirmPurchaseActions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0 4px; }
 .confirmPurchaseCancel{ background:linear-gradient(180deg,#db5555,#a62d2d); border-color:rgba(255,170,170,.4); }
 .confirmPurchaseAccept{
   background:linear-gradient(180deg,#4cbf78,#2f8f53);
@@ -2965,9 +2975,9 @@ img, a{
 }
 @keyframes locationBannerSlash{
   0%{ transform:translateX(-135%); opacity:0; }
-  20%{ opacity:.95; }
-  50%{ opacity:1; }
-  80%{ opacity:.95; }
+  22%{ opacity:.25; }
+  42%{ opacity:1; }
+  68%{ opacity:.6; }
   100%{ transform:translateX(135%); opacity:0; }
 }
 
@@ -4192,9 +4202,10 @@ button:disabled{
   grid-template-columns:1fr;
   gap:12px;
   max-height:60dvh;
-  overflow:auto;
+  overflow-y:auto;
+  overflow-x:hidden;
   padding-right:4px;
-  padding-bottom:24px;
+  padding-bottom:8px;
   scrollbar-width:thin;
   scrollbar-color: rgba(138, 208, 238, .5) rgba(7, 16, 29, .5);
 }
@@ -4213,23 +4224,6 @@ button:disabled{
   border-radius:999px;
 }
 
-.gemsPackList::after{
-  content:"";
-  position:sticky;
-  left:0;
-  right:0;
-  bottom:0;
-  height:20px;
-  margin-top:-20px;
-  background:linear-gradient(180deg, rgba(17, 28, 44, 0), rgba(17, 28, 44, .92));
-  pointer-events:none;
-  opacity:1;
-  transition:opacity .16s ease;
-}
-
-.gemsPackList.is-at-end::after{
-  opacity:0;
-}
 
 .gemsPackItem{
   position:relative;
