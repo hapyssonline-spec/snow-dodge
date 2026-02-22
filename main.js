@@ -138,7 +138,16 @@ if ("serviceWorker" in navigator) {
   const cityTooltip = document.getElementById("cityTooltip");
   const questReminder = document.getElementById("questReminder");
   const locationLabel = document.getElementById("locationLabel");
+  const profileLocationName = document.getElementById("profileLocationName");
+  const locationBannerOverlay = document.getElementById("locationBannerOverlay");
+  const locationBannerText = document.getElementById("locationBannerText");
   const rotateOverlay = document.getElementById("rotateOverlay");
+
+  const confirmPurchaseOverlay = document.getElementById("confirmPurchaseOverlay");
+  const confirmPurchaseText = document.getElementById("confirmPurchaseText");
+  const btnConfirmPurchaseClose = document.getElementById("btnConfirmPurchaseClose");
+  const btnConfirmPurchaseCancel = document.getElementById("btnConfirmPurchaseCancel");
+  const btnConfirmPurchaseAccept = document.getElementById("btnConfirmPurchaseAccept");
 
   const setButtonText = (button, text) => {
     if (!button) return;
@@ -163,6 +172,47 @@ if ("serviceWorker" in navigator) {
       const labelNode = button.querySelector(".btnText");
       if (labelNode) labelNode.textContent = baseLabel;
     }
+  }
+
+  function closeConfirmPurchaseModal() {
+    confirmPurchaseOverlay?.classList.add("hidden");
+    confirmPurchaseOverlay?.setAttribute("aria-hidden", "true");
+    updateModalLayerState();
+  }
+
+  function openConfirmPurchaseModal({ label, amount, currency }) {
+    return new Promise((resolve) => {
+      if (!confirmPurchaseOverlay) return resolve(false);
+      setPriceTagText(confirmPurchaseText, amount, currency);
+      if (label && confirmPurchaseText) {
+        const details = document.createElement("div");
+        details.textContent = label;
+        confirmPurchaseText.prepend(details);
+      }
+      let done = false;
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        closeConfirmPurchaseModal();
+        btnConfirmPurchaseAccept?.removeEventListener("click", onAccept);
+        btnConfirmPurchaseCancel?.removeEventListener("click", onCancel);
+        btnConfirmPurchaseClose?.removeEventListener("click", onCancel);
+        confirmPurchaseOverlay?.removeEventListener("click", onOverlay);
+        resolve(ok);
+      };
+      const onAccept = () => finish(true);
+      const onCancel = () => finish(false);
+      const onOverlay = (event) => {
+        if (event.target === confirmPurchaseOverlay) finish(false);
+      };
+      btnConfirmPurchaseAccept?.addEventListener("click", onAccept);
+      btnConfirmPurchaseCancel?.addEventListener("click", onCancel);
+      btnConfirmPurchaseClose?.addEventListener("click", onCancel);
+      confirmPurchaseOverlay?.addEventListener("click", onOverlay);
+      confirmPurchaseOverlay.classList.remove("hidden");
+      confirmPurchaseOverlay.setAttribute("aria-hidden", "false");
+      updateModalLayerState();
+    });
   }
 
   const CURRENCY_ICON_CLASS_MAP = {
@@ -823,7 +873,37 @@ if ("serviceWorker" in navigator) {
     if (Number.isFinite(grams) && grams > 0) return formatWeightFromGrams(grams);
     return formatKg(Number(item.weightKg) || 0);
   };
-  const formatCoins = (value) => `${formatNumber(value)} монет`;
+  const formatCoins = (value) => `${formatNumber(value)}`;
+  const BAIT_PURCHASE_BUNDLE = 5;
+  let locationBannerHideTimer = null;
+
+  function formatPriceTag(amount, currency) {
+    if (currency === "yan") return `${formatNumber(amount)} yan`;
+    const icon = currency === "gems" ? "💎" : "🪙";
+    return `${formatNumber(amount)} ${icon}`;
+  }
+
+  function setPriceTagText(target, amount, currency) {
+    setTextWithCurrencyIcons(target, formatPriceTag(amount, currency));
+  }
+
+  function showLocationBanner(locationName) {
+    if (!locationBannerOverlay || !locationBannerText) return;
+    if (locationBannerHideTimer) window.clearTimeout(locationBannerHideTimer);
+    locationBannerText.textContent = locationName;
+    locationBannerOverlay.classList.remove("hidden", "is-fast");
+    locationBannerOverlay.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(() => locationBannerOverlay.classList.add("is-visible"));
+    locationBannerHideTimer = window.setTimeout(() => {
+      locationBannerOverlay.classList.remove("is-visible", "is-fast");
+      locationBannerOverlay.classList.add("hidden");
+      locationBannerOverlay.setAttribute("aria-hidden", "true");
+    }, 2400);
+  }
+
+  locationBannerOverlay?.addEventListener("pointerdown", () => {
+    locationBannerOverlay.classList.add("is-fast");
+  });
 
   function isBookPurchased(bookId) {
     if (bookId === "common-sense") return hasCommonSenseBook;
@@ -1642,6 +1722,7 @@ if ("serviceWorker" in navigator) {
     }
 
     calculateWeightRevealStage() {
+      if (!this.currentBook) return 0;
       const thresholds = this.currentBook
         ? [0.26, 0.46, 0.62, 0.76]
         : [0.74, 0.9];
@@ -1674,6 +1755,7 @@ if ("serviceWorker" in navigator) {
     }
 
     calculateSpeciesRevealStage() {
+      if (!this.currentBook) return 0;
       const speciesShift = this.currentBook?.effect?.speciesShift || 0;
       let stageOne = this.currentBook ? Math.max(0.42, 0.58 - speciesShift * 0.08) : 0.72;
       let stageTwo = this.currentBook ? Math.max(stageOne + 0.14, 0.8 - speciesShift * 0.08) : 0.92;
@@ -2340,8 +2422,11 @@ if ("serviceWorker" in navigator) {
     buyBtn.dataset.baseLabel = `${pack.priceYan} yan`;
     buyBtn.addEventListener("click", async () => {
       if (buyBtn.dataset.loading === "1") return;
-      const confirmed = window.confirm(`Подтвердить покупку ${formatNumber(pack.granted)} 💎 за ${pack.priceYan} Yan?
-Со счета будет списано ${pack.priceYan} Yan.`);
+      const confirmed = await openConfirmPurchaseModal({
+        label: `Пакет «${pack.title}»`,
+        amount: pack.priceYan,
+        currency: "yan"
+      });
       if (!confirmed) {
         logEvent("gem_purchase_cancel", { packId: pack.id, priceYan: pack.priceYan });
         return;
@@ -2403,6 +2488,12 @@ if ("serviceWorker" in navigator) {
     buyBtn.dataset.baseLabel = `${pack.priceYan} yan`;
     buyBtn.addEventListener("click", async () => {
       if (buyBtn.dataset.loading === "1") return;
+      const confirmed = await openConfirmPurchaseModal({
+        label: `Набор «${pack.title}»`,
+        amount: pack.priceYan,
+        currency: "yan"
+      });
+      if (!confirmed) return;
       setPriceButtonLoading(buyBtn, true);
       try {
         logEvent("coin_purchase_click", { packId: pack.id, priceYan: pack.priceYan });
@@ -2500,6 +2591,13 @@ if ("serviceWorker" in navigator) {
       setTimeout(() => gemTab?.classList.remove("hud-pop"), 1000);
       return;
     }
+
+    const confirmed = await openConfirmPurchaseModal({
+      label: `Обмен ${gemsAmount} 💎`,
+      amount: exchangeService.computeCoins(gemsAmount),
+      currency: "coins"
+    });
+    if (!confirmed) return;
 
     if (btnExchangeSubmit) {
       btnExchangeSubmit.dataset.loading = "1";
@@ -3019,7 +3117,7 @@ if ("serviceWorker" in navigator) {
     {
       id: "worm",
       name: "Червь",
-      price: 18,
+      price: 90,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits.worm,
       boost: ["plotva", "okun", "karas_serebryanyy"],
       note: "Любимый запах спокойной рыбы."
@@ -3027,7 +3125,7 @@ if ("serviceWorker" in navigator) {
     {
       id: "sweet-dough",
       name: "Сладкое тесто",
-      price: 22,
+      price: 110,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits["sweet-dough"],
       boost: ["karas_serebryanyy", "lesh"],
       note: "Тягучая приманка для любителей лакомства."
@@ -3035,7 +3133,7 @@ if ("serviceWorker" in navigator) {
     {
       id: "minnow",
       name: "Малёк",
-      price: 30,
+      price: 150,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits.minnow,
       boost: ["shchuka", "sudak"],
       note: "Хищники охотятся охотно."
@@ -3043,7 +3141,7 @@ if ("serviceWorker" in navigator) {
     {
       id: "spinner",
       name: "Блесна-вертушка",
-      price: 36,
+      price: 180,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits.spinner,
       boost: ["forel_raduzhnaya", "sudak"],
       note: "Шумит и бликует в воде."
@@ -3051,7 +3149,7 @@ if ("serviceWorker" in navigator) {
     {
       id: "deep-lure",
       name: "Глубинная приманка",
-      price: 48,
+      price: 240,
       unlockLevel: GEAR_UNLOCK_LEVELS.baits["deep-lure"],
       boost: ["som", "osetr", "pozhiratel_lunok"],
       note: "Для тех, кто ищет редкие виды."
@@ -3059,15 +3157,15 @@ if ("serviceWorker" in navigator) {
   ];
 
   const rodItems = [
-    { id: 1, name: "Rod_1 «Базовая»", price: 0, unlockLevel: GEAR_UNLOCK_LEVELS.rods[1], reelBonus: 0.0, safeZoneBonus: 0, rareBonus: 0 },
-    { id: 2, name: "Rod_2 «Контроль»", price: 280, unlockLevel: GEAR_UNLOCK_LEVELS.rods[2], reelBonus: 0.03, safeZoneBonus: 0.1, rareBonus: 0 },
-    { id: 3, name: "Rod_3 «Охотник»", price: 680, unlockLevel: GEAR_UNLOCK_LEVELS.rods[3], reelBonus: 0.05, safeZoneBonus: 0, rareBonus: 0.07 }
+    { id: 1, name: "Базовая удочка", price: 0, unlockLevel: GEAR_UNLOCK_LEVELS.rods[1], reelBonus: 0.0, safeZoneBonus: 0, rareBonus: 0 },
+    { id: 2, name: "Удочка рыбака", price: 280, unlockLevel: GEAR_UNLOCK_LEVELS.rods[2], reelBonus: 0.03, safeZoneBonus: 0.1, rareBonus: 0 },
+    { id: 3, name: "Профессиональная удочка", price: 680, unlockLevel: GEAR_UNLOCK_LEVELS.rods[3], reelBonus: 0.05, safeZoneBonus: 0, rareBonus: 0.07 }
   ];
 
   const lineItems = [
-    { id: 1, name: "Line_1 «Базовая»", price: 0, unlockLevel: GEAR_UNLOCK_LEVELS.lines[1], breakThreshold: 1.0, maxKg: 4.5, tensionMult: 1.0, breakRiskMod: 1, rareBonus: 0 },
-    { id: 2, name: "Line_2 «Крепкая»", price: 220, unlockLevel: GEAR_UNLOCK_LEVELS.lines[2], breakThreshold: 1.12, maxKg: 9, tensionMult: 0.92, breakRiskMod: 1.07, rareBonus: 0 },
-    { id: 3, name: "Line_3 «Тонкая»", price: 540, unlockLevel: GEAR_UNLOCK_LEVELS.lines[3], breakThreshold: 1.22, maxKg: 18, tensionMult: 0.86, breakRiskMod: 0.95, rareBonus: 0.05 }
+    { id: 1, name: "Тонкая леска", price: 0, unlockLevel: GEAR_UNLOCK_LEVELS.lines[1], breakThreshold: 1.0, maxKg: 4.5, tensionMult: 1.0, breakRiskMod: 1, rareBonus: 0 },
+    { id: 2, name: "Прочная леска", price: 220, unlockLevel: GEAR_UNLOCK_LEVELS.lines[2], breakThreshold: 1.12, maxKg: 9, tensionMult: 0.92, breakRiskMod: 1.07, rareBonus: 0 },
+    { id: 3, name: "Усиленная леска", price: 540, unlockLevel: GEAR_UNLOCK_LEVELS.lines[3], breakThreshold: 1.22, maxKg: 18, tensionMult: 0.86, breakRiskMod: 0.95, rareBonus: 0.05 }
   ];
 
   function isUnlocked(item, level = player.playerLevel) {
@@ -3343,17 +3441,8 @@ if ("serviceWorker" in navigator) {
 
   function updateQuestReminder() {
     if (!questReminder) return;
-    if (!activeQuest) {
-      questReminder.textContent = "";
-      questReminder.classList.add("hidden");
-      return;
-    }
-    if (activeQuest.status === "completed") {
-      questReminder.textContent = "Задание выполнено — забери награду";
-    } else {
-      questReminder.textContent = `Задание: ${activeQuest.speciesName} ${formatKg(activeQuest.minWeightKg)}–${formatKg(activeQuest.maxWeightKg)}`;
-    }
-    questReminder.classList.remove("hidden");
+    questReminder.textContent = "";
+    questReminder.classList.add("hidden");
   }
 
   function ensureQuestPreviews() {
@@ -6501,19 +6590,15 @@ if ("serviceWorker" in navigator) {
       renderTrophyQuest();
       setTrophyView("hub");
     } else if (sceneId === SCENE_BUILDING_GEARSHOP) {
-      if (shopTitle) shopTitle.textContent = "Всё для рыбалки";
-      if (shopStats) shopStats.classList.remove("hidden");
+      if (shopTitle) shopTitle.textContent = "Снасти";
+      if (shopStats) shopStats.classList.add("hidden");
       renderGearShop();
     }
   }
 
   function renderShopStats() {
     if (!shopStats) return;
-    shopStats.innerHTML = `
-      <span>Наживка: ${getActiveBaitLabel()}</span>
-      <span>Удочка: ${getRodStats().name}</span>
-      <span>Леска: ${getLineStats().name}</span>
-    `;
+    shopStats.innerHTML = "";
   }
 
   function createUnlockNote(level) {
@@ -6759,17 +6844,26 @@ if ("serviceWorker" in navigator) {
     }
   }
 
-  function attemptBookPurchase(book, currency) {
+  async function attemptBookPurchase(book, currency, triggerButton) {
     const state = getBookState(book);
     if (state === "LOCKED") {
       handleLockedBookClick(book);
       return;
     }
     if (state === "PURCHASED") return;
+    const amount = currency === "coins" ? book.coinsPrice : book.gemsPrice;
+    const confirmed = await openConfirmPurchaseModal({
+      label: `Книга «${book.shortTitle}»`,
+      amount,
+      currency
+    });
+    if (!confirmed) return;
+    setPriceButtonLoading(triggerButton, true);
     if (currency === "coins") {
       if (player.coins < book.coinsPrice) {
         logEvent("book_purchase", { bookId: book.id, currency, price: book.coinsPrice, success: false });
         showToast("Недостаточно монет");
+        setPriceButtonLoading(triggerButton, false);
         return;
       }
       player.coins -= book.coinsPrice;
@@ -6781,6 +6875,7 @@ if ("serviceWorker" in navigator) {
         const suggestedPack = getSuggestedGemsPack(deficit);
         showToast(`Не хватает ${deficit} 💎 — открыл магазин`);
         openGemsShop({ tab: "gems", suggestedPackId: suggestedPack?.id || null });
+        setPriceButtonLoading(triggerButton, false);
         return;
       }
       gemsService.spend(book.gemsPrice, `book_${book.id}`);
@@ -6799,11 +6894,17 @@ if ("serviceWorker" in navigator) {
     if (book.id === "common-sense" && !booksTutorialFlags.tutorialBooksIntroShown) {
       showBooksIntroModal();
     }
+    setPriceButtonLoading(triggerButton, false);
   }
 
   function renderBooksShop() {
     if (!booksList) return;
     booksList.innerHTML = "";
+    const purchasedBooksCount = BOOKS_CONFIG.filter((book) => getBookState(book) === "PURCHASED").length;
+    const tabHead = document.createElement("div");
+    tabHead.className = "shopItemMeta";
+    tabHead.textContent = `Активные книги: ${purchasedBooksCount}`;
+    booksList.appendChild(tabHead);
     BOOKS_CONFIG.forEach((book) => {
       const state = getBookState(book);
       const card = document.createElement("div");
@@ -6820,16 +6921,16 @@ if ("serviceWorker" in navigator) {
       priceRow.className = "bookPriceRow";
       const buyCoins = document.createElement("button");
       buyCoins.className = "invBtn btn--singleLine";
-      setButtonText(buyCoins, `Купить за ${book.coinsPrice} 🪙`);
+      setButtonText(buyCoins, `Купить за ${formatPriceTag(book.coinsPrice, "coins")}`);
       buyCoins.disabled = state !== "AVAILABLE" || player.coins < book.coinsPrice;
-      buyCoins.addEventListener("click", () => attemptBookPurchase(book, "coins"));
+      buyCoins.addEventListener("click", () => attemptBookPurchase(book, "coins", buyCoins));
       priceRow.appendChild(buyCoins);
       if (book.gemsPrice) {
         const buyGems = document.createElement("button");
         buyGems.className = "invBtn secondary btn--singleLine";
-        setButtonText(buyGems, `или ${book.gemsPrice} 💎`);
+        setButtonText(buyGems, `или ${formatPriceTag(book.gemsPrice, "gems")}`);
         buyGems.disabled = state !== "AVAILABLE";
-        buyGems.addEventListener("click", () => attemptBookPurchase(book, "gems"));
+        buyGems.addEventListener("click", () => attemptBookPurchase(book, "gems", buyGems));
         priceRow.appendChild(buyGems);
       }
       if (state === "LOCKED") {
@@ -6847,6 +6948,10 @@ if ("serviceWorker" in navigator) {
 
     if (baitList) {
       baitList.innerHTML = "";
+      const tabHead = document.createElement("div");
+      tabHead.className = "shopItemMeta";
+      tabHead.textContent = `Выбрана наживка: ${getActiveBaitLabel()}`;
+      baitList.appendChild(tabHead);
       for (const bait of baitItems) {
         const unlocked = isUnlocked(bait);
         const count = player.baitInventory[bait.id] || 0;
@@ -6855,7 +6960,7 @@ if ("serviceWorker" in navigator) {
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${bait.name}</div>
-            <div class="shopItemMeta">${formatCoins(bait.price)}</div>
+            <div class="shopItemMeta">${formatPriceTag(bait.price, "coins")}</div>
           </div>
           <div class="shopItemMeta">${bait.note}</div>
           <div class="shopItemMeta">В наличии: ${count}</div>
@@ -6865,18 +6970,23 @@ if ("serviceWorker" in navigator) {
         const buyBtn = document.createElement("button");
         buyBtn.className = "invBtn btn--singleLine";
         buyBtn.dataset.sfx = "none";
-        setButtonText(buyBtn, "Купить");
+        setButtonText(buyBtn, `Купить x${BAIT_PURCHASE_BUNDLE}`);
         buyBtn.disabled = !unlocked || player.coins < bait.price;
-        buyBtn.addEventListener("click", () => {
+        buyBtn.addEventListener("click", async () => {
           if (!unlocked) return;
+          if (buyBtn.dataset.loading === "1") return;
           if (player.coins < bait.price) return;
+          const confirmed = await openConfirmPurchaseModal({ label: `Набор наживки «${bait.name}»`, amount: bait.price, currency: "coins" });
+          if (!confirmed) return;
+          setPriceButtonLoading(buyBtn, true);
           player.coins -= bait.price;
-          player.baitInventory[bait.id] = (player.baitInventory[bait.id] || 0) + 1;
+          player.baitInventory[bait.id] = (player.baitInventory[bait.id] || 0) + BAIT_PURCHASE_BUNDLE;
           save();
           renderGearShop();
           updateHUD();
           updateProfileStatsUI();
           refreshProfileGearPicker();
+          setPriceButtonLoading(buyBtn, false);
           if (guideStep === "city-gear-buy-bait") {
             setGuideStep("city-gear-close");
             showGuideOverlay({
@@ -6914,6 +7024,10 @@ if ("serviceWorker" in navigator) {
 
     if (rodList) {
       rodList.innerHTML = "";
+      const tabHead = document.createElement("div");
+      tabHead.className = "shopItemMeta";
+      tabHead.textContent = `Экипировано: ${getRodStats().name}`;
+      rodList.appendChild(tabHead);
       for (const rod of rodItems) {
         const unlocked = isUnlocked(rod);
         const owned = player.ownedRods.includes(rod.id);
@@ -6923,7 +7037,7 @@ if ("serviceWorker" in navigator) {
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${rod.name}</div>
-            <div class="shopItemMeta">${formatCoins(rod.price)}</div>
+            <div class="shopItemMeta">${formatPriceTag(rod.price, "coins")}</div>
           </div>
           <div class="shopItemMeta">Эффект: +${Math.round((rod.safeZoneBonus || 0) * 100)}% зона натяжения, +${Math.round((rod.rareBonus || 0) * 100)}% редкость</div>
           ${purchasedTag}
@@ -6941,10 +7055,14 @@ if ("serviceWorker" in navigator) {
           setButtonText(btn, player.rodTier === rod.id ? "Выбрано" : "Выбрать");
           btn.disabled = player.rodTier === rod.id;
         }
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           if (!unlocked) return;
           if (!owned) {
+            if (btn.dataset.loading === "1") return;
             if (player.coins < rod.price) return;
+            const confirmed = await openConfirmPurchaseModal({ label: `Удочка «${rod.name}»`, amount: rod.price, currency: "coins" });
+            if (!confirmed) return;
+            setPriceButtonLoading(btn, true);
             player.coins -= rod.price;
             if (!player.ownedRods.includes(rod.id)) {
               player.ownedRods.push(rod.id);
@@ -6956,6 +7074,7 @@ if ("serviceWorker" in navigator) {
           updateHUD();
           updateProfileStatsUI();
           refreshProfileGearPicker();
+          setPriceButtonLoading(btn, false);
         });
         item.appendChild(btn);
         if (!unlocked) {
@@ -6968,6 +7087,10 @@ if ("serviceWorker" in navigator) {
 
     if (lineList) {
       lineList.innerHTML = "";
+      const tabHead = document.createElement("div");
+      tabHead.className = "shopItemMeta";
+      tabHead.textContent = `Экипировано: ${getLineStats().name}`;
+      lineList.appendChild(tabHead);
       for (const line of lineItems) {
         const unlocked = isUnlocked(line);
         const owned = player.ownedLines.includes(line.id);
@@ -6979,7 +7102,7 @@ if ("serviceWorker" in navigator) {
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${line.name}</div>
-            <div class="shopItemMeta">${formatCoins(line.price)}</div>
+            <div class="shopItemMeta">${formatPriceTag(line.price, "coins")}</div>
           </div>
           <div class="shopItemMeta">Макс. вес: ${line.maxKg} кг</div>
           <div class="shopItemMeta">Эффект: ${Math.round((line.rareBonus || 0) * 100)}% редкость, риск ${riskText}</div>
@@ -6998,10 +7121,14 @@ if ("serviceWorker" in navigator) {
           setButtonText(btn, player.lineTier === line.id ? "Выбрано" : "Выбрать");
           btn.disabled = player.lineTier === line.id;
         }
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           if (!unlocked) return;
           if (!owned) {
+            if (btn.dataset.loading === "1") return;
             if (player.coins < line.price) return;
+            const confirmed = await openConfirmPurchaseModal({ label: `Леска «${line.name}»`, amount: line.price, currency: "coins" });
+            if (!confirmed) return;
+            setPriceButtonLoading(btn, true);
             player.coins -= line.price;
             if (!player.ownedLines.includes(line.id)) {
               player.ownedLines.push(line.id);
@@ -7436,9 +7563,9 @@ if ("serviceWorker" in navigator) {
     if (!fishHintText) return;
     const weightText = weightTextOrNull || "";
     const speciesText = speciesTextOrNull || "";
-    if (fishHintWeight) fishHintWeight.textContent = weightText ? `Вес: ${weightText}` : "";
-    if (fishHintSpecies) fishHintSpecies.textContent = speciesText ? `Вид: ${speciesText}` : "";
-    const visible = Boolean(weightText || speciesText);
+    if (fishHintWeight) fishHintWeight.textContent = `Вес: ${weightText || "—"}`;
+    if (fishHintSpecies) fishHintSpecies.textContent = `Вид: ${speciesText || "??????"}`;
+    const visible = true;
     fishHintText.classList.toggle("is-visible", visible);
     fishHintText.setAttribute("aria-hidden", visible ? "false" : "true");
     lastFishHintText = `${weightText}|${speciesText}`;
@@ -7739,6 +7866,7 @@ if ("serviceWorker" in navigator) {
     if (!travel.active || travel.arrivalHandled) return;
     travel.arrivalHandled = true;
     const destination = travel.to === "city" ? SCENE_CITY : SCENE_LAKE;
+    const destinationName = destination === SCENE_CITY ? "Город" : "Озеро";
     if (stageManager) {
       stageManager.go("world", { sceneId: destination, fromTravel: true });
     } else {
@@ -7771,6 +7899,7 @@ if ("serviceWorker" in navigator) {
         });
       }, 280);
     }
+    showLocationBanner(destinationName);
     setTravelOverlayVisible(false);
     setTravelUiLocked(false);
     travel.active = false;
@@ -7883,9 +8012,10 @@ if ("serviceWorker" in navigator) {
   }
 
   function updateLocationLabel(sceneId) {
-    if (!locationLabel) return;
     const isCityScene = [SCENE_CITY, SCENE_BUILDING_FISHSHOP, SCENE_BUILDING_TROPHY, SCENE_BUILDING_GEARSHOP].includes(sceneId);
-    locationLabel.textContent = isCityScene ? "Город" : "Озеро";
+    const name = isCityScene ? "Город" : "Озеро";
+    if (locationLabel) locationLabel.textContent = name;
+    if (profileLocationName) profileLocationName.textContent = name;
   }
 
   function setScene(sceneId) {
@@ -8178,9 +8308,9 @@ if ("serviceWorker" in navigator) {
     game.mode = "BITE";
     game.t = 0;
     bobber.biteKickElapsed = 0;
-    bobber.biteKickDuration = 0.42;
-    bobber.biteKickX = 10;
-    bobber.biteKickY = 14;
+    bobber.biteKickDuration = 0.2;
+    bobber.biteKickX = 18;
+    bobber.biteKickY = 24;
     triggerBite();
     beep(820, 0.08, 0.05);
     setMsg("ПОКЛЁВКА! Свайп вверх.", 1.0);

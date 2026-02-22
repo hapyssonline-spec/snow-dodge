@@ -65,7 +65,7 @@
         </div>
 
         <div class="topbarSlot topbarSlot-center">
-          <div id="locationLabel" class="locationLabel">Озеро</div>
+          <div id="locationLabel" class="locationLabel hidden">Озеро</div>
           <div id="questReminder" class="questReminder hidden"></div>
         </div>
 
@@ -360,6 +360,12 @@
 
               <section class="profileSection">
                 <div class="sectionTitle">Снаряжение</div>
+                <div class="profileGearItem profileGearItem--location">
+                  <div>
+                    <div class="profileGearLabel">Локация</div>
+                    <div id="profileLocationName" class="profileGearValue">Озеро</div>
+                  </div>
+                </div>
                 <div class="profileGearItem">
                   <div>
                     <div class="profileGearLabel">Удочка</div>
@@ -628,6 +634,26 @@
       <div id="toast" class="toast hidden"></div>
       <div id="xpToast" class="xpToast hidden"></div>
       <div id="hintToast" class="hintToast hidden" aria-live="polite"></div>
+
+      <div id="confirmPurchaseOverlay" class="hidden modal modalOverlay" aria-hidden="true">
+        <div class="modalCard confirmPurchaseCard">
+          <div class="modalHeader">
+            <div class="modalTitle modalHeaderTitle">Подтвердите покупку</div>
+            <button id="btnConfirmPurchaseClose" class="modalClose" aria-label="Закрыть">×</button>
+          </div>
+          <div class="modalBody">
+            <div id="confirmPurchaseText" class="profileConfirmText"></div>
+            <div class="profileConfirmActions">
+              <button id="btnConfirmPurchaseCancel" class="chipBtn secondary btn--singleLine"><span class="btnText">Отмена</span></button>
+              <button id="btnConfirmPurchaseAccept" class="chipBtn btn--singleLine"><span class="btnText">Подтвердить</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="locationBannerOverlay" class="locationBannerOverlay hidden" aria-hidden="true">
+        <div id="locationBannerText" class="locationBannerText">Озеро</div>
+      </div>
 
       <div id="booksIntroOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="modalCard booksIntroCard">

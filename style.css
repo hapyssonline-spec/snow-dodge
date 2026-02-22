@@ -121,6 +121,15 @@ html,body{
 }
 
 @media (max-width: 900px) and (pointer: coarse){
+  .modalHeader{ position:relative; }
+  .modalClose{
+    position:absolute;
+    right:10px;
+    top:10px;
+    margin:0;
+    z-index:2;
+  }
+
   html,
   body{
     -webkit-text-size-adjust: 150%;
@@ -429,7 +438,8 @@ img, a{
   background: url("./city.PNG") center bottom / cover no-repeat;
   opacity:0;
   pointer-events:none;
-  display:none;
+  display:flex;
+  visibility:hidden;
   transition: opacity 0.25s ease;
 }
 
@@ -872,7 +882,8 @@ img, a{
   text-shadow:0 1px 0 rgba(10,18,28,0.35);
 }
 .fishHintText{
-  display:none;
+  display:flex;
+  visibility:hidden;
   flex:1 1 auto;
   min-width:0;
   max-width:58%;
@@ -884,7 +895,7 @@ img, a{
 }
 
 .fishHintText.is-visible{
-  display:flex;
+  visibility:visible;
   flex-direction:column;
   gap:2px;
 }
@@ -933,6 +944,7 @@ img, a{
 }
 .reelPercent{
   position:absolute;
+  z-index:3;
   right:10px;
   top:50%;
   transform:translateY(-50%);
@@ -2811,11 +2823,33 @@ img, a{
 }
 
 .shopStats{
-  display:flex;
+  display:none;
   flex-wrap:wrap;
   gap:8px;
   font-size:15.6px;
   color:var(--muted);
+}
+
+
+.confirmPurchaseCard{ max-width:min(92vw, 440px); }
+
+.locationBannerOverlay{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  pointer-events:none;
+  display:grid;
+  place-items:center;
+  opacity:0;
+  transition:opacity .45s ease;
+}
+.locationBannerOverlay.is-visible{ opacity:1; }
+.locationBannerOverlay.is-fast{ transition-duration:.15s; }
+.locationBannerText{
+  font-size:clamp(28px,5vw,48px);
+  font-weight:900;
+  color:#f4fbff;
+  text-shadow:0 10px 30px rgba(0,0,0,.5);
 }
 
 .shopContent{
