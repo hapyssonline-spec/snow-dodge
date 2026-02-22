@@ -68,20 +68,23 @@
         <div class="topbarSlot topbarSlot-center">
           <button id="btnQuestHud" class="questHudButton hidden" aria-label="Текущее задание" type="button">
             <span class="questHudButtonCircle" aria-hidden="true"></span>
+            <span class="questHudBadge" aria-hidden="true">!</span>
           </button>
           <div id="locationLabel" class="locationLabel hidden">Озеро</div>
           <div id="questReminder" class="questReminder hidden"></div>
         </div>
 
         <div class="topbarSlot topbarSlot-right">
-          <button id="btnGemsHud" class="stat stat-compact stat-gems" aria-label="Открыть магазин гемов">
-            <span class="statIcon currencyIcon currencyIcon--gem" aria-hidden="true"></span>
-            <span id="gems" class="value value-gems">0</span>
-          </button>
-          <button id="btnCoinsHud" class="stat stat-compact stat-coins" aria-label="Открыть магазин монет">
-            <span class="statIcon currencyIcon currencyIcon--coin" aria-hidden="true"></span>
-            <span id="coins" class="value">0</span>
-          </button>
+          <div class="hudCurrencyCard" aria-label="Валюты">
+            <button id="btnGemsHud" class="stat stat-compact stat-gems" aria-label="Открыть магазин гемов">
+              <span class="statIcon currencyIcon currencyIcon--gem" aria-hidden="true"></span>
+              <span id="gems" class="value value-gems">0</span>
+            </button>
+            <button id="btnCoinsHud" class="stat stat-compact stat-coins" aria-label="Открыть магазин монет">
+              <span class="statIcon currencyIcon currencyIcon--coin" aria-hidden="true"></span>
+              <span id="coins" class="value">0</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -134,8 +137,8 @@
         <button id="btnInventory" class="chipBtn btn--singleLine" aria-label="Инвентарь"><span class="btnText">Инвентарь</span></button>
         <button id="btnJournal" class="chipBtn btn--singleLine" aria-label="Журнал"><span class="btnText">Журнал</span></button>
         <button id="btnStar" class="chipBtn iconBtn" aria-label="Раздел в разработке">
-          <span class="icon" aria-hidden="true">⭐</span>
-          <span class="iconMeta" aria-hidden="true">soon</span>
+          <span class="icon" aria-hidden="true">🔒</span>
+          <span class="iconMeta" aria-hidden="true">Скоро</span>
         </button>
         <button id="btnMute" class="chipBtn iconBtn" aria-label="Звук включен">
           <span class="icon" aria-hidden="true">🔊</span>
