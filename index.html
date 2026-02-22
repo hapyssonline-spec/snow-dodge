@@ -67,7 +67,7 @@
 
         <div class="topbarSlot topbarSlot-center">
           <button id="btnQuestHud" class="questHudButton hidden" aria-label="Текущее задание" type="button">
-            <span class="questHudButtonCircle" aria-hidden="true"></span>
+            <img class="questHudButtonIcon" src="assets/tiles/quest.png" alt="" aria-hidden="true" />
             <span class="questHudBadge" aria-hidden="true">!</span>
           </button>
           <div id="locationLabel" class="locationLabel hidden">Озеро</div>
@@ -91,7 +91,7 @@
       <div id="questHudMenu" class="questHudMenu hidden" aria-hidden="true">
         <div class="questHudMenuBackdrop" data-quest-menu-close="backdrop"></div>
         <div class="questHudMenuCard" role="dialog" aria-modal="true" aria-label="Текущее задание">
-          <button id="btnQuestHudMenuClose" class="iconButton questHudMenuClose" aria-label="Закрыть окно задания" type="button">
+          <button id="btnQuestHudMenuClose" class="modalClose questHudMenuClose" data-quest-menu-close="button" aria-label="Закрыть окно задания" type="button">
             ✕
           </button>
           <div class="questHudMenuTitle">Текущее задание</div>
