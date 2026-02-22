@@ -435,7 +435,6 @@ img, a{
   position:absolute;
   inset:0;
   z-index:2;
-  background: url("./city.PNG") center bottom / cover no-repeat;
   opacity:0;
   pointer-events:none;
   display:flex;
@@ -2920,41 +2919,57 @@ img, a{
   opacity:0;
   transition:opacity .3s ease;
 }
-.locationBannerOverlay::before{
-  content:"";
-  width:min(60vw,560px);
-  height:min(32vh,220px);
-  border-radius:999px;
-  background:radial-gradient(circle, rgba(112,181,255,.26) 0%, rgba(112,181,255,.08) 45%, transparent 72%);
-  filter:blur(8px);
-  position:absolute;
-}
 .locationBannerOverlay.is-visible{ opacity:1; }
 .locationBannerOverlay.is-speedup{ animation-duration:.33s !important; }
 .locationBannerText{
   font-size:clamp(34px,7vw,64px);
   font-weight:900;
-  color:#f4fbff;
+  color:transparent;
   letter-spacing:.04em;
-  text-shadow:0 12px 26px rgba(0,0,0,.45), 0 0 26px rgba(124,196,255,.28);
   position:relative;
-  animation:locationBannerEnter .3s cubic-bezier(.22,1,.36,1) both, locationBannerHold 1.05s linear .3s both, locationBannerExit .3s ease 1.65s both;
+  white-space:nowrap;
+  animation:locationBannerEnter .26s cubic-bezier(.22,1,.36,1) both, locationBannerHold 1.04s linear .26s both, locationBannerExit .32s ease 1.6s both;
 }
+.locationBannerText::before,
 .locationBannerText::after{
   content:"";
   position:absolute;
   inset:0;
-  background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.65) 50%, transparent 65%);
-  transform:translateX(-140%);
+  pointer-events:none;
+}
+.locationBannerText::before{
+  content:attr(data-text);
+  color:#f4fbff;
+  text-shadow:0 12px 26px rgba(0,0,0,.45), 0 0 20px rgba(124,196,255,.24);
+  width:0;
+  overflow:hidden;
+  animation:locationBannerDraw 1.12s cubic-bezier(.16,.84,.3,1) .2s forwards;
+}
+.locationBannerText::after{
+  width:clamp(20px,2.3vw,32px);
+  background:linear-gradient(106deg, transparent 20%, rgba(255,255,255,.98) 50%, transparent 80%);
+  transform:translateX(-135%);
   mix-blend-mode:screen;
-  animation:locationBannerShimmer .5s ease .34s both;
+  opacity:0;
+  animation:locationBannerSlash 1.12s cubic-bezier(.16,.84,.3,1) .2s both;
 }
 .locationBannerOverlay.is-speedup .locationBannerText{ animation-duration:.1s,.35s,.11s; animation-delay:0s,.1s,.45s; }
-.locationBannerOverlay.is-speedup .locationBannerText::after{ animation-duration:.18s; animation-delay:.12s; }
+.locationBannerOverlay.is-speedup .locationBannerText::before,
+.locationBannerOverlay.is-speedup .locationBannerText::after{ animation-duration:.42s; animation-delay:.08s; }
 @keyframes locationBannerEnter{ from{ opacity:0; filter:blur(8px); transform:scale(.85);} to{ opacity:1; filter:blur(0); transform:scale(1);} }
 @keyframes locationBannerHold{ from{ opacity:1;} to{ opacity:1;} }
-@keyframes locationBannerShimmer{ from{ transform:translateX(-140%);} to{ transform:translateX(140%);} }
 @keyframes locationBannerExit{ from{ opacity:1; transform:scale(1);} to{ opacity:0; transform:scale(.96);} }
+@keyframes locationBannerDraw{
+  from{ width:0; }
+  to{ width:100%; }
+}
+@keyframes locationBannerSlash{
+  0%{ transform:translateX(-135%); opacity:0; }
+  20%{ opacity:.95; }
+  50%{ opacity:1; }
+  80%{ opacity:.95; }
+  100%{ transform:translateX(135%); opacity:0; }
+}
 
 .shopContent{
   display:flex;

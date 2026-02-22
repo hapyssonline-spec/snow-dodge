@@ -946,6 +946,7 @@ if ("serviceWorker" in navigator) {
     if (!locationBannerOverlay || !locationBannerText) return;
     if (locationBannerHideTimer) window.clearTimeout(locationBannerHideTimer);
     locationBannerText.textContent = locationName;
+    locationBannerText.setAttribute("data-text", locationName);
     locationBannerOverlay.classList.remove("hidden", "is-speedup");
     locationBannerOverlay.setAttribute("aria-hidden", "false");
     requestAnimationFrame(() => locationBannerOverlay.classList.add("is-visible"));
@@ -7764,6 +7765,9 @@ if ("serviceWorker" in navigator) {
       });
       hitbox.addEventListener("pointerleave", clearPress);
       hitbox.addEventListener("pointercancel", clearPress);
+      hitbox.addEventListener("pointerup", (event) => {
+        openCityBuildingFromHitbox(hitbox, event);
+      });
       hitbox.addEventListener("click", (event) => {
         if (event.detail === 0) {
           openCityBuildingFromHitbox(hitbox, event);
