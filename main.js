@@ -46,6 +46,7 @@ if ("serviceWorker" in navigator) {
   const questHudWeight = document.getElementById("questHudWeight");
   const questHudReward = document.getElementById("questHudReward");
   const questHudStatus = document.getElementById("questHudStatus");
+  const btnQuestHudMenuClose = document.getElementById("btnQuestHudMenuClose");
   const profileLevelBadge = document.getElementById("profileLevelBadge");
   const hintToast = document.getElementById("hintToast");
 
@@ -5761,16 +5762,22 @@ if ("serviceWorker" in navigator) {
     event.stopPropagation();
     if (!activeQuest || !questHudMenu) return;
     renderQuestHudMenu();
-    const willOpen = questHudMenu.classList.contains("hidden");
-    questHudMenu.classList.toggle("hidden", !willOpen);
-    questHudMenu.setAttribute("aria-hidden", willOpen ? "false" : "true");
+    questHudMenu.classList.remove("hidden");
+    questHudMenu.setAttribute("aria-hidden", "false");
+  });
+
+  btnQuestHudMenuClose?.addEventListener("click", () => {
+    closeQuestHudMenu();
   });
 
   document.addEventListener("click", (event) => {
     if (!questHudMenu || questHudMenu.classList.contains("hidden")) return;
-    const target = event.target;
-    if (questHudMenu.contains(target) || btnQuestHud?.contains(target)) return;
-    closeQuestHudMenu();
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    if (btnQuestHud?.contains(target)) return;
+    if (target.closest("[data-quest-menu-close='backdrop']")) {
+      closeQuestHudMenu();
+    }
   });
 
   btnInvClose?.addEventListener("click", () => {
