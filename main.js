@@ -7762,6 +7762,9 @@ if ("serviceWorker" in navigator) {
       hitbox.addEventListener("pointerup", clearPress);
       hitbox.addEventListener("pointerleave", clearPress);
       hitbox.addEventListener("pointercancel", clearPress);
+      hitbox.addEventListener("pointerup", (event) => {
+        openCityBuildingFromHitbox(hitbox, event);
+      });
       hitbox.addEventListener("click", (event) => {
         openCityBuildingFromHitbox(hitbox, event);
       });
