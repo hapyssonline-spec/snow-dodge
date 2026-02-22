@@ -31,6 +31,15 @@
   --ui-stroke: rgba(202,226,255,.28);
   --ui-shadow: 0 10px 26px rgba(7,15,26,.28);
   --ui-glass-grad: linear-gradient(180deg, rgba(225,241,255,.24) 0%, rgba(150,186,220,.16) 48%, rgba(76,103,132,.2) 100%);
+  --hud-top-height: 84px;
+  --hud-top-width: 132px;
+  --hud-top-padding: 8px;
+  --hud-bg-base: var(--ui-surface-strong);
+  --hud-bg-gradient: var(--ui-glass-grad);
+  --hud-border-color: var(--ui-stroke);
+  --hud-border-width: 1px;
+  --hud-shadow: inset 0 1px 0 rgba(245,252,255,.34), inset 0 0 0 1px rgba(184,215,255,.16), var(--ui-shadow);
+  --hud-radius: var(--ui-radius);
 }
 
 
@@ -241,8 +250,8 @@ img, a{
   display:grid;
   grid-template-columns: auto 1fr auto;
   align-items:center;
-  padding: calc(10px + env(safe-area-inset-top)) 14px 8px;
-  min-height: calc(var(--hud-icon-button-size) + 16px + env(safe-area-inset-top));
+  padding: calc(14px + env(safe-area-inset-top)) 20px 10px;
+  min-height: calc(var(--hud-top-height) + 24px + env(safe-area-inset-top));
   background: transparent;
   border-bottom: none;
   gap:5px;
@@ -260,7 +269,7 @@ img, a{
   align-items:center;
   justify-content:center;
   min-width:0;
-  min-height:var(--hud-icon-button-size);
+  min-height:var(--hud-top-height);
 }
 
 .topbarSlot-center{
@@ -278,21 +287,24 @@ img, a{
 .topbarSlot-right{
   justify-self:end;
   pointer-events:auto;
-  align-items:flex-end;
+  align-items:stretch;
+}
+.hudTopContainer{
+  height:var(--hud-top-height);
+  border-radius:var(--hud-radius);
+  border:var(--hud-border-width) solid var(--hud-border-color);
+  background: var(--hud-bg-gradient), var(--hud-bg-base);
+  box-shadow: var(--hud-shadow);
 }
 .profileButton{
-  width:96px;
-  height:96px;
-  border-radius:var(--ui-radius);
-  border:1px solid var(--ui-stroke);
-  background: var(--ui-glass-grad), var(--ui-surface);
+  width:var(--hud-top-width);
+  min-width:var(--hud-top-width);
   display:flex;
   align-items:center;
   justify-content:center;
   position:relative;
-  padding:0;
+  padding:var(--hud-top-padding);
   backdrop-filter: blur(8px);
-  box-shadow: inset 0 1px 0 rgba(245,252,255,.35), inset 0 0 0 1px rgba(184,215,255,.14), var(--ui-shadow);
   overflow:visible;
 }
 .profileWrap{
@@ -313,9 +325,9 @@ img, a{
   transform: scale(.98);
 }
 .profileAvatar{
-  width:100%;
-  height:100%;
-  border-radius:calc(var(--ui-radius) - 2px);
+  width:52px;
+  height:52px;
+  border-radius:16px;
   overflow:hidden;
   display:flex;
   align-items:center;
@@ -323,8 +335,8 @@ img, a{
   background: rgba(14,26,39,.72);
 }
 .profileAvatar svg{
-  width:70%;
-  height:70%;
+  width:66%;
+  height:66%;
   fill:none;
   stroke: #d4e6ff;
   stroke-width:2.6;
@@ -332,16 +344,16 @@ img, a{
 }
 .profileLevelBadge{
   position:absolute;
-  right:-9px;
-  bottom:-9px;
-  width:32px;
-  height:32px;
-  min-width:32px;
+  right:-7px;
+  top:-7px;
+  width:26px;
+  height:26px;
+  min-width:26px;
   border-radius:999px;
   background: linear-gradient(180deg, #263446, #1b2736);
   border:2px solid rgba(220,238,255,.38);
   color:#e9ecf1;
-  font-size:16.2px;
+  font-size:14px;
   font-weight:800;
   display:flex;
   align-items:center;
@@ -357,40 +369,31 @@ img, a{
 .stat{min-width:0}
 .hudCurrencyCard{
   display:flex;
-  flex-direction:column;
+  flex-direction:row;
   align-items:stretch;
   gap:6px;
-  min-width:156px;
-  padding:8px;
-  border-radius:var(--ui-radius);
-  border:1px solid var(--ui-stroke);
-  background: var(--ui-glass-grad), var(--ui-surface-strong);
-  box-shadow: inset 0 1px 0 rgba(245,252,255,.34), inset 0 0 0 1px rgba(184,215,255,.16), var(--ui-shadow);
+  min-width:198px;
+  padding:var(--hud-top-padding);
   pointer-events:auto;
 }
 
 .stat-compact{
   display:flex;
   align-items:center;
-  justify-content:flex-end;
-  gap:8px;
+  justify-content:center;
+  gap:7px;
   padding:8px 10px;
-  min-height:auto;
-  width:100%;
-  border-radius:calc(var(--ui-radius) - 4px);
-  background:rgba(9,18,30,.42);
-  border:1px solid rgba(210,230,252,.24);
-  box-shadow: inset 0 1px 0 rgba(241,250,255,.18);
+  flex:1;
+  border-radius:calc(var(--hud-radius) - 6px);
+  background:rgba(9,18,30,.36);
+  border:1px solid rgba(202,226,255,.2);
+  box-shadow: inset 0 1px 0 rgba(241,250,255,.16);
 }
 
 .questHudButton{
-  width:136px;
-  height:72px;
-  border-radius:18px;
-  border:1px solid rgba(170,220,255,.28);
-  background:linear-gradient(180deg, rgba(13, 29, 47, .92), rgba(8, 20, 35, .9));
-  box-shadow:0 12px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(236,247,255,.22);
-  padding:6px;
+  width:var(--hud-top-width);
+  min-width:var(--hud-top-width);
+  padding:var(--hud-top-padding);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -402,8 +405,8 @@ img, a{
 .questHudButton:active{ transform:scale(.98); }
 
 .questHudButtonIcon{
-  width:100%;
-  height:100%;
+  width:52px;
+  height:52px;
   display:block;
   object-fit:contain;
   filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));
@@ -411,16 +414,16 @@ img, a{
 
 .questHudBadge{
   position:absolute;
-  top:-6px;
-  right:-6px;
-  min-width:20px;
-  height:20px;
+  top:-7px;
+  right:-7px;
+  min-width:26px;
+  height:26px;
   border-radius:999px;
   padding:0 6px;
   background:linear-gradient(180deg, #ff6f8f, #db2f56);
   border:1px solid rgba(255,238,244,.75);
   box-shadow:0 4px 10px rgba(77,12,27,.45);
-  font-size:12px;
+  font-size:14px;
   font-weight:900;
   line-height:1;
   display:none;
@@ -711,7 +714,7 @@ img, a{
 
 #bottombar{
   display:flex; align-items:center; justify-content:center; gap:10px;
-  padding:10px 14px calc(12px + env(safe-area-inset-bottom));
+  padding:10px 16px calc(12px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--stroke);
   background: var(--ui-glass-grad), linear-gradient(0deg, rgba(10,22,34,.78), rgba(10,22,34,.42));
   position:fixed;
@@ -862,14 +865,9 @@ img, a{
 #btnCity .btnText,
 #btnInventory .btnText,
 #btnJournal .btnText{
-  white-space:normal;
-  font-size:15.4px;
-  line-height:1.05;
-}
-
-#btnInventory .btnText,
-#btnJournal .btnText{
-  font-size:14.4px;
+  white-space:nowrap;
+  font-size:14px;
+  line-height:1;
 }
 
 #btnCity .btnText,
@@ -882,6 +880,15 @@ img, a{
 
 #btnCity{
   border-color: rgba(149,214,255,.42);
+}
+
+#btnStar .icon{
+  font-size:calc(var(--hud-icon-glyph-size) * 1.15);
+}
+
+#btnStar .iconMeta{
+  font-size:14px;
+  font-weight:950;
 }
 
 #btnCity.is-locked{
@@ -3815,6 +3822,11 @@ button,
   white-space:nowrap;
   text-overflow:ellipsis;
   overflow:hidden;
+}
+
+#bottombar .btn--singleLine .btnText{
+  text-overflow:clip;
+  overflow:visible;
 }
 
 .btn--twoLines .btnText{

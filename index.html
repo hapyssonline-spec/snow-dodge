@@ -52,7 +52,7 @@
     <div id="uiLayer">
       <header id="topbar" class="hud topbar">
         <div class="topbarSlot topbarSlot-left">
-          <button id="btnProfile" class="profileButton" aria-label="Профиль">
+          <button id="btnProfile" class="profileButton hudTopContainer" aria-label="Профиль">
             <span class="profileWrap" aria-hidden="true">
               <span class="profileAvatar">
                 <svg viewBox="0 0 48 48" role="presentation" focusable="false">
@@ -66,7 +66,7 @@
         </div>
 
         <div class="topbarSlot topbarSlot-center">
-          <button id="btnQuestHud" class="questHudButton hidden" aria-label="Текущее задание" type="button">
+          <button id="btnQuestHud" class="questHudButton hudTopContainer hidden" aria-label="Текущее задание" type="button">
             <img class="questHudButtonIcon" src="assets/tiles/quest.png" alt="" aria-hidden="true" />
             <span class="questHudBadge" aria-hidden="true">!</span>
           </button>
@@ -75,7 +75,7 @@
         </div>
 
         <div class="topbarSlot topbarSlot-right">
-          <div class="hudCurrencyCard" aria-label="Валюты">
+          <div class="hudCurrencyCard hudTopContainer" aria-label="Валюты">
             <button id="btnGemsHud" class="stat stat-compact stat-gems" aria-label="Открыть магазин гемов">
               <span class="statIcon currencyIcon currencyIcon--gem" aria-hidden="true"></span>
               <span id="gems" class="value value-gems">0</span>
@@ -139,12 +139,12 @@
       </div>
 
       <footer id="bottombar" class="bottom-bar hud bottombar">
-        <button id="btnCity" class="chipBtn btn--singleLine" aria-label="В город"><span class="btnText">В город</span></button>
-        <button id="btnInventory" class="chipBtn btn--singleLine" aria-label="Инвентарь"><span class="btnText">Инвентарь</span></button>
-        <button id="btnJournal" class="chipBtn btn--singleLine" aria-label="Журнал"><span class="btnText">Журнал</span></button>
+        <button id="btnCity" class="chipBtn btn--singleLine" aria-label="Город"><span class="btnText">ГОРОД</span></button>
+        <button id="btnInventory" class="chipBtn btn--singleLine" aria-label="Инвентарь"><span class="btnText">ИНВЕНТ.</span></button>
+        <button id="btnJournal" class="chipBtn btn--singleLine" aria-label="Журнал"><span class="btnText">ЖУРНАЛ</span></button>
         <button id="btnStar" class="chipBtn iconBtn" aria-label="Раздел в разработке">
           <span class="icon" aria-hidden="true">🔒</span>
-          <span class="iconMeta" aria-hidden="true">Скоро</span>
+          <span class="iconMeta" aria-hidden="true">СКОРО</span>
         </button>
         <button id="btnMute" class="chipBtn iconBtn" aria-label="Звук включен">
           <span class="icon" aria-hidden="true">🔊</span>
