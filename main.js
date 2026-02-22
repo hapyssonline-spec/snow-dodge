@@ -3555,6 +3555,7 @@ if ("serviceWorker" in navigator) {
     }
     const hasActiveQuest = Boolean(activeQuest);
     btnQuestHud?.classList.toggle("hidden", !hasActiveQuest);
+    btnQuestHud?.classList.toggle("is-complete", activeQuest?.status === "completed");
     if (!hasActiveQuest) {
       closeQuestHudMenu();
       return;

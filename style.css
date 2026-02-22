@@ -389,9 +389,14 @@ img, a{
 .questHudButtonCircle{
   width:44px;
   height:44px;
-  border-radius:50%;
-  background: radial-gradient(circle at 30% 30%, rgba(238,249,255,.9), rgba(135,183,223,.8) 45%, rgba(60,105,145,.88));
-  border:1px solid rgba(214,234,255,.7);
+  background-image:url("assets/tiles/quest.png");
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:contain;
+}
+
+.questHudButton.is-complete .questHudButtonCircle{
+  background-image:url("assets/tiles/quest_complete.png");
 }
 
 .questHudMenu{
