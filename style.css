@@ -591,6 +591,7 @@ img, a{
   opacity:1;
   pointer-events:auto;
   display:block;
+  visibility:visible;
 }
 
 #app[data-snow="lake"] #snowLayer,
