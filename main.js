@@ -135,6 +135,7 @@ if ("serviceWorker" in navigator) {
   const cityHud = document.getElementById("cityHud");
   const btnBackToLake = document.getElementById("btnBackToLake");
   const cityScene = document.getElementById("cityScene");
+  const citySceneImage = document.getElementById("citySceneImage");
   const cityHitboxes = Array.from(document.querySelectorAll(".city-hitbox"));
   const cityTooltip = document.getElementById("cityTooltip");
   const questReminder = document.getElementById("questReminder");
@@ -7698,17 +7699,51 @@ if ("serviceWorker" in navigator) {
     }, 1200);
   }
 
+
+  function initCitySceneImage() {
+    if (!citySceneImage) return;
+    const fallbackSrc = "./city.png?v=29";
+    citySceneImage.addEventListener("error", () => {
+      const current = citySceneImage.getAttribute("src") || "";
+      if (current.includes("city.png")) return;
+      citySceneImage.setAttribute("src", fallbackSrc);
+    });
+  }
+
   function initCityHitboxes() {
     const sceneMap = {
       fish: SCENE_BUILDING_FISHSHOP,
       gear: SCENE_BUILDING_GEARSHOP,
       trophy: SCENE_BUILDING_TROPHY
     };
+
+    const canOpenCityBuilding = (sceneId) => {
+      if (!sceneId || isFighting || currentScene !== SCENE_CITY) return false;
+      if (guideStep === "city-force-fish-open" && sceneId !== SCENE_BUILDING_FISHSHOP) {
+        return false;
+      }
+      if (guideStep === "city-force-gear-open" && sceneId !== SCENE_BUILDING_GEARSHOP) {
+        return false;
+      }
+      if (guideStep === "city-force-trophy-open" && sceneId !== SCENE_BUILDING_TROPHY) {
+        return false;
+      }
+      if (guideStep === "city-force-trophy-claim-open" && sceneId !== SCENE_BUILDING_TROPHY) {
+        return false;
+      }
+      return true;
+    };
+
+    const openCityBuildingFromHitbox = (hitbox, event) => {
+      const sceneId = sceneMap[hitbox.dataset.scene];
+      if (!canOpenCityBuilding(sceneId)) return;
+      stopUiEvent(event);
+      openShop(sceneId);
+    };
+
     cityHitboxes.forEach((hitbox) => {
       hitbox.addEventListener("pointerdown", (event) => {
-        if (isFighting) return;
-        if (currentScene !== SCENE_CITY) return;
-        stopUiEvent(event);
+        if (isFighting || currentScene !== SCENE_CITY) return;
         hitbox.classList.add("is-pressed");
         clearCityTooltipTimers();
         if (navigator.vibrate) {
@@ -7723,27 +7758,16 @@ if ("serviceWorker" in navigator) {
         clearCityTooltipTimers();
         clearCityTooltip();
       };
-      hitbox.addEventListener("pointerup", clearPress);
+      hitbox.addEventListener("pointerup", (event) => {
+        clearPress();
+        openCityBuildingFromHitbox(hitbox, event);
+      });
       hitbox.addEventListener("pointerleave", clearPress);
       hitbox.addEventListener("pointercancel", clearPress);
       hitbox.addEventListener("click", (event) => {
-        if (isFighting) return;
-        if (currentScene !== SCENE_CITY) return;
-        stopUiEvent(event);
-        const sceneId = sceneMap[hitbox.dataset.scene];
-        if (guideStep === "city-force-fish-open" && sceneId !== SCENE_BUILDING_FISHSHOP) {
-          return;
+        if (event.detail === 0) {
+          openCityBuildingFromHitbox(hitbox, event);
         }
-        if (guideStep === "city-force-gear-open" && sceneId !== SCENE_BUILDING_GEARSHOP) {
-          return;
-        }
-        if (guideStep === "city-force-trophy-open" && sceneId !== SCENE_BUILDING_TROPHY) {
-          return;
-        }
-        if (guideStep === "city-force-trophy-claim-open" && sceneId !== SCENE_BUILDING_TROPHY) {
-          return;
-        }
-        if (sceneId) openShop(sceneId);
       });
     });
   }
@@ -9670,6 +9694,7 @@ if ("serviceWorker" in navigator) {
     updateHUD();
     updateLeaderboardsFromStats();
     updateProfileStatsUI();
+    initCitySceneImage();
     initCityHitboxes();
     updateOrientationLock();
     if (orientationLocked) {
