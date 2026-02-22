@@ -66,7 +66,8 @@ if ("serviceWorker" in navigator) {
   const invEmpty = document.getElementById("invEmpty");
   const invItemsView = document.getElementById("invItemsView");
   const btnInvFishJournal = document.getElementById("btnInvFishJournal");
-
+  const btnInvMobileItemsTab = document.getElementById("btnInvMobileItemsTab");
+  const btnInvMobileJournalTab = document.getElementById("btnInvMobileJournalTab");
 
   const trashOverlay = document.getElementById("trashOverlay");
   const btnTrashClose = document.getElementById("btnTrashClose");
@@ -175,20 +176,59 @@ if ("serviceWorker" in navigator) {
   }
 
   function closeConfirmPurchaseModal() {
-    confirmPurchaseOverlay?.classList.add("hidden");
+    confirmPurchaseOverlay?.classList.remove("is-visible");
     confirmPurchaseOverlay?.setAttribute("aria-hidden", "true");
-    updateModalLayerState();
+    btnConfirmPurchaseAccept?.classList.remove("is-loading");
+    btnConfirmPurchaseAccept?.removeAttribute("disabled");
+    window.setTimeout(() => {
+      if (!confirmPurchaseOverlay?.classList.contains("is-visible")) {
+        confirmPurchaseOverlay?.classList.add("hidden");
+        updateModalLayerState();
+      }
+    }, 260);
   }
 
-  function openConfirmPurchaseModal({ label, amount, currency }) {
+  function renderConfirmPurchaseModalContent({ label, amount, currency, bonusFrom = 0, bonusTo = 0, exchangeGems = 0, rate = 0 }) {
+    if (!confirmPurchaseText) return;
+    confirmPurchaseText.textContent = "";
+
+    const titleLine = document.createElement("div");
+    titleLine.className = "confirmPurchasePrimary";
+    if (label) {
+      titleLine.textContent = label;
+      confirmPurchaseText.appendChild(titleLine);
+    }
+
+    if (bonusTo > 0 && bonusTo > bonusFrom) {
+      const bonusLine = document.createElement("div");
+      bonusLine.className = "confirmPurchaseLine";
+      setTextWithCurrencyIcons(bonusLine, `Было: ${formatNumber(bonusFrom)} 💎  →  Стало: ${formatNumber(bonusTo)} 💎`);
+      confirmPurchaseText.appendChild(bonusLine);
+    }
+
+    if (exchangeGems > 0) {
+      const exchangeLine = document.createElement("div");
+      exchangeLine.className = "confirmPurchaseLine";
+      setTextWithCurrencyIcons(exchangeLine, `Обмен: ${formatNumber(exchangeGems)} 💎 → ${formatNumber(amount)} 🪙`);
+      confirmPurchaseText.appendChild(exchangeLine);
+
+      const rateLine = document.createElement("div");
+      rateLine.className = "confirmPurchaseSubline";
+      setTextWithCurrencyIcons(rateLine, `Курс: 1 💎 = ${formatNumber(rate || 0)} 🪙`);
+      confirmPurchaseText.appendChild(rateLine);
+      return;
+    }
+
+    const priceLine = document.createElement("div");
+    priceLine.className = "confirmPurchaseLine";
+    setTextWithCurrencyIcons(priceLine, `Цена: ${formatPriceTag(amount, currency)}`);
+    confirmPurchaseText.appendChild(priceLine);
+  }
+
+  function openConfirmPurchaseModal(options) {
     return new Promise((resolve) => {
       if (!confirmPurchaseOverlay) return resolve(false);
-      setPriceTagText(confirmPurchaseText, amount, currency);
-      if (label && confirmPurchaseText) {
-        const details = document.createElement("div");
-        details.textContent = label;
-        confirmPurchaseText.prepend(details);
-      }
+      renderConfirmPurchaseModalContent(options || {});
       let done = false;
       const finish = (ok) => {
         if (done) return;
@@ -197,19 +237,21 @@ if ("serviceWorker" in navigator) {
         btnConfirmPurchaseAccept?.removeEventListener("click", onAccept);
         btnConfirmPurchaseCancel?.removeEventListener("click", onCancel);
         btnConfirmPurchaseClose?.removeEventListener("click", onCancel);
-        confirmPurchaseOverlay?.removeEventListener("click", onOverlay);
         resolve(ok);
       };
-      const onAccept = () => finish(true);
-      const onCancel = () => finish(false);
-      const onOverlay = (event) => {
-        if (event.target === confirmPurchaseOverlay) finish(false);
+      const onAccept = () => {
+        btnConfirmPurchaseAccept?.setAttribute("disabled", "true");
+        btnConfirmPurchaseAccept?.classList.add("is-loading");
+        finish(true);
       };
+      const onCancel = () => finish(false);
+      btnConfirmPurchaseAccept?.classList.remove("is-loading");
+      btnConfirmPurchaseAccept?.removeAttribute("disabled");
       btnConfirmPurchaseAccept?.addEventListener("click", onAccept);
       btnConfirmPurchaseCancel?.addEventListener("click", onCancel);
       btnConfirmPurchaseClose?.addEventListener("click", onCancel);
-      confirmPurchaseOverlay?.addEventListener("click", onOverlay);
       confirmPurchaseOverlay.classList.remove("hidden");
+      requestAnimationFrame(() => confirmPurchaseOverlay.classList.add("is-visible"));
       confirmPurchaseOverlay.setAttribute("aria-hidden", "false");
       updateModalLayerState();
     });
@@ -461,6 +503,7 @@ if ("serviceWorker" in navigator) {
     travelOverlay,
     shopOverlay,
     gemsShopOverlay,
+    confirmPurchaseOverlay,
     leaderboardOverlay,
     rotateOverlay,
     sceneFade
@@ -887,23 +930,31 @@ if ("serviceWorker" in navigator) {
     setTextWithCurrencyIcons(target, formatPriceTag(amount, currency));
   }
 
+  function hideLocationBanner() {
+    if (!locationBannerOverlay) return;
+    locationBannerOverlay.classList.remove("is-visible", "is-speedup");
+    window.setTimeout(() => {
+      if (!locationBannerOverlay.classList.contains("is-visible")) {
+        locationBannerOverlay.classList.add("hidden");
+        locationBannerOverlay.setAttribute("aria-hidden", "true");
+      }
+    }, 320);
+  }
+
   function showLocationBanner(locationName) {
     if (!locationBannerOverlay || !locationBannerText) return;
     if (locationBannerHideTimer) window.clearTimeout(locationBannerHideTimer);
     locationBannerText.textContent = locationName;
-    locationBannerOverlay.classList.remove("hidden", "is-fast");
+    locationBannerOverlay.classList.remove("hidden", "is-speedup");
     locationBannerOverlay.setAttribute("aria-hidden", "false");
     requestAnimationFrame(() => locationBannerOverlay.classList.add("is-visible"));
-    locationBannerHideTimer = window.setTimeout(() => {
-      locationBannerOverlay.classList.remove("is-visible", "is-fast");
-      locationBannerOverlay.classList.add("hidden");
-      locationBannerOverlay.setAttribute("aria-hidden", "true");
-    }, 2400);
+    locationBannerHideTimer = window.setTimeout(hideLocationBanner, 2200);
   }
 
-  locationBannerOverlay?.addEventListener("pointerdown", () => {
-    locationBannerOverlay.classList.add("is-fast");
-  });
+  window.addEventListener("pointerdown", () => {
+    if (!locationBannerOverlay || locationBannerOverlay.classList.contains("hidden")) return;
+    locationBannerOverlay.classList.add("is-speedup");
+  }, { passive: true });
 
   function isBookPurchased(bookId) {
     if (bookId === "common-sense") return hasCommonSenseBook;
@@ -2425,7 +2476,9 @@ if ("serviceWorker" in navigator) {
       const confirmed = await openConfirmPurchaseModal({
         label: `Пакет «${pack.title}»`,
         amount: pack.priceYan,
-        currency: "yan"
+        currency: "yan",
+        bonusFrom: pack.gems,
+        bonusTo: pack.granted
       });
       if (!confirmed) {
         logEvent("gem_purchase_cancel", { packId: pack.id, priceYan: pack.priceYan });
@@ -2593,9 +2646,11 @@ if ("serviceWorker" in navigator) {
     }
 
     const confirmed = await openConfirmPurchaseModal({
-      label: `Обмен ${gemsAmount} 💎`,
+      label: "Обмен валюты",
       amount: exchangeService.computeCoins(gemsAmount),
-      currency: "coins"
+      currency: "coins",
+      exchangeGems: gemsAmount,
+      rate: exchangeService.getRate()
     });
     if (!confirmed) return;
 
@@ -4213,7 +4268,8 @@ if ("serviceWorker" in navigator) {
     GEMS_CHANGED: "GEMS_CHANGED",
     SHOP_OPEN: "SHOP_OPEN",
     SHOP_PURCHASE_CLICK: "SHOP_PURCHASE_CLICK",
-    CURRENCY_ADD: "CURRENCY_ADD"
+    CURRENCY_ADD: "CURRENCY_ADD",
+    CITY_UI_READY: "CITY_UI_READY"
   };
 
   function createEventBus() {
@@ -5525,17 +5581,24 @@ if ("serviceWorker" in navigator) {
     return `Rod_${Math.max(1, Number(tier) || 1)}`;
   }
 
+  function syncInventoryTabs(activeTab) {
+    btnInvMobileItemsTab?.classList.toggle("is-active", activeTab === "items");
+    btnInvMobileJournalTab?.classList.toggle("is-active", activeTab === "journal");
+  }
+
   function showFishJournalListView() {
     if (!invFishJournalView || !fishJournalDetailView) return;
     invItemsView?.classList.add("hidden");
     invFishJournalView.classList.remove("hidden");
     fishJournalDetailView.classList.add("hidden");
+    syncInventoryTabs("journal");
   }
 
   function showInventoryItemsView() {
     invItemsView?.classList.remove("hidden");
     invFishJournalView?.classList.add("hidden");
     fishJournalDetailView?.classList.add("hidden");
+    syncInventoryTabs("items");
   }
 
   function openFishJournalDetail(speciesId) {
@@ -5611,6 +5674,15 @@ if ("serviceWorker" in navigator) {
   });
 
   btnInvFishJournal?.addEventListener("click", () => {
+    renderFishJournal();
+    showFishJournalListView();
+  });
+
+  btnInvMobileItemsTab?.addEventListener("click", () => {
+    showInventoryItemsView();
+  });
+
+  btnInvMobileJournalTab?.addEventListener("click", () => {
     renderFishJournal();
     showFishJournalListView();
   });
@@ -7862,6 +7934,38 @@ if ("serviceWorker" in navigator) {
     }
   }
 
+
+  function notifyCityUiReady() {
+    if (currentScene !== SCENE_CITY) return;
+    const fishHitbox = cityHitboxes.find((el) => el.dataset.scene === "fish");
+    const cityReady = cityScene && cityScene.getAttribute("aria-hidden") === "false" && fishHitbox && !cityHud?.classList.contains("hidden");
+    if (!cityReady) return;
+    eventBus.emit(EVENTS.CITY_UI_READY, { scene: SCENE_CITY });
+  }
+
+  function runCityArrivalGuideWhenReady() {
+    const runGuide = () => {
+      setGuideStep("city-force-fish-open");
+      showGuideOverlay({
+        title: "Город",
+        text: "Сначала зайди в рыбную лавку — туда мы отправимся первым делом.",
+        showButton: false,
+        preferredSide: "top",
+        cardTop: 110,
+        spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "fish"), 18)
+      });
+      onboarding.firstCityArrivalShown = true;
+      save();
+    };
+    const off = eventBus.on(EVENTS.CITY_UI_READY, () => {
+      off?.();
+      runGuide();
+    });
+    window.setTimeout(() => {
+      notifyCityUiReady();
+    }, 80);
+  }
+
   function finishTravel() {
     if (!travel.active || travel.arrivalHandled) return;
     travel.arrivalHandled = true;
@@ -7887,17 +7991,7 @@ if ("serviceWorker" in navigator) {
         });
       }, 280);
     } else if (!onboarding.firstCityArrivalShown && !onboarding.trophyGuideDone) {
-      setGuideStep("city-force-fish-open");
-      window.setTimeout(() => {
-        showGuideOverlay({
-          title: "Город",
-          text: "Сначала зайди в рыбную лавку — туда мы отправимся первым делом.",
-          showButton: false,
-          preferredSide: "top",
-          cardTop: 110,
-          spotlightRect: getSpotlightRect(cityHitboxes.find((el) => el.dataset.scene === "fish"), 18)
-        });
-      }, 280);
+      runCityArrivalGuideWhenReady();
     }
     showLocationBanner(destinationName);
     setTravelOverlayVisible(false);
@@ -8059,6 +8153,9 @@ if ("serviceWorker" in navigator) {
     updateLayerVisibility();
     canvasNeedsClear = !isCanvasGameplayScene(sceneId);
     maybeShowCityUnlockGuide();
+    if (sceneId === SCENE_CITY) {
+      requestAnimationFrame(() => notifyCityUiReady());
+    }
   }
 
   function transitionTo(sceneId) {
