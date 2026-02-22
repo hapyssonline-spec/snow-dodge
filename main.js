@@ -40,6 +40,12 @@ if ("serviceWorker" in navigator) {
   const gemsEl = document.getElementById("gems");
   const btnGemsHud = document.getElementById("btnGemsHud");
   const btnCoinsHud = document.getElementById("btnCoinsHud");
+  const btnQuestHud = document.getElementById("btnQuestHud");
+  const questHudMenu = document.getElementById("questHudMenu");
+  const questHudSpecies = document.getElementById("questHudSpecies");
+  const questHudWeight = document.getElementById("questHudWeight");
+  const questHudReward = document.getElementById("questHudReward");
+  const questHudStatus = document.getElementById("questHudStatus");
   const profileLevelBadge = document.getElementById("profileLevelBadge");
   const hintToast = document.getElementById("hintToast");
 
@@ -3521,10 +3527,39 @@ if ("serviceWorker" in navigator) {
     };
   }
 
+  function closeQuestHudMenu() {
+    if (!questHudMenu) return;
+    questHudMenu.classList.add("hidden");
+    questHudMenu.setAttribute("aria-hidden", "true");
+  }
+
+  function renderQuestHudMenu() {
+    if (!activeQuest) {
+      closeQuestHudMenu();
+      return;
+    }
+    if (questHudSpecies) questHudSpecies.textContent = `Вид: ${activeQuest.speciesName || "—"}`;
+    if (questHudWeight) questHudWeight.textContent = `Вес: ${formatKg(activeQuest.minWeightKg)}–${formatKg(activeQuest.maxWeightKg)}`;
+    if (questHudReward) setTextWithCurrencyIcons(questHudReward, `Награда: ${formatPriceTag(activeQuest.rewardCoins, "coins")} + ${activeQuest.rewardXp} XP`);
+    if (questHudStatus) {
+      const completed = activeQuest.status === "completed";
+      questHudStatus.textContent = completed ? "Статус: выполнено" : "Статус: в процессе";
+      questHudStatus.classList.toggle("is-complete", completed);
+    }
+  }
+
   function updateQuestReminder() {
-    if (!questReminder) return;
-    questReminder.textContent = "";
-    questReminder.classList.add("hidden");
+    if (questReminder) {
+      questReminder.textContent = "";
+      questReminder.classList.add("hidden");
+    }
+    const hasActiveQuest = Boolean(activeQuest);
+    btnQuestHud?.classList.toggle("hidden", !hasActiveQuest);
+    if (!hasActiveQuest) {
+      closeQuestHudMenu();
+      return;
+    }
+    renderQuestHudMenu();
   }
 
   function ensureQuestPreviews() {
@@ -5717,6 +5752,22 @@ if ("serviceWorker" in navigator) {
   btnJournal?.addEventListener("click", () => {
     if (currentScene !== SCENE_LAKE) return;
     openTrashJournal();
+  });
+
+  btnQuestHud?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (!activeQuest || !questHudMenu) return;
+    renderQuestHudMenu();
+    const willOpen = questHudMenu.classList.contains("hidden");
+    questHudMenu.classList.toggle("hidden", !willOpen);
+    questHudMenu.setAttribute("aria-hidden", willOpen ? "false" : "true");
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!questHudMenu || questHudMenu.classList.contains("hidden")) return;
+    const target = event.target;
+    if (questHudMenu.contains(target) || btnQuestHud?.contains(target)) return;
+    closeQuestHudMenu();
   });
 
   btnInvClose?.addEventListener("click", () => {
@@ -8214,6 +8265,8 @@ if ("serviceWorker" in navigator) {
     btnCity?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnInventory?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnJournal?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
+    btnQuestHud?.classList.toggle("hidden", sceneId !== SCENE_LAKE || !activeQuest);
+    if (sceneId !== SCENE_LAKE) closeQuestHudMenu();
     btnStar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     btnMute?.classList.toggle("hidden", sceneId !== SCENE_LAKE);
     bottomBar?.classList.toggle("hidden", sceneId !== SCENE_LAKE);

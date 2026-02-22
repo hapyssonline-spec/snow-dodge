@@ -66,6 +66,9 @@
         </div>
 
         <div class="topbarSlot topbarSlot-center">
+          <button id="btnQuestHud" class="questHudButton hidden" aria-label="Текущее задание" type="button">
+            <span class="questHudButtonCircle" aria-hidden="true"></span>
+          </button>
           <div id="locationLabel" class="locationLabel hidden">Озеро</div>
           <div id="questReminder" class="questReminder hidden"></div>
         </div>
@@ -81,6 +84,14 @@
           </button>
         </div>
       </header>
+
+      <div id="questHudMenu" class="questHudMenu hidden" aria-hidden="true">
+        <div class="questHudMenuTitle">Текущее задание</div>
+        <div id="questHudSpecies" class="questHudMenuLine">Вид: —</div>
+        <div id="questHudWeight" class="questHudMenuLine">Вес: —</div>
+        <div id="questHudReward" class="questHudMenuLine">Награда: —</div>
+        <div id="questHudStatus" class="questHudMenuStatus">В процессе</div>
+      </div>
 
       <div id="fightHud" class="fightHud hidden" aria-hidden="true">
         <div class="fightHudPanel">

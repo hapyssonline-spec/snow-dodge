@@ -242,8 +242,8 @@ img, a{
   align-items:center;
   padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
   min-height: calc(var(--hud-icon-button-size) + 16px + env(safe-area-inset-top));
-  background: linear-gradient(180deg, rgba(14,28,45,.82), rgba(14,28,45,.42));
-  border-bottom: 1px solid var(--stroke);
+  background: transparent;
+  border-bottom: none;
   gap:5px;
   position:fixed;
   top:0;
@@ -266,6 +266,7 @@ img, a{
   justify-self:center;
   flex-direction:column;
   text-align:center;
+  gap:6px;
 }
 
 .topbarSlot-left{
@@ -276,10 +277,12 @@ img, a{
 .topbarSlot-right{
   justify-self:end;
   pointer-events:none;
+  flex-direction:column;
+  align-items:flex-end;
 }
 .profileButton{
-  width:88px;
-  height:88px;
+  width:104px;
+  height:104px;
   border-radius:50%;
   border:1px solid var(--ui-stroke);
   background: var(--ui-surface);
@@ -329,16 +332,16 @@ img, a{
 }
 .profileLevelBadge{
   position:absolute;
-  right:-8px;
-  bottom:-8px;
-  width:28px;
-  height:28px;
-  min-width:28px;
+  right:-9px;
+  bottom:-9px;
+  width:32px;
+  height:32px;
+  min-width:32px;
   border-radius:999px;
   background: linear-gradient(180deg, #263446, #1b2736);
   border:2px solid rgba(220,238,255,.38);
   color:#e9ecf1;
-  font-size:15.6px;
+  font-size:16.2px;
   font-weight:800;
   display:flex;
   align-items:center;
@@ -366,6 +369,48 @@ img, a{
   border:1px solid rgba(243,206,107,.28);
   box-shadow: 0 6px 14px rgba(7,14,24,.24);
 }
+
+.questHudButton{
+  width:64px;
+  height:64px;
+  border-radius:50%;
+  border:1px solid rgba(220,238,255,.5);
+  background: rgba(11, 20, 32, .52);
+  box-shadow: inset 0 0 0 1px rgba(184,215,255,.12), 0 6px 14px rgba(8,14,22,.3);
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:auto;
+}
+
+.questHudButton:active{ transform:scale(.98); }
+
+.questHudButtonCircle{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, rgba(238,249,255,.9), rgba(135,183,223,.8) 45%, rgba(60,105,145,.88));
+  border:1px solid rgba(214,234,255,.7);
+}
+
+.questHudMenu{
+  position:fixed;
+  top:calc(env(safe-area-inset-top) + 88px);
+  left:50%;
+  transform:translateX(-50%);
+  z-index:7;
+  min-width:min(360px, calc(100vw - 24px));
+  padding:12px 14px;
+  border-radius:16px;
+  background: rgba(10, 20, 30, .86);
+  border:1px solid rgba(170,220,255,.35);
+  box-shadow:0 12px 30px rgba(0,0,0,.32);
+}
+
+.questHudMenuTitle{ font-weight:800; margin-bottom:6px; }
+.questHudMenuLine{ font-size:14px; color:#d9e8ff; line-height:1.3; }
+.questHudMenuStatus{ margin-top:8px; font-size:13px; color:#c9f3ce; font-weight:700; }
 .statIcon{
   font-size:22.1px;
   flex:0 0 auto;
@@ -881,10 +926,10 @@ img, a{
 }
 .bottomRow{
   display:grid;
-  grid-template-columns: minmax(0, 1fr) var(--shop-price-btn-width, 132px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items:center;
   gap:12px;
-  min-height:18px;
+  min-height:36px;
 }
 .breakHint{
   flex:0 0 auto;
@@ -898,12 +943,12 @@ img, a{
   visibility:hidden;
   flex:1 1 auto;
   min-width:0;
-  max-width:58%;
+  max-width:100%;
   font-size:clamp(12px, 2vw, 13px);
   font-weight:500;
-  opacity:0.65;
-  color:rgba(255,255,255,0.75);
-  text-align:right;
+  opacity:0.82;
+  color:rgba(255,255,255,0.92);
+  text-align:left;
 }
 
 .fishHintText.is-visible{
@@ -914,8 +959,12 @@ img, a{
 
 .fishHintLine{
   white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  overflow:visible;
+  text-overflow:clip;
+}
+
+.fishHintWeight{
+  display:none;
 }
 
 .fishHintLine.is-highlighted{
@@ -4072,7 +4121,8 @@ button:disabled{
 
 .topbarSlot-right{
   display:flex;
-  align-items:center;
+  flex-direction:column;
+  align-items:flex-end;
   gap:8px;
 }
 
