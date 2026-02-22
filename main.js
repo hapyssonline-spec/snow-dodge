@@ -7745,7 +7745,6 @@ if ("serviceWorker" in navigator) {
     cityHitboxes.forEach((hitbox) => {
       hitbox.addEventListener("pointerdown", (event) => {
         if (isFighting || currentScene !== SCENE_CITY) return;
-        stopUiEvent(event);
         hitbox.classList.add("is-pressed");
         clearCityTooltipTimers();
         if (navigator.vibrate) {
@@ -7760,14 +7759,19 @@ if ("serviceWorker" in navigator) {
         clearCityTooltipTimers();
         clearCityTooltip();
       };
-      hitbox.addEventListener("pointerup", clearPress);
+      hitbox.addEventListener("pointerup", (event) => {
+        clearPress();
+        openCityBuildingFromHitbox(hitbox, event);
+      });
       hitbox.addEventListener("pointerleave", clearPress);
       hitbox.addEventListener("pointercancel", clearPress);
       hitbox.addEventListener("pointerup", (event) => {
         openCityBuildingFromHitbox(hitbox, event);
       });
       hitbox.addEventListener("click", (event) => {
-        openCityBuildingFromHitbox(hitbox, event);
+        if (event.detail === 0) {
+          openCityBuildingFromHitbox(hitbox, event);
+        }
       });
     });
   }
