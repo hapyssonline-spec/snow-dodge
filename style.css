@@ -2831,7 +2831,71 @@ img, a{
 }
 
 
-.confirmPurchaseCard{ max-width:min(92vw, 440px); }
+#confirmPurchaseOverlay{
+  z-index:220;
+  backdrop-filter: blur(6px);
+  background: rgba(5, 10, 20, .55);
+  transition: opacity .24s ease;
+}
+
+.confirmPurchaseCard{
+  width:min(92vw, 460px);
+  background:linear-gradient(180deg, #1a2942 0%, #101b2e 100%);
+  border:1px solid rgba(118, 201, 255, .28);
+  border-radius:22px;
+  box-shadow:0 22px 44px rgba(0,0,0,.45);
+  transform:scale(.92);
+  opacity:0;
+  transition:transform .26s cubic-bezier(.22,1,.36,1), opacity .26s ease;
+}
+
+#confirmPurchaseOverlay.is-visible .confirmPurchaseCard{
+  transform:scale(1);
+  opacity:1;
+}
+
+.confirmPurchaseTitle{
+  text-align:center;
+  width:100%;
+}
+
+.confirmPurchaseText{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  font-size:17px;
+}
+
+.confirmPurchasePrimary{ font-weight:800; }
+.confirmPurchaseLine{ color:#e7f6ff; }
+.confirmPurchaseSubline{ color:var(--muted); font-size:14px; }
+.confirmPurchaseActions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+.confirmPurchaseCancel{ background:linear-gradient(180deg,#db5555,#a62d2d); border-color:rgba(255,170,170,.4); }
+.confirmPurchaseAccept{
+  background:linear-gradient(180deg,#4cbf78,#2f8f53);
+  border-color:rgba(180,255,210,.42);
+  box-shadow:0 0 0 1px rgba(141,239,177,.25), 0 10px 20px rgba(43,136,78,.35);
+  position:relative;
+  overflow:hidden;
+  animation:confirmPulse 2.6s ease-in-out infinite;
+}
+.confirmPurchaseAccept::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background:linear-gradient(115deg, transparent 25%, rgba(255,255,255,.45) 48%, transparent 72%);
+  transform:translateX(-120%);
+  animation:confirmShimmer 2.8s ease-in-out infinite;
+}
+.confirmPurchaseAccept:hover{ box-shadow:0 0 16px rgba(102,224,146,.45), 0 10px 20px rgba(43,136,78,.4); }
+.confirmPurchaseAccept:active,
+.confirmPurchaseCancel:active{ transform:scale(.98); }
+.confirmPurchaseAccept.is-loading{ pointer-events:none; opacity:.86; }
+.confirmPurchaseAccept.is-loading::after{ animation:none; }
+.confirmPurchaseAccept.is-loading .btnText::after{ content:" ⏳"; }
+
+@keyframes confirmPulse{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.02);} }
+@keyframes confirmShimmer{ 0%{ transform:translateX(-120%);} 60%,100%{ transform:translateX(120%);} }
 
 .locationBannerOverlay{
   position:fixed;
@@ -2841,16 +2905,43 @@ img, a{
   display:grid;
   place-items:center;
   opacity:0;
-  transition:opacity .45s ease;
+  transition:opacity .3s ease;
+}
+.locationBannerOverlay::before{
+  content:"";
+  width:min(60vw,560px);
+  height:min(32vh,220px);
+  border-radius:999px;
+  background:radial-gradient(circle, rgba(112,181,255,.26) 0%, rgba(112,181,255,.08) 45%, transparent 72%);
+  filter:blur(8px);
+  position:absolute;
 }
 .locationBannerOverlay.is-visible{ opacity:1; }
-.locationBannerOverlay.is-fast{ transition-duration:.15s; }
+.locationBannerOverlay.is-speedup{ animation-duration:.33s !important; }
 .locationBannerText{
-  font-size:clamp(28px,5vw,48px);
+  font-size:clamp(34px,7vw,64px);
   font-weight:900;
   color:#f4fbff;
-  text-shadow:0 10px 30px rgba(0,0,0,.5);
+  letter-spacing:.04em;
+  text-shadow:0 12px 26px rgba(0,0,0,.45), 0 0 26px rgba(124,196,255,.28);
+  position:relative;
+  animation:locationBannerEnter .3s cubic-bezier(.22,1,.36,1) both, locationBannerHold 1.05s linear .3s both, locationBannerExit .3s ease 1.65s both;
 }
+.locationBannerText::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.65) 50%, transparent 65%);
+  transform:translateX(-140%);
+  mix-blend-mode:screen;
+  animation:locationBannerShimmer .5s ease .34s both;
+}
+.locationBannerOverlay.is-speedup .locationBannerText{ animation-duration:.1s,.35s,.11s; animation-delay:0s,.1s,.45s; }
+.locationBannerOverlay.is-speedup .locationBannerText::after{ animation-duration:.18s; animation-delay:.12s; }
+@keyframes locationBannerEnter{ from{ opacity:0; filter:blur(8px); transform:scale(.85);} to{ opacity:1; filter:blur(0); transform:scale(1);} }
+@keyframes locationBannerHold{ from{ opacity:1;} to{ opacity:1;} }
+@keyframes locationBannerShimmer{ from{ transform:translateX(-140%);} to{ transform:translateX(140%);} }
+@keyframes locationBannerExit{ from{ opacity:1; transform:scale(1);} to{ opacity:0; transform:scale(.96);} }
 
 .shopContent{
   display:flex;
@@ -3271,6 +3362,9 @@ img, a{
   color:var(--text);
   font-weight:700;
 }
+
+.invMobileSideTabs{ display:none; }
+.invSideTab{ display:none; }
 
 .invList{
   display:flex;
@@ -4438,26 +4532,64 @@ button:disabled{
     gap:12px;
   }
 
-  #invOverlay .invControls{
-    flex-wrap:wrap;
-    justify-content:flex-start;
-    gap:8px;
+  #invOverlay .invHeader{
+    position:relative;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding-right:48px;
   }
 
-  #invOverlay .invControls label{
-    width:100%;
+  #invOverlay #btnInvClose{
+    position:absolute;
+    right:0;
+    top:0;
+    z-index:3;
   }
+
+  #invOverlay .invControls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    padding-right:56px;
+  }
+
+  #invOverlay .invControls label{ width:100%; }
 
   #invOverlay .invControls select{
+    width:100%;
     min-width:0;
-    flex:1 1 52%;
+    flex:1 1 100%;
   }
 
-  #btnInvFishJournal{
-    flex:1 1 44%;
-    min-height:44px;
-    white-space:normal;
+  #btnInvFishJournal{ display:none; }
+
+  .invMobileSideTabs{
+    position:absolute;
+    top:92px;
+    right:-2px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    z-index:2;
   }
+
+  .invSideTab{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;
+    min-height:110px;
+    border:1px solid rgba(130,210,255,.26);
+    border-right:none;
+    border-radius:12px 0 0 12px;
+    background:rgba(10, 21, 36, .92);
+    color:#d6edff;
+    font-weight:800;
+  }
+
+  .invSideTab span{ writing-mode:vertical-rl; transform:rotate(180deg); font-size:12px; letter-spacing:.08em; }
+  .invSideTab.is-active{ background:rgba(26, 61, 101, .95); color:#fff; box-shadow:0 8px 16px rgba(0,0,0,.28); }
 
   #lakeScene.is-fishing #bobberLayer,
   #lakeScene.is-casting #bobberLayer{

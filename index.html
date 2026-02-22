@@ -168,6 +168,11 @@
               </button>
             </div>
 
+            <div class="invMobileSideTabs" aria-hidden="true">
+              <button id="btnInvMobileItemsTab" class="invSideTab is-active" type="button"><span>Инвентарь</span></button>
+              <button id="btnInvMobileJournalTab" class="invSideTab" type="button"><span>Журнал рыб</span></button>
+            </div>
+
             <div id="invItemsView">
               <div id="invEmpty" class="invEmpty hidden">Инвентарь пуст. Поймай рыбу!</div>
               <div id="invList" class="invList scrollable"></div>
@@ -337,9 +342,7 @@
             </div>
             <div class="profileBody modalBody">
               <section class="profileSection">
-                <div class="profileQuickActions">
-                  <button id="btnProfileLeaderboardsOpen" class="chipBtn secondary btn--twoLines"><span class="btnText">Рекорды</span></button>
-                </div>
+                <div class="statRow"><span>Локация</span><span id="profileLocationName">Озеро</span></div>
               </section>
 
               <section class="profileSection">
@@ -356,16 +359,13 @@
                   <div class="statRow"><span>Самая редкая</span><span id="statBestRarity">—</span></div>
                   <div class="statRow"><span>Максимальный вес</span><span id="statMaxWeight">0 кг</span></div>
                 </div>
+                <div class="profileQuickActions">
+                  <button id="btnProfileLeaderboardsOpen" class="chipBtn secondary btn--twoLines"><span class="btnText">Рекорды</span></button>
+                </div>
               </section>
 
               <section class="profileSection">
                 <div class="sectionTitle">Снаряжение</div>
-                <div class="profileGearItem profileGearItem--location">
-                  <div>
-                    <div class="profileGearLabel">Локация</div>
-                    <div id="profileLocationName" class="profileGearValue">Озеро</div>
-                  </div>
-                </div>
                 <div class="profileGearItem">
                   <div>
                     <div class="profileGearLabel">Удочка</div>
@@ -638,14 +638,14 @@
       <div id="confirmPurchaseOverlay" class="hidden modal modalOverlay" aria-hidden="true">
         <div class="modalCard confirmPurchaseCard">
           <div class="modalHeader">
-            <div class="modalTitle modalHeaderTitle">Подтвердите покупку</div>
+            <div class="modalTitle modalHeaderTitle confirmPurchaseTitle">Подтвердите покупку</div>
             <button id="btnConfirmPurchaseClose" class="modalClose" aria-label="Закрыть">×</button>
           </div>
           <div class="modalBody">
-            <div id="confirmPurchaseText" class="profileConfirmText"></div>
-            <div class="profileConfirmActions">
-              <button id="btnConfirmPurchaseCancel" class="chipBtn secondary btn--singleLine"><span class="btnText">Отмена</span></button>
-              <button id="btnConfirmPurchaseAccept" class="chipBtn btn--singleLine"><span class="btnText">Подтвердить</span></button>
+            <div id="confirmPurchaseText" class="confirmPurchaseText"></div>
+            <div class="confirmPurchaseActions">
+              <button id="btnConfirmPurchaseCancel" class="chipBtn confirmPurchaseCancel btn--singleLine"><span class="btnText">Отмена</span></button>
+              <button id="btnConfirmPurchaseAccept" class="chipBtn confirmPurchaseAccept btn--singleLine"><span class="btnText">Подтвердить</span></button>
             </div>
           </div>
         </div>
