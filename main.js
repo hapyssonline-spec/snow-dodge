@@ -3554,8 +3554,10 @@ if ("serviceWorker" in navigator) {
       questReminder.classList.add("hidden");
     }
     const hasActiveQuest = Boolean(activeQuest);
+    const hasCompletedQuest = activeQuest?.status === "completed";
     btnQuestHud?.classList.toggle("hidden", !hasActiveQuest);
-    btnQuestHud?.classList.toggle("is-complete", activeQuest?.status === "completed");
+    btnQuestHud?.classList.toggle("is-complete", hasCompletedQuest);
+    btnQuestHud?.classList.toggle("has-update", hasActiveQuest);
     if (!hasActiveQuest) {
       closeQuestHudMenu();
       return;
