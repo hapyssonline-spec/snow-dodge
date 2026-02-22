@@ -189,7 +189,7 @@ if ("serviceWorker" in navigator) {
     }, 260);
   }
 
-  function renderConfirmPurchaseModalContent({ label, amount, currency, bonusFrom = 0, bonusTo = 0, exchangeGems = 0, rate = 0 }) {
+  function renderConfirmPurchaseModalContent({ label, amount, currency, bonusFrom = 0, bonusTo = 0, exchangeGems = 0, rate = 0, finalAmount = 0, finalCurrency = currency || "coins" }) {
     if (!confirmPurchaseText) return;
     confirmPurchaseText.textContent = "";
 
@@ -200,22 +200,29 @@ if ("serviceWorker" in navigator) {
       confirmPurchaseText.appendChild(titleLine);
     }
 
+    if (finalAmount > 0) {
+      const amountLine = document.createElement("div");
+      amountLine.className = "confirmPurchaseLine";
+      setTextWithCurrencyIcons(amountLine, `Итого: ${formatPriceTag(finalAmount, finalCurrency)}`);
+      confirmPurchaseText.appendChild(amountLine);
+    }
+
     if (bonusTo > 0 && bonusTo > bonusFrom) {
       const bonusLine = document.createElement("div");
       bonusLine.className = "confirmPurchaseLine";
-      setTextWithCurrencyIcons(bonusLine, `Было: ${formatNumber(bonusFrom)} 💎  →  Стало: ${formatNumber(bonusTo)} 💎`);
+      setTextWithCurrencyIcons(bonusLine, `Было: ${formatPriceTag(bonusFrom, finalCurrency)}  →  Стало: ${formatPriceTag(bonusTo, finalCurrency)}`);
       confirmPurchaseText.appendChild(bonusLine);
     }
 
     if (exchangeGems > 0) {
       const exchangeLine = document.createElement("div");
       exchangeLine.className = "confirmPurchaseLine";
-      setTextWithCurrencyIcons(exchangeLine, `Обмен: ${formatNumber(exchangeGems)} 💎 → ${formatNumber(amount)} 🪙`);
+      setTextWithCurrencyIcons(exchangeLine, `Обмен: ${formatPriceTag(exchangeGems, "gems")} → ${formatPriceTag(amount, "coins")}`);
       confirmPurchaseText.appendChild(exchangeLine);
 
       const rateLine = document.createElement("div");
       rateLine.className = "confirmPurchaseSubline";
-      setTextWithCurrencyIcons(rateLine, `Курс: 1 💎 = ${formatNumber(rate || 0)} 🪙`);
+      setTextWithCurrencyIcons(rateLine, `Курс: 1 {gem} = ${formatNumber(rate || 0)} {coin}`);
       confirmPurchaseText.appendChild(rateLine);
       return;
     }
@@ -259,31 +266,32 @@ if ("serviceWorker" in navigator) {
   }
 
   const CURRENCY_ICON_CLASS_MAP = {
-    "💎": "currencyIcon currencyIcon--gem",
-    "🪙": "currencyIcon currencyIcon--coin"
+    "{gem}": "currencyIcon currencyIcon--gem",
+    "{coin}": "currencyIcon currencyIcon--coin"
   };
 
   function setTextWithCurrencyIcons(target, text) {
     if (!target) return;
     const safeText = `${text ?? ""}`;
-    const hasCurrencyEmoji = /[💎🪙]/.test(safeText);
-    if (!hasCurrencyEmoji) {
+    const hasCurrencyToken = /\{gem\}|\{coin\}/.test(safeText);
+    if (!hasCurrencyToken) {
       target.textContent = safeText;
       return;
     }
 
     target.textContent = "";
-    for (const symbol of safeText) {
-      const iconClass = CURRENCY_ICON_CLASS_MAP[symbol];
+    const segments = safeText.split(/(\{gem\}|\{coin\})/g).filter(Boolean);
+    segments.forEach((segment) => {
+      const iconClass = CURRENCY_ICON_CLASS_MAP[segment];
       if (!iconClass) {
-        target.append(document.createTextNode(symbol));
-        continue;
+        target.append(document.createTextNode(segment));
+        return;
       }
       const icon = document.createElement("span");
       icon.className = iconClass;
       icon.setAttribute("aria-hidden", "true");
       target.append(icon);
-    }
+    });
   }
 
   const shopOverlay = document.getElementById("shopOverlay");
@@ -923,7 +931,7 @@ if ("serviceWorker" in navigator) {
 
   function formatPriceTag(amount, currency) {
     if (currency === "yan") return `${formatNumber(amount)} yan`;
-    const icon = currency === "gems" ? "💎" : "🪙";
+    const icon = currency === "gems" ? "{gem}" : "{coin}";
     return `${formatNumber(amount)} ${icon}`;
   }
 
@@ -2454,7 +2462,7 @@ if ("serviceWorker" in navigator) {
     title.textContent = pack.title;
     const amount = document.createElement("div");
     amount.className = "gemsPackAmount";
-    setTextWithCurrencyIcons(amount, `${formatNumber(pack.granted)} 💎`);
+    setTextWithCurrencyIcons(amount, `${formatNumber(pack.granted)} {gem}`);
     meta.append(title, amount);
 
     if (pack.bonusPct > 0) {
@@ -2480,7 +2488,9 @@ if ("serviceWorker" in navigator) {
         amount: pack.priceYan,
         currency: "yan",
         bonusFrom: pack.gems,
-        bonusTo: pack.granted
+        bonusTo: pack.granted,
+        finalAmount: pack.granted,
+        finalCurrency: "gems"
       });
       if (!confirmed) {
         logEvent("gem_purchase_cancel", { packId: pack.id, priceYan: pack.priceYan });
@@ -2495,9 +2505,9 @@ if ("serviceWorker" in navigator) {
           gemsService.add(result.grantedGems, `shop_${pack.id}`);
           logEvent("gem_purchase_result", { packId: pack.id, success: true, grantedGems: result.grantedGems });
           shopVfx.pulseCard(row);
-          shopVfx.flyCurrency({ sourceEl: row, targetEl: btnGemsHud, text: `+${formatNumber(result.grantedGems)} 💎` });
+          shopVfx.flyCurrency({ sourceEl: row, targetEl: btnGemsHud, text: `+${formatNumber(result.grantedGems)} {gem}` });
           shopVfx.popHud(btnGemsHud);
-          showToast(`Покупка успешна: +${formatNumber(result.grantedGems)} 💎`);
+          showToast(`Покупка успешна: +${formatNumber(result.grantedGems)} гемов`);
         } else {
           logEvent("gem_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
           showToast("Покупка недоступна");
@@ -2522,7 +2532,7 @@ if ("serviceWorker" in navigator) {
     title.textContent = pack.title;
     const amount = document.createElement("div");
     amount.className = "gemsPackAmount";
-    setTextWithCurrencyIcons(amount, `${formatNumber(pack.grantedCoins)} 🪙`);
+    setTextWithCurrencyIcons(amount, `${formatNumber(pack.grantedCoins)} {coin}`);
     meta.append(title, amount);
 
     if (pack.bonusPct > 0) {
@@ -2546,7 +2556,11 @@ if ("serviceWorker" in navigator) {
       const confirmed = await openConfirmPurchaseModal({
         label: `Набор «${pack.title}»`,
         amount: pack.priceYan,
-        currency: "yan"
+        currency: "yan",
+        finalAmount: pack.grantedCoins,
+        finalCurrency: "coins",
+        bonusFrom: pack.baseCoins,
+        bonusTo: pack.grantedCoins
       });
       if (!confirmed) return;
       setPriceButtonLoading(buyBtn, true);
@@ -2557,9 +2571,9 @@ if ("serviceWorker" in navigator) {
           coinsService.add(result.grantedCoins, `shop_${pack.id}`);
           logEvent("coin_purchase_result", { packId: pack.id, success: true, grantedCoins: result.grantedCoins });
           shopVfx.pulseCard(row);
-          shopVfx.flyCurrency({ sourceEl: row, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatNumber(result.grantedCoins)} 🪙` });
+          shopVfx.flyCurrency({ sourceEl: row, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatNumber(result.grantedCoins)} {coin}` });
           shopVfx.popHud(coinsEl?.closest('.stat'));
-          showToast(`Покупка успешна: +${formatNumber(result.grantedCoins)} 🪙`);
+          showToast(`Покупка успешна: +${formatNumber(result.grantedCoins)} монет`);
         } else {
           logEvent("coin_purchase_result", { packId: pack.id, success: false, error: result?.error || "UNKNOWN" });
           showToast("Покупка недоступна");
@@ -2625,12 +2639,12 @@ if ("serviceWorker" in navigator) {
   }
 
   function updateExchangeUi() {
-    if (exchangeRateText) setTextWithCurrencyIcons(exchangeRateText, `Курс: 1 💎 = ${exchangeService.getRate()} 🪙`);
+    if (exchangeRateText) setTextWithCurrencyIcons(exchangeRateText, `Курс: 1 {gem} = ${exchangeService.getRate()} {coin}`);
     const gemsValue = Number(exchangeInput?.value);
     const isInt = Number.isInteger(gemsValue);
     const valid = isInt && gemsValue >= 1 && exchangeService.canExchange(gemsValue);
     const coins = isInt && gemsValue >= 1 ? exchangeService.computeCoins(gemsValue) : 0;
-    if (exchangeResult) setTextWithCurrencyIcons(exchangeResult, `Получишь: ${formatCoins(coins)} 🪙`);
+    if (exchangeResult) setTextWithCurrencyIcons(exchangeResult, `Получишь: ${formatCoins(coins)} {coin}`);
     if (btnExchangeSubmit) btnExchangeSubmit.disabled = !valid || btnExchangeSubmit.dataset.loading === "1";
   }
 
@@ -2666,11 +2680,11 @@ if ("serviceWorker" in navigator) {
     const result = exchangeService.exchange(gemsAmount);
     if (result?.success) {
       const exchangePanel = document.getElementById("exchangeTabPanel");
-      shopVfx.flyCurrency({ sourceEl: exchangePanel, targetEl: btnGemsHud, text: `-${gemsAmount} 💎`, negative: true });
-      shopVfx.flyCurrency({ sourceEl: exchangePanel, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatCoins(result.grantedCoins)} 🪙` });
+      shopVfx.flyCurrency({ sourceEl: exchangePanel, targetEl: btnGemsHud, text: `-${gemsAmount} {gem}`, negative: true });
+      shopVfx.flyCurrency({ sourceEl: exchangePanel, targetEl: coinsEl?.closest('.stat') || coinsEl, text: `+${formatCoins(result.grantedCoins)} {coin}` });
       shopVfx.popHud(btnGemsHud);
       shopVfx.popHud(coinsEl?.closest('.stat'));
-      showToast(`Обмен выполнен: +${formatCoins(result.grantedCoins)} 🪙`);
+      showToast(`Обмен выполнен: +${formatCoins(result.grantedCoins)} монет`);
       logEvent("exchange_result", { success: true, gems: gemsAmount, coins: result.grantedCoins });
       if (exchangeInput) exchangeInput.value = "";
     } else {
@@ -3536,7 +3550,7 @@ if ("serviceWorker" in navigator) {
     }
     if (questPreviewSpecies) questPreviewSpecies.textContent = currentPreview.speciesName;
     if (questPreviewWeight) questPreviewWeight.textContent = `${formatKg(currentPreview.minWeightKg)}–${formatKg(currentPreview.maxWeightKg)}`;
-    if (questPreviewReward) questPreviewReward.textContent = `${formatCoins(currentPreview.rewardCoins)} + ${currentPreview.rewardXp} XP`;
+    if (questPreviewReward) setTextWithCurrencyIcons(questPreviewReward, `${formatPriceTag(currentPreview.rewardCoins, "coins")} + ${currentPreview.rewardXp} XP`);
     if (btnQuestAccept) btnQuestAccept.disabled = false;
   }
 
@@ -3563,7 +3577,7 @@ if ("serviceWorker" in navigator) {
       trophyActiveSection.classList.remove("hidden");
       if (activeQuestSpecies) activeQuestSpecies.textContent = activeQuest.speciesName;
       if (activeQuestWeight) activeQuestWeight.textContent = `${formatKg(activeQuest.minWeightKg)}–${formatKg(activeQuest.maxWeightKg)}`;
-      if (activeQuestReward) activeQuestReward.textContent = `${formatCoins(activeQuest.rewardCoins)} + ${activeQuest.rewardXp} XP`;
+      if (activeQuestReward) setTextWithCurrencyIcons(activeQuestReward, `${formatPriceTag(activeQuest.rewardCoins, "coins")} + ${activeQuest.rewardXp} XP`);
       if (activeQuestStatus) {
         const completed = activeQuest.status === "completed";
         activeQuestStatus.textContent = completed ? "Выполнено" : "В процессе";
@@ -5757,7 +5771,7 @@ if ("serviceWorker" in navigator) {
   btnDevAddGems?.addEventListener("click", () => {
     if (!DEV_MODE) return;
     gemsService.add(100, "dev_add_100");
-    showToast("DEV: +100 💎");
+    showToast("DEV: +100 гемов");
   });
   btnDevResetGems?.addEventListener("click", () => {
     if (!DEV_MODE) return;
@@ -5780,7 +5794,7 @@ if ("serviceWorker" in navigator) {
     }
     if (DEV_MODE && event.code === "KeyG") {
       gemsService.add(100, "dev_hotkey_add_100");
-      showToast("DEV: +100 💎");
+      showToast("DEV: +100 гемов");
     }
     if (DEV_MODE && event.code === "Digit0") {
       gemsService.set(0, "dev_hotkey_set_0");
@@ -6479,7 +6493,7 @@ if ("serviceWorker" in navigator) {
 
       const price = document.createElement("div");
       price.className = "invItemPrice";
-      price.textContent = `Цена: ${formatCoins(item.sellValue)}`;
+      setTextWithCurrencyIcons(price, `Цена: ${formatPriceTag(item.sellValue, "coins")}`);
 
       header.append(title, meta);
 
@@ -6846,7 +6860,7 @@ if ("serviceWorker" in navigator) {
 
       const offer = document.createElement("div");
       offer.className = "shopItemMeta";
-      offer.textContent = `Цена: ${formatCoins(item.sellValue)}`;
+      setTextWithCurrencyIcons(offer, `Цена: ${formatPriceTag(item.sellValue, "coins")}`);
 
       const btnSell = document.createElement("button");
       btnSell.className = "invBtn btn--singleLine";
@@ -6947,7 +6961,7 @@ if ("serviceWorker" in navigator) {
         logEvent("book_purchase", { bookId: book.id, currency, price: book.gemsPrice, success: false });
         const deficit = Math.max(1, Math.floor(book.gemsPrice - gemsService.getBalance()));
         const suggestedPack = getSuggestedGemsPack(deficit);
-        showToast(`Не хватает ${deficit} 💎 — открыл магазин`);
+        showToast(`Не хватает ${deficit} гемов — открыл магазин`);
         openGemsShop({ tab: "gems", suggestedPackId: suggestedPack?.id || null });
         setPriceButtonLoading(triggerButton, false);
         return;
