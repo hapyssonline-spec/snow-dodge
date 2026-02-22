@@ -42,6 +42,7 @@ if ("serviceWorker" in navigator) {
   const btnCoinsHud = document.getElementById("btnCoinsHud");
   const btnQuestHud = document.getElementById("btnQuestHud");
   const questHudMenu = document.getElementById("questHudMenu");
+  const questHudButtonIcon = document.querySelector("#btnQuestHud .questHudButtonIcon");
   const questHudSpecies = document.getElementById("questHudSpecies");
   const questHudWeight = document.getElementById("questHudWeight");
   const questHudReward = document.getElementById("questHudReward");
@@ -3557,8 +3558,10 @@ if ("serviceWorker" in navigator) {
     const hasActiveQuest = Boolean(activeQuest);
     const hasCompletedQuest = activeQuest?.status === "completed";
     btnQuestHud?.classList.toggle("hidden", !hasActiveQuest);
-    btnQuestHud?.classList.toggle("is-complete", hasCompletedQuest);
     btnQuestHud?.classList.toggle("has-update", hasActiveQuest);
+    if (questHudButtonIcon) {
+      questHudButtonIcon.src = hasCompletedQuest ? "assets/tiles/quest_complete.png" : "assets/tiles/quest.png";
+    }
     if (!hasActiveQuest) {
       closeQuestHudMenu();
       return;
@@ -5766,7 +5769,8 @@ if ("serviceWorker" in navigator) {
     questHudMenu.setAttribute("aria-hidden", "false");
   });
 
-  btnQuestHudMenuClose?.addEventListener("click", () => {
+  btnQuestHudMenuClose?.addEventListener("click", (event) => {
+    event.stopPropagation();
     closeQuestHudMenu();
   });
 
@@ -5775,7 +5779,7 @@ if ("serviceWorker" in navigator) {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
     if (btnQuestHud?.contains(target)) return;
-    if (target.closest("[data-quest-menu-close='backdrop']")) {
+    if (target.closest("[data-quest-menu-close='backdrop'], [data-quest-menu-close='button']")) {
       closeQuestHudMenu();
     }
   });
