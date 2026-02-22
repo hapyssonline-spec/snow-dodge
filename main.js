@@ -946,6 +946,7 @@ if ("serviceWorker" in navigator) {
     if (!locationBannerOverlay || !locationBannerText) return;
     if (locationBannerHideTimer) window.clearTimeout(locationBannerHideTimer);
     locationBannerText.textContent = locationName;
+    locationBannerText.setAttribute("data-text", locationName);
     locationBannerOverlay.classList.remove("hidden", "is-speedup");
     locationBannerOverlay.setAttribute("aria-hidden", "false");
     requestAnimationFrame(() => locationBannerOverlay.classList.add("is-visible"));
