@@ -179,6 +179,8 @@ if ("serviceWorker" in navigator) {
   function closeConfirmPurchaseModal() {
     confirmPurchaseOverlay?.classList.remove("is-visible");
     confirmPurchaseOverlay?.setAttribute("aria-hidden", "true");
+    btnConfirmPurchaseCancel?.removeAttribute("disabled");
+    btnConfirmPurchaseClose?.removeAttribute("disabled");
     btnConfirmPurchaseAccept?.classList.remove("is-loading");
     btnConfirmPurchaseAccept?.removeAttribute("disabled");
     window.setTimeout(() => {
@@ -236,7 +238,9 @@ if ("serviceWorker" in navigator) {
   function openConfirmPurchaseModal(options) {
     return new Promise((resolve) => {
       if (!confirmPurchaseOverlay) return resolve(false);
-      renderConfirmPurchaseModalContent(options || {});
+      const config = options || {};
+      const forceConfirmOnly = config.forceConfirmOnly === true;
+      renderConfirmPurchaseModalContent(config);
       let done = false;
       const finish = (ok) => {
         if (done) return;
@@ -255,6 +259,8 @@ if ("serviceWorker" in navigator) {
       const onCancel = () => finish(false);
       btnConfirmPurchaseAccept?.classList.remove("is-loading");
       btnConfirmPurchaseAccept?.removeAttribute("disabled");
+      btnConfirmPurchaseCancel?.toggleAttribute("disabled", forceConfirmOnly);
+      btnConfirmPurchaseClose?.toggleAttribute("disabled", forceConfirmOnly);
       btnConfirmPurchaseAccept?.addEventListener("click", onAccept);
       btnConfirmPurchaseCancel?.addEventListener("click", onCancel);
       btnConfirmPurchaseClose?.addEventListener("click", onCancel);
@@ -262,6 +268,11 @@ if ("serviceWorker" in navigator) {
       requestAnimationFrame(() => confirmPurchaseOverlay.classList.add("is-visible"));
       confirmPurchaseOverlay.setAttribute("aria-hidden", "false");
       updateModalLayerState();
+      if (typeof config.onShown === "function") {
+        requestAnimationFrame(() => {
+          config.onShown();
+        });
+      }
     });
   }
 
@@ -6211,7 +6222,7 @@ if ("serviceWorker" in navigator) {
     if (["city-force-trophy-claim-open", "city-force-quests-claim-open", "city-force-quest-claim"].includes(guideStep)) {
       return;
     }
-    if (["city-fishshop-intro", "city-fishshop-single-sell", "city-fishshop-sell-all", "city-gear-buy-bait"].includes(guideStep)) {
+    if (["city-fishshop-intro", "city-fishshop-single-sell", "city-fishshop-sell-all", "city-gear-buy-bait", "city-gear-confirm-purchase"].includes(guideStep)) {
       return;
     }
     if (stageManager) {
@@ -7048,11 +7059,13 @@ if ("serviceWorker" in navigator) {
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${bait.name}</div>
-            <div class="shopItemMeta">${formatPriceTag(bait.price, "coins")}</div>
+            <div class="shopItemMeta js-item-price"></div>
           </div>
           <div class="shopItemMeta">${bait.note}</div>
           <div class="shopItemMeta">В наличии: ${count}</div>
         `;
+        const priceEl = item.querySelector(".js-item-price");
+        if (priceEl) setTextWithCurrencyIcons(priceEl, formatPriceTag(bait.price, "coins"));
         const actions = document.createElement("div");
         actions.className = "shopControls";
         const buyBtn = document.createElement("button");
@@ -7064,7 +7077,27 @@ if ("serviceWorker" in navigator) {
           if (!unlocked) return;
           if (buyBtn.dataset.loading === "1") return;
           if (player.coins < bait.price) return;
-          const confirmed = await openConfirmPurchaseModal({ label: `Набор наживки «${bait.name}»`, amount: bait.price, currency: "coins" });
+          const showConfirmTutorial = guideStep === "city-gear-buy-bait";
+          if (showConfirmTutorial) {
+            setGuideStep("city-gear-confirm-purchase");
+          }
+          const confirmed = await openConfirmPurchaseModal({
+            label: `Набор наживки «${bait.name}»`,
+            amount: bait.price,
+            currency: "coins",
+            forceConfirmOnly: showConfirmTutorial,
+            onShown: () => {
+              if (!showConfirmTutorial) return;
+              showGuideOverlay({
+                title: "Подтвердите покупку",
+                text: "Для продолжения обучения нажми кнопку «Подтвердить».",
+                showButton: false,
+                preferredSide: "top",
+                cardTop: 100,
+                spotlightRect: getSpotlightRect(btnConfirmPurchaseAccept, 16)
+              });
+            }
+          });
           if (!confirmed) return;
           setPriceButtonLoading(buyBtn, true);
           player.coins -= bait.price;
@@ -7075,7 +7108,7 @@ if ("serviceWorker" in navigator) {
           updateProfileStatsUI();
           refreshProfileGearPicker();
           setPriceButtonLoading(buyBtn, false);
-          if (guideStep === "city-gear-buy-bait") {
+          if (guideStep === "city-gear-buy-bait" || guideStep === "city-gear-confirm-purchase") {
             setGuideStep("city-gear-close");
             showGuideOverlay({
               title: "Покупка завершена",
@@ -7125,11 +7158,13 @@ if ("serviceWorker" in navigator) {
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${rod.name}</div>
-            <div class="shopItemMeta">${formatPriceTag(rod.price, "coins")}</div>
+            <div class="shopItemMeta js-item-price"></div>
           </div>
           <div class="shopItemMeta">Эффект: +${Math.round((rod.safeZoneBonus || 0) * 100)}% зона натяжения, +${Math.round((rod.rareBonus || 0) * 100)}% редкость</div>
           ${purchasedTag}
         `;
+        const priceEl = item.querySelector(".js-item-price");
+        if (priceEl) setTextWithCurrencyIcons(priceEl, formatPriceTag(rod.price, "coins"));
         const btn = document.createElement("button");
         btn.className = "invBtn btn--singleLine";
         if (!unlocked) {
@@ -7190,12 +7225,14 @@ if ("serviceWorker" in navigator) {
         item.innerHTML = `
           <div class="shopItemHeader">
             <div class="shopItemTitle">${line.name}</div>
-            <div class="shopItemMeta">${formatPriceTag(line.price, "coins")}</div>
+            <div class="shopItemMeta js-item-price"></div>
           </div>
           <div class="shopItemMeta">Макс. вес: ${line.maxKg} кг</div>
           <div class="shopItemMeta">Эффект: ${Math.round((line.rareBonus || 0) * 100)}% редкость, риск ${riskText}</div>
           ${purchasedTag}
         `;
+        const priceEl = item.querySelector(".js-item-price");
+        if (priceEl) setTextWithCurrencyIcons(priceEl, formatPriceTag(line.price, "coins"));
         const btn = document.createElement("button");
         btn.className = "invBtn btn--singleLine";
         if (!unlocked) {
